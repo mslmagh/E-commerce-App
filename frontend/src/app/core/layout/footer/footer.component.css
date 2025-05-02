@@ -1,0 +1,31 @@
+
+
+.app-footer {
+  background-color: #343a40;
+  color: #adb5bd;
+  padding: 25px 0;
+  margin-top: 50px;
+  text-align: center;
+  font-size: 0.9rem;
+  border-top: 1px solid #495057;
+}
+
+.app-footer .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+.app-footer a {
+  color: #ced4da;
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}

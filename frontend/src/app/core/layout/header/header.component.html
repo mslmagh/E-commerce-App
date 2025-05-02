@@ -1,0 +1,34 @@
+<header class="app-header">
+  <div class="container"> <div class="logo">
+      <a routerLink="/">E-Ticaret Sitem</a>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" placeholder="Ürün, kategori veya marka ara...">
+      <button type="button" class="search-button">
+        Ara
+      </button>
+    </div>
+
+    <div class="user-actions">
+
+      <div class="account-menu action-item">
+        <div class="account-trigger" tabindex="0">
+          <i class="fa-regular fa-user"></i> <span>Hesabım</span>
+        </div>
+        <div class="dropdown-content">
+          <a routerLink="/auth/login">Giriş Yap</a>
+          <a routerLink="/auth/register">Kayıt Ol</a>
+          </div>
+      </div>
+
+      <a routerLink="/favorites" class="action-item favorites-link">
+        <i class="fa-regular fa-heart"></i> <span>Favorilerim</span>
+      </a>
+
+      <a routerLink="/cart" class="action-item cart-link">
+        <i class="fa-solid fa-cart-shopping"></i> <span>Sepetim</span>
+        </a>
+
+    </div> </div> </header>
+

@@ -6,12 +6,12 @@ import { CommonModule } from '@angular/common';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 // AuthService'i import ediyoruz
 import { AuthService } from '../../../core/services/auth.service';
-// import { Router } from '@angular/router'; // Yönlendirme için ileride
+ import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule,RouterLink],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css'] // veya .scss
 })

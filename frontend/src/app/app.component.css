@@ -1,0 +1,17 @@
+
+
+:host {
+  display: flex;          /* Component'i flex container yap */
+  flex-direction: column; /* İçindekileri (header, main, footer) dikey sırala */
+  min-height: 100vh;      /* Minimum yüksekliği ekran yüksekliği kadar yap */
+}
+
+
+main {
+  flex: 1 0 auto;
+}
+
+/* Header ve Footer'ın içerik azken küçülmesini engelle */
+app-header, app-footer {
+  flex-shrink: 0;
+}

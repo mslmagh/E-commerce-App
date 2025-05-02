@@ -1,5 +1,4 @@
-<div class="login-container">
-  <h2>Giriş Yap</h2>
+<div class="login-container"> <h2>Giriş Yap</h2>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
 
@@ -15,11 +14,11 @@
              formControlName="password">
       </div>
 
-      <button type="submit" [disabled]="loginForm.invalid">Giriş Yap</button>
+    <button type="submit" [disabled]="loginForm.invalid">Giriş Yap</button>
 
   </form>
 
-  <div class="register-link">
-     <p>Hesabın yok mu? <a routerLink="../register">Kayıt Ol</a></p>
-  </div>
+  <div class="register-link"> <p>Hesabın yok mu? <a routerLink="../register">Kayıt Ol</a></p>
+                       </div>
+
 </div>
