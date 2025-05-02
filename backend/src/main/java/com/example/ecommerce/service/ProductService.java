@@ -113,6 +113,17 @@ public class ProductService {
         return convertToDto(updatedProduct);
     }
 
+    public void deleteProduct(Long id) {
+        // 1. Check if the product exists before attempting deletion.
+        if (!productRepository.existsById(id)) {
+            // 2. If not found, throw the specific exception.
+            throw new ResourceNotFoundException("Product not found with id: " + id + ". Cannot delete.");
+        }
+        // 3. If found, proceed with deletion.
+        productRepository.deleteById(id);
+        // deleteById usually returns void.
+    }
+
 
     /**
      * Helper method to convert a Product entity to a ProductDto.
