@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity; // Import ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping; // Import PutMapping
+import org.springframework.web.bind.annotation.DeleteMapping; // Import DeleteMapping
+import org.springframework.http.HttpStatus; // Import HttpStatus (optional, for ResponseEntity status)
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -130,5 +132,29 @@ public class ProductController {
         ) {
             ProductDto updatedProductDto = productService.updateProduct(id, requestDto);
             return ResponseEntity.ok(updatedProductDto);
+        }
+
+        @Operation(summary = "Delete a Product by ID", description = "Deletes a specific product by its unique ID.")
+        @Parameter(description = "ID of the product to delete", required = true, example = "1")
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "204", description = "Product deleted successfully",
+                        content = @Content), // No content for 204 response
+                @ApiResponse(responseCode = "404", description = "Product not found with the specified ID",
+                        content = @Content), // Content handled by GlobalExceptionHandler
+                @ApiResponse(responseCode = "500", description = "Internal server error",
+                        content = @Content)
+        })
+        @DeleteMapping("/{id}") // Handles DELETE requests to /api/products/{id}
+        public ResponseEntity<Void> deleteProduct(
+                @PathVariable Long id // Extracts the 'id' value from the URL path
+        ) {
+            // Call the service to delete the product.
+            // If the product doesn't exist, the service will throw ResourceNotFoundException,
+            // which GlobalExceptionHandler will turn into a 404 response.
+            productService.deleteProduct(id);
+    
+            // If deletion is successful (no exception thrown), return HTTP 204 No Content.
+            // This is the standard practice for successful DELETE operations.
+            return ResponseEntity.noContent().build();
         }
 }
