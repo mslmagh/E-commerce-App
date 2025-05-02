@@ -3,6 +3,7 @@ import java.util.Optional;  // Import Optional for handling optional values
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
 import com.example.ecommerce.dto.CreateProductRequestDto; // Import CreateProductRequestDto
+import com.example.ecommerce.dto.UpdateProductRequestDto;
 import com.example.ecommerce.entity.Product;       // Import Product entity
 import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
 import org.springframework.beans.factory.annotation.Autowired; // Import Autowired
@@ -89,6 +90,29 @@ public class ProductService {
         // 4. Convert the saved entity back to a DTO to return it
         return convertToDto(savedProduct);
     }
+    /**
+     * @param id The ID of the product to update.
+     * @param requestDto DTO containing the updated product details.
+     * @return ProductDto representing the updated product.
+     * @throws ResourceNotFoundException if no product with the given ID exists.
+     */
+    public ProductDto updateProduct(Long id, UpdateProductRequestDto requestDto) {
+        // 1. Find the existing product by ID. Throw exception if not found.
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        // 2. Update the fields of the existing entity with data from the DTO
+        existingProduct.setName(requestDto.getName());
+        existingProduct.setDescription(requestDto.getDescription());
+        existingProduct.setPrice(requestDto.getPrice());
+
+        // 3. Save the updated entity back to the database
+        Product updatedProduct = productRepository.save(existingProduct);
+
+        // 4. Convert the updated entity to DTO and return it
+        return convertToDto(updatedProduct);
+    }
+
 
     /**
      * Helper method to convert a Product entity to a ProductDto.
