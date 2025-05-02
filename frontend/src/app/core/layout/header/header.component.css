@@ -1,0 +1,131 @@
+/* frontend/src/app/core/layout/header/header.component.css */
+/* SON HAL - YORUM SATIRSIZ */
+
+.app-header {
+  background-color: #ffffff;
+  padding: 15px 0;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+
+.app-header .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
+.logo a {
+  text-decoration: none;
+  color: #343a40;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.search-bar {
+  flex-grow: 1;
+  display: flex;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.search-input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  font-size: 1rem;
+  border: 1px solid #ced4da;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  outline: none;
+}
+.search-input::placeholder {
+  color: #adb5bd;
+}
+.search-input:focus {
+   border-color: #86b7fe;
+
+   z-index: 2;
+   position: relative;
+}
+
+.search-button {
+  padding: 10px 20px;
+  border: 1px solid #ced4da;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
+  color: #495057;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-left: -1px;
+}
+.search-button:hover {
+    background-color: #e9ecef;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  flex-shrink: 0;
+}
+
+.action-item {
+   display: flex;
+   align-items: center;
+   text-decoration: none;
+   color: #495057;
+   gap: 6px;
+   cursor: pointer;
+   white-space: nowrap;
+   font-size: 0.95rem;
+}
+ .action-item:hover {
+    color: #0056b3;
+ }
+
+.account-menu {
+  position: relative;
+}
+
+.account-trigger {
+  padding: 5px;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.dropdown-content a {
+  color: #333;
+  padding: 10px 15px;
+  text-decoration: none;
+  display: block;
+  font-size: 14px;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+.account-menu:hover .dropdown-content {
+  display: block;
+}
+

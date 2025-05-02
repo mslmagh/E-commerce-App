@@ -1,17 +1,16 @@
-// frontend/src/app/features/auth/login/login.component.ts
-// GÜNCELLENMİŞ TAM HAL (Token Saklama Çağrısı Eklendi)
+
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
-// AuthService importu (Yolun doğru olduğundan emin ol!)
+
 import { AuthService } from '../../../core/services/auth.service';
-// import { Router } from '@angular/router'; // Yönlendirme için ileride
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule,RouterLink],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
