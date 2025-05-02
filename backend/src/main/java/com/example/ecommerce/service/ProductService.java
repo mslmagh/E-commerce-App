@@ -1,4 +1,5 @@
 package com.example.ecommerce.service;
+import java.util.Optional;  // Import Optional for handling optional values
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
 import com.example.ecommerce.entity.Product;       // Import Product entity
