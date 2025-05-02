@@ -2,11 +2,11 @@ package com.example.ecommerce.service;
 import java.util.Optional;  // Import Optional for handling optional values
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
+import com.example.ecommerce.dto.CreateProductRequestDto; // Import CreateProductRequestDto
 import com.example.ecommerce.entity.Product;       // Import Product entity
 import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
 import org.springframework.beans.factory.annotation.Autowired; // Import Autowired
 import org.springframework.stereotype.Service;           // Import Service annotation
-
 import java.util.List;
 import java.util.stream.Collectors; // Import Collectors for stream processing
 

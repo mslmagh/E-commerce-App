@@ -14,15 +14,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity; // Import ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.ecommerce.dto.CreateProductRequestDto; // Import the request DTO
 import jakarta.validation.Valid; // Import @Valid for validation
 import org.springframework.http.HttpStatus; // Can be used for ResponseEntity status
-import org.springframework.web.bind.annotation.RequestBody; // Import @RequestBody
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder; // To build the location URI
 import java.util.List; // Import List
-
+import java.net.URI;
 @RestController // Marks this class as a REST controller
 @RequestMapping("/api/products") // Base path for all endpoints in this controller
 @Tag(name = "Product API", description = "API endpoints for managing products") // Swagger UI tag
@@ -75,7 +76,7 @@ public class ProductController {
     }
     @Operation(summary = "Create a New Product", description = "Adds a new product to the catalog.")
     // Describe the request body for Swagger
-    @SwaggerRequestBody(description = "Product data to create", required = true,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Product data to create", required = true,
             content = @Content(schema = @Schema(implementation = CreateProductRequestDto.class)))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Product created successfully",
