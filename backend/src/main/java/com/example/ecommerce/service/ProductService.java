@@ -1,5 +1,6 @@
 package com.example.ecommerce.service;
-
+import java.util.Optional;  // Import Optional for handling optional values
+import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
 import com.example.ecommerce.entity.Product;       // Import Product entity
 import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
@@ -36,6 +37,35 @@ public class ProductService {
 
         // 3. Return the list of DTOs
         return productDtos;
+    }
+
+     /**
+     * Retrieves a single product by its ID.
+     * Throws ResourceNotFoundException if the product is not found.
+     * @param id The ID of the product to retrieve.
+     * @return The ProductDto for the found product.
+     * @throws ResourceNotFoundException if no product with the given ID exists.
+     */
+    public ProductDto getProductById(Long id) {
+        // 1. Find the Product entity by ID using the repository.
+        //    findById returns an Optional<Product>.
+        Optional<Product> productOptional = productRepository.findById(id);
+
+        // 2. Check if the product was found.
+        if (productOptional.isPresent()) {
+            // 3. If found, get the Product entity from the Optional.
+            Product product = productOptional.get();
+            // 4. Convert the entity to DTO and return it.
+            return convertToDto(product);
+        } else {
+            // 5. If not found, throw an exception.
+            //    We will create a specific ResourceNotFoundException later.
+            //    For now, we can throw a standard RuntimeException or create a basic one.
+            //    Let's assume we have ResourceNotFoundException for now.
+            throw new ResourceNotFoundException("Product not found with id: " + id);
+            // Alternative (without custom exception yet):
+            // throw new RuntimeException("Product not found with id: " + id);
+        }
     }
 
     /**

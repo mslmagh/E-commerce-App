@@ -1,5 +1,7 @@
 package com.example.ecommerce.controller;
 
+import io.swagger.v3.oas.annotations.Parameter; // Import Parameter annotation
+import org.springframework.web.bind.annotation.PathVariable; // Import PathVariable annotation
 import com.example.ecommerce.dto.ProductDto; // Import ProductDto
 import com.example.ecommerce.service.ProductService; // Import ProductService
 import io.swagger.v3.oas.annotations.Operation; // Import Swagger annotations
@@ -47,5 +49,24 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    // Add other endpoints here later (e.g., GET /api/products/{id}, POST /api/products, etc.)
+    @Operation(summary = "Get Product by ID", description = "Retrieves a specific product by its unique ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved the product",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ProductDto.class)) }), // Returns ProductDto on success
+            @ApiResponse(responseCode = "404", description = "Product not found with the specified ID",
+                    content = @Content) // Content can be empty or a simple string from GlobalExceptionHandler
+    })
+    @GetMapping("/{id}") // Handles GET requests like /api/products/1, /api/products/2 etc.
+    public ResponseEntity<ProductDto> getProductById(
+            @Parameter(description = "ID of the product to retrieve", required = true, example = "1") // Swagger parameter description
+            @PathVariable Long id // Extracts the 'id' value from the URL path
+    ) {
+        // Call the service method to get the product DTO by ID
+        // If the product is not found, ProductService will throw ResourceNotFoundException,
+        // which will be caught by GlobalExceptionHandler to return 404.
+        ProductDto productDto = productService.getProductById(id);
+        // If found, return the DTO with HTTP 200 OK status
+        return ResponseEntity.ok(productDto);
+    }
 }
