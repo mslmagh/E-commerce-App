@@ -135,7 +135,7 @@ public class ProductController {
         }
 
         @Operation(summary = "Delete a Product by ID", description = "Deletes a specific product by its unique ID.")
-        @Parameter(description = "ID of the product to delete", required = true, example = "1")
+        //@Parameter(description = "ID of the product to delete", required = true, example = "1")
         @ApiResponses(value = {
                 @ApiResponse(responseCode = "204", description = "Product deleted successfully",
                         content = @Content), // No content for 204 response
