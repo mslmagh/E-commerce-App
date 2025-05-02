@@ -111,7 +111,7 @@ public class ProductController {
     }
 
         @Operation(summary = "Update an Existing Product", description = "Updates the details of a product specified by its ID.")
-        @Parameter(description = "ID of the product to update", required = true, example = "1")
+        //@Parameter(description = "ID of the product to update", required = true, example = "1")
         @io.swagger.v3.oas.annotations.parameters.RequestBody( // Use fully qualified name for Swagger's RequestBody
                 description = "Updated product data", required = true,
                 content = @Content(schema = @Schema(implementation = UpdateProductRequestDto.class)))
@@ -126,7 +126,7 @@ public class ProductController {
         @PutMapping("/{id}") // Handles PUT requests to /api/products/{id}
         public ResponseEntity<ProductDto> updateProduct(
                 @PathVariable Long id,
-                @Valid @RequestBody UpdateProductRequestDto requestDto // Use Spring's RequestBody here
+                 @RequestBody UpdateProductRequestDto requestDto // Use Spring's RequestBody here
         ) {
             ProductDto updatedProductDto = productService.updateProduct(id, requestDto);
             return ResponseEntity.ok(updatedProductDto);
