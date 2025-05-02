@@ -1,0 +1,100 @@
+# İşletim Sistemi Özel Dosyaları
+.DS_Store
+Thumbs.db
+
+# Log Dosyaları
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Çalışma Zamanı Verileri
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dizinler
+node_modules/
+dist/
+tmp/
+out/
+target/
+.mvn/
+.angular/cache/
+
+# IDE ve Editör Özel Dosyaları
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.sublime-workspace
+.sts4-cache/
+.factorypath
+.springBeans
+.loadpath
+.externalToolBuilders/
+*.launch
+
+# Derlenmiş Java Dosyaları
+*.class
+
+# Paket Dosyaları (Maven/Gradle tarafından 'target' veya 'build' içinde yönetilmeli)
+# *.jar
+# *.war
+# *.ear
+# *.nar
+
+# Maven Özel
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Gradle Özel
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!build/libs
+
+# Diğer
+hs_err_pid*
+.mtj.tmp/
+.apt_generated
+.recommenders
+local.properties
+.DS_Store
+*~
+*.swp
+*.bak
+.sass-cache/
+connect.lock
+coverage/
+libpeerconnection.log
+testem.log
+typings/
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
