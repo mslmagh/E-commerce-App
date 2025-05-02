@@ -16,7 +16,11 @@ import org.springframework.http.ResponseEntity; // Import ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import com.example.ecommerce.dto.CreateProductRequestDto; // Import the request DTO
+import jakarta.validation.Valid; // Import @Valid for validation
+import org.springframework.http.HttpStatus; // Can be used for ResponseEntity status
+import org.springframework.web.bind.annotation.RequestBody; // Import @RequestBody
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder; // To build the location URI
 import java.util.List; // Import List
 
 @RestController // Marks this class as a REST controller
@@ -68,5 +72,38 @@ public class ProductController {
         ProductDto productDto = productService.getProductById(id);
         // If found, return the DTO with HTTP 200 OK status
         return ResponseEntity.ok(productDto);
+    }
+    @Operation(summary = "Create a New Product", description = "Adds a new product to the catalog.")
+    // Describe the request body for Swagger
+    @SwaggerRequestBody(description = "Product data to create", required = true,
+            content = @Content(schema = @Schema(implementation = CreateProductRequestDto.class)))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Product created successfully",
+                    content = { @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ProductDto.class)) }), // Returns the created ProductDto
+            @ApiResponse(responseCode = "400", description = "Invalid input data provided (validation failed)",
+                    content = @Content), // Body might contain validation errors (handled by Spring Boot default or GlobalExceptionHandler)
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content)
+    })
+    @PostMapping // Handles POST requests to /api/products
+    public ResponseEntity<ProductDto> createProduct(
+            @Valid // Enables validation on the request DTO based on annotations (@NotBlank etc.)
+            @RequestBody // Binds the incoming request JSON body to the DTO object
+            CreateProductRequestDto requestDto
+    ) {
+        // 1. Call the service to create the product and get the resulting DTO (with ID)
+        ProductDto createdProductDto = productService.createProduct(requestDto);
+
+        // 2. Build the URI for the 'Location' header of the response.
+        //    This tells the client where to find the newly created resource.
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest() // Start from the current request path (/api/products)
+                .path("/{id}") // Append /{id}
+                .buildAndExpand(createdProductDto.getId()) // Replace {id} with the actual ID
+                .toUri(); // Convert to URI object
+
+        // 3. Return HTTP 201 Created status, Location header, and the created product DTO in the body
+        return ResponseEntity.created(location).body(createdProductDto);
     }
 }
