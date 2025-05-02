@@ -1,9 +1,12 @@
 // frontend/src/app/features/auth/register/register.component.ts
-// SON HAL - YORUM SATIRSIZ
+// SON HAL (AuthService Kullanımı ve Şifre Eşleşme Kontrolü Dahil - Yorumsuz)
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+// AuthService'i import ediyoruz
+import { AuthService } from '../../../core/services/auth.service';
+// import { Router } from '@angular/router'; // Yönlendirme için ileride
 
 @Component({
   selector: 'app-register',
@@ -16,7 +19,11 @@ export class RegisterComponent implements OnInit {
 
   registerForm!: FormGroup;
 
-  constructor() { }
+  // AuthService'i enjekte ediyoruz
+  constructor(
+    private authService: AuthService
+    // private router: Router // İleride
+  ) { }
 
   ngOnInit(): void {
     this.registerForm = new FormGroup({
@@ -33,31 +40,45 @@ export class RegisterComponent implements OnInit {
   passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
-
     if (!password || !confirmPassword || !password.value || !confirmPassword.value) {
       return null;
     }
-
     return password.value === confirmPassword.value ? null : { passwordsMismatch: true };
   };
 
+  // onSubmit metodunu AuthService'i kullanacak şekilde güncelliyoruz
   onSubmit(): void {
     console.log('Register Form Submitted!');
 
-    if (this.registerForm.valid) {
-      console.log('Form is valid');
-      const registrationData = {
-         name: this.registerForm.value.name,
-         email: this.registerForm.value.email,
-         password: this.registerForm.value.password
-      };
-      console.log('Form Values (to send):', registrationData);
-      // TODO: AuthService.register(registrationData)...
-    } else {
-      console.log('Form is invalid');
+    if (this.registerForm.invalid) {
+      console.log('Form is invalid - submission prevented.');
       console.log('Form Errors:', this.registerForm.errors);
       // this.registerForm.markAllAsTouched();
+      return;
     }
+
+    console.log('Form is valid, calling authService.register...');
+    const registrationData = {
+       name: this.registerForm.value.name,
+       email: this.registerForm.value.email,
+       password: this.registerForm.value.password // Sadece asıl şifre gönderilir
+    };
+
+    this.authService.register(registrationData).subscribe({
+      next: (response) => {
+        console.log('Registration successful!', response);
+        alert('Kayıt Başarılı! Lütfen giriş yapın.');
+        // TODO: Kullanıcıyı login sayfasına yönlendir
+        // this.router.navigate(['/auth/login']);
+        // this.registerForm.reset(); // Formu temizle
+      },
+      error: (error) => {
+        console.error('Registration failed:', error);
+        const errorMessage = error.error?.message || error.message || 'Kayıt sırasında bir hata oluştu.';
+        alert('Kayıt Başarısız! Hata: ' + errorMessage);
+        // TODO: Daha iyi hata gösterimi
+      }
+    });
   }
 
   get name() { return this.registerForm.get('name'); }

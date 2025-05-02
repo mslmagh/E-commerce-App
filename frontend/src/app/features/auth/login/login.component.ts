@@ -1,59 +1,73 @@
 // frontend/src/app/features/auth/login/login.component.ts
+// GÜNCELLENMİŞ TAM HAL (Token Saklama Çağrısı Eklendi)
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-// Reactive Forms için GEREKLİ importlar:
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
+// AuthService importu (Yolun doğru olduğundan emin ol!)
+import { AuthService } from '../../../core/services/auth.service';
+// import { Router } from '@angular/router'; // Yönlendirme için ileride
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  // ReactiveFormsModule'ün burada olması ÇOK ÖNEMLİ:
-  imports: [
-    CommonModule,
-    ReactiveFormsModule // Form direktiflerinin çalışması için gerekli
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
 
-  // Form grubumuz (HTML'deki [formGroup] ile aynı isimde olmalı)
   loginForm!: FormGroup;
 
-  constructor() { } // Constructor şimdilik boş kalabilir
+  // AuthService enjekte edildi
+  constructor(
+    private authService: AuthService
+    // private router: Router // Yönlendirme için ileride
+    ) { }
 
   ngOnInit(): void {
-    // Component yüklendiğinde formu ve kontrollerini oluşturuyoruz
     this.loginForm = new FormGroup({
-      // email kontrolü: başlangıç değeri null, Zorunlu ve Email formatında olmalı
       'email': new FormControl(null, [Validators.required, Validators.email]),
-      // password kontrolü: başlangıç değeri null, Zorunlu olmalı
       'password': new FormControl(null, Validators.required)
     });
-
-    // Formun başlangıçtaki durumunu görmek için konsola yazdıralım (DEBUG)
-    console.log('Initial Form Status:', this.loginForm.status);
-    // this.loginForm.statusChanges.subscribe(status => { // Durum değişimlerini izlemek için (DEBUG)
-    //   console.log('Form Status Changed:', status);
-    // });
   }
 
-  // Form gönderildiğinde çalışacak fonksiyon (HTML'deki (ngSubmit) ile bağlanacak)
   onSubmit(): void {
-    console.log('onSubmit triggered!'); // Metodun çalıştığını görelim
-    if (this.loginForm.valid) {
-      console.log('Form is valid');
-      console.log('Form Values:', this.loginForm.value);
-      // İleride: this.authService.login(...) çağrılacak
-    } else {
-      console.log('Form is invalid');
-      // Kullanıcıya uyarı gösterme veya geçersiz alanları işaretleme işlemleri yapılabilir
-      // Örnek: this.loginForm.markAllAsTouched();
+    console.log('onSubmit triggered!');
+    if (this.loginForm.invalid) {
+      console.log('Form is invalid - submission prevented.');
+      // this.loginForm.markAllAsTouched();
+      return;
     }
+
+    console.log('Form is valid, calling authService.login...');
+    const email = this.loginForm.value.email;
+    const password = this.loginForm.value.password;
+
+    this.authService.login(email, password).subscribe({
+      next: (response) => { // <-- GÜNCELLENMİŞ KISIM BAŞLANGICI
+        console.log('Login successful!', response);
+        // Backend cevabında 'token' alanı olduğunu varsayıyoruz
+        if (response && response.token) {
+          console.log('Token received:', response.token);
+          // AuthService'e token'ı kaydetmesi için gönder
+          this.authService.saveToken(response.token);
+          alert('Giriş Başarılı! Token kaydedildi (localStorage).');
+          // TODO: Yönlendirme (this.router.navigate...)
+        } else {
+          // Token gelmediyse veya cevap formatı farklıysa hata ver
+          console.error('Token not found in response object:', response);
+          alert('Giriş başarılı ancak token alınamadı!');
+        } // <-- GÜNCELLENMİŞ KISIM SONU
+      },
+      error: (error) => {
+        console.error('Login failed:', error);
+        const errorMessage = error.error?.message || error.message || 'Giriş sırasında bir hata oluştu.';
+        alert('Giriş Başarısız! Hata: ' + errorMessage);
+      }
+    });
   }
 
-  // Template'den kolay erişim için getter'lar (isteğe bağlı)
   get email() { return this.loginForm.get('email'); }
   get password() { return this.loginForm.get('password'); }
 }
