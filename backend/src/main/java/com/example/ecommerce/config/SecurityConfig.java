@@ -1,11 +1,11 @@
-package com.example.ecommerce.config; // Bu paketin doğruluğunu kontrol edin!
+package com.example.ecommerce.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // HttpMethod'ı import etmeyi unutmayın
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-// ===> YENİ IMPORT <===
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+// import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // <<<--- BU IMPORT'U SİLİN
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -14,18 +14,18 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Mevcut filterChain bean'i - İÇİNİ DEĞİŞTİRECEĞİZ
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        System.out.println(">>> SecurityConfig filterChain metodu CALISTI! <<<");
+        System.out.println(">>> SecurityConfig filterChain metodu CALISTI! (WebSecurityCustomizer KALDIRILDI) <<<");
 
         http
             .authorizeHttpRequests(authorize -> authorize
-                // ===> Swagger yollarını buradan KALDIRIN <===
-                // .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // Diğer API yolları için permitAll kalabilir
+                // ===> Swagger yollarını TEKRAR BURAYA EKLEYİN <===
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Diğer izinler
                 .requestMatchers("/api/status").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                // Geri kalan her şey kimlik doğrulaması gerektirsin
                 .anyRequest().authenticated()
             )
             .csrf(AbstractHttpConfigurer::disable)
@@ -34,12 +34,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ===> BU YENİ BEAN'İ EKLEYİN <===
-    // Belirli yollar için (genellikle statik kaynaklar) web güvenliğini tamamen görmezden gelmek için kullanılır.
-    // İstekler Spring Security filtre zincirine hiç girmez.
+    // ===> BU BEAN'İ TAMAMEN SİLİN VEYA YORUM SATIRI YAPIN <===
+    /*
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
                             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**");
     }
+    */
 }

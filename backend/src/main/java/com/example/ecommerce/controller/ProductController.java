@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Parameter; // Import Parameter annotation
 import org.springframework.web.bind.annotation.PathVariable; // Import PathVariable annotation
 import com.example.ecommerce.dto.ProductDto; // Import ProductDto
 import com.example.ecommerce.service.ProductService; // Import ProductService
+import com.example.ecommerce.dto.UpdateProductRequestDto; // Import update DTO
 import io.swagger.v3.oas.annotations.Operation; // Import Swagger annotations
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity; // Import ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping; // Import PutMapping
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -107,4 +109,26 @@ public class ProductController {
         // 3. Return HTTP 201 Created status, Location header, and the created product DTO in the body
         return ResponseEntity.created(location).body(createdProductDto);
     }
+
+        @Operation(summary = "Update an Existing Product", description = "Updates the details of a product specified by its ID.")
+        //@Parameter(description = "ID of the product to update", required = true, example = "1")
+        @io.swagger.v3.oas.annotations.parameters.RequestBody( // Use fully qualified name for Swagger's RequestBody
+                description = "Updated product data", required = true,
+                content = @Content(schema = @Schema(implementation = UpdateProductRequestDto.class)))
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "200", description = "Product updated successfully",
+                        content = { @Content(mediaType = "application/json",
+                                schema = @Schema(implementation = ProductDto.class)) }), // Returns updated ProductDto
+                @ApiResponse(responseCode = "400", description = "Invalid input data provided", content = @Content),
+                @ApiResponse(responseCode = "404", description = "Product not found with the specified ID", content = @Content),
+                @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
+        })
+        @PutMapping("/{id}") // Handles PUT requests to /api/products/{id}
+        public ResponseEntity<ProductDto> updateProduct(
+                @PathVariable Long id,
+                 @RequestBody UpdateProductRequestDto requestDto // Use Spring's RequestBody here
+        ) {
+            ProductDto updatedProductDto = productService.updateProduct(id, requestDto);
+            return ResponseEntity.ok(updatedProductDto);
+        }
 }
