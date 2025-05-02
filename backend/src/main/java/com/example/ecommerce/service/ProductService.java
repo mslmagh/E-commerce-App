@@ -1,5 +1,5 @@
 package com.example.ecommerce.service;
-
+import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
 import com.example.ecommerce.entity.Product;       // Import Product entity
 import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
