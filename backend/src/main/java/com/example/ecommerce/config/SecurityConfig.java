@@ -25,6 +25,7 @@ public class SecurityConfig {
                 // .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Diğer API yolları için permitAll kalabilir
                 .requestMatchers("/api/status").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products").permitAll()
                 .anyRequest().authenticated()
             )
             .csrf(AbstractHttpConfigurer::disable)
