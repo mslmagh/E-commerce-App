@@ -1,52 +1,9 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
-
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
-
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history/*
-
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-
-# System files
-.DS_Store
-Thumbs.db
-
-
-
-
 # İşletim Sistemi Özel Dosyaları
 .DS_Store
 Thumbs.db
+._*
+.Spotlight-V100
+.Trashes
 
 # Log Dosyaları
 logs
@@ -55,6 +12,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Çalışma Zamanı Verileri
 pids
@@ -62,46 +20,54 @@ pids
 *.seed
 *.pid.lock
 
-# Dizinler
-node_modules/
-dist/
-tmp/
-out/
-target/
-.mvn/
-.angular/cache/
+# Bağımlılık Dizinleri
+backend/target/
+frontend/node_modules/
+frontend/bower_components/
+
+# Derleme/Build Çıktı Dizinleri
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/.angular/cache/
+backend/out/
 
 # IDE ve Editör Özel Dosyaları
+# IntelliJ
 .idea/
+*.iml
+*.ipr
+*.iws
+# Eclipse
+.classpath
+.project
+.settings/
+.metadata
+bin/
+# VS Code
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-*.iml
-*.ipr
-*.iws
-.project
-.classpath
-.settings/
-*.sublime-workspace
-.sts4-cache/
-.factorypath
+# Netbeans
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+# STS (Spring Tool Suite)
 .springBeans
-.loadpath
-.externalToolBuilders/
-*.launch
+.sts4-cache/
+# Diğer Editörler
+*.swp
+*~
+*.bak
+*.swo
+.sublime-workspace
 
-# Derlenmiş Java Dosyaları
-*.class
-
-# Paket Dosyaları (Maven/Gradle tarafından 'target' veya 'build' içinde yönetilmeli)
-# *.jar
-# *.war
-# *.ear
-# *.nar
-
-# Maven Özel
+# Maven Özel (backend/target/ zaten dahil)
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -109,38 +75,41 @@ pom.xml.next
 release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
+backend/.mvn/
 
 # Gradle Özel
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
-!build/libs
+!backend/gradle/wrapper/gradle-wrapper.jar # Eğer backend gradle kullanıyorsa
 
-# Diğer
+# Node/NPM/Yarn Özel
+frontend/.npm
+frontend/.eslintcache
+frontend/.stylelintcache
+frontend/.node_repl_history
+frontend/*.tgz
+frontend/.yarn-integrity
+
+# Çeşitli
 hs_err_pid*
 .mtj.tmp/
 .apt_generated
+.factorypath
+.loadpath
 .recommenders
 local.properties
-.DS_Store
-*~
-*.swp
-*.bak
-.sass-cache/
-connect.lock
-coverage/
-libpeerconnection.log
-testem.log
-typings/
-*.tsbuildinfo
-.npm
-.eslintcache
-.stylelintcache
-.node_repl_history
-*.tgz
-.yarn-integrity
+.externalToolBuilders/
+*.launch
+frontend/.sass-cache/
+frontend/connect.lock
+frontend/coverage/
+frontend/libpeerconnection.log
+frontend/testem.log
+frontend/typings/
+frontend/*.tsbuildinfo
+
+# Ortam Değişkeni Dosyaları
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
