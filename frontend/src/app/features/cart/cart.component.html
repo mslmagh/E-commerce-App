@@ -1,0 +1,85 @@
+<div class="cart-page-container">
+  <h2>Alışveriş Sepetim</h2>
+
+  <ng-container *ngIf="cartItems && cartItems.length > 0; else emptyCart">
+
+    <div class="cart-actions-top">
+      <button class="btn btn-danger btn-sm"
+              (click)="deleteSelectedItems()"
+              [disabled]="getSelectedItemsCount() === 0"
+              title="Seçili Ürünleri Sepetten Kaldır">
+        Seçilenleri Sil ({{ getSelectedItemsCount() }})
+      </button>
+      <button class="btn btn-outline-danger btn-sm"
+              (click)="clearCart()"
+              title="Tüm Sepeti Boşalt">
+        Tümünü Boşalt
+      </button>
+    </div>
+
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th class="select-col">
+            <input type="checkbox"
+                   [checked]="isAllSelected"
+                   (change)="onSelectAllChange($event)"
+                   [disabled]="cartItems.length === 0"
+                   title="Tümünü Seç / Seçimi Kaldır">
+          </th>
+          <th colspan="2">Ürün</th>
+          <th>Fiyat</th>
+          <th>Adet</th>
+          <th>Toplam</th>
+          <th>Sil</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of cartItems" class="cart-item-row">
+          <td class="select-col">
+            <input type="checkbox"
+                   [checked]="selectedItems.get(item.id)"
+                   (change)="onItemSelectChange(item, $event)">
+          </td>
+          <td class="item-image">
+            <a><img [src]="item.imageUrl || 'https://via.placeholder.com/60x60?text=No+Image'" [alt]="item.name"></a>
+          </td>
+          <td class="item-name">
+            <a>{{ item.name }}</a>
+          </td>
+          <td class="item-price">
+            {{ item.price | currency:'TRY':'symbol':'1.0-0' }}
+          </td>
+          <td class="item-quantity">
+            <button class="btn-qty decrease-qty" (click)="decreaseQuantity(item)" [disabled]="item.quantity <= 1">-</button>
+            <span class="qty-value">{{ item.quantity }}</span>
+            <button class="btn-qty increase-qty" (click)="increaseQuantity(item)">+</button>
+          </td>
+          <td class="item-total">
+            {{ (item.price * item.quantity) | currency:'TRY':'symbol':'1.0-0' }}
+          </td>
+          <td class="item-remove">
+            <button class="remove-btn" (click)="removeFromCart(item)" title="Ürünü Kaldır">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cart-summary">
+      <h3>Sepet Özeti</h3>
+      <p>Toplam Tutar: <span class="total-price">{{ calculateTotalPrice() | currency:'TRY':'symbol':'1.0-0' }}</span></p>
+      <button class="checkout-btn btn btn-success">Siparişi Tamamla</button>
+    </div>
+
+  </ng-container>
+
+  <ng-template #emptyCart>
+    <div class="empty-cart-message">
+      <p>Sepetiniz şu anda boş.</p>
+      <a routerLink="/" class="btn btn-primary">Alışverişe Başla</a>
+    </div>
+  </ng-template>
+
+</div>
