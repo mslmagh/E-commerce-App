@@ -57,20 +57,6 @@ public class SecurityConfig {
     // Configure HttpSecurity - THIS IS THE MAIN PART
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/status").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                // ===> YENİ KATEGORİ İZİNLERİ <===
-                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll() // Allow anyone to GET categories
-                .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "SELLER") // Allow ADMIN or SELLER to POST
-                // Add rules for PUT/DELETE /api/categories/{id} later if implemented (likely ADMIN only)
-                // ===> YENİ KATEGORİ İZİNLERİ SONU <===
-                .anyRequest().authenticated()); // Secure everything else
-            // ... (csrf, sessionManagement, authenticationProvider, addFilterBefore same) ...
-
         // Log message for confirmation (optional)
         System.out.println(">>> SecurityConfig filterChain method CALLED! (Applying full JWT config) <<<");
 
