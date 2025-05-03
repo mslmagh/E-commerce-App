@@ -1,0 +1,23 @@
+<ng-container *ngIf="product$ | async as product; else loadingOrNotFound">
+  <div class="product-detail-container">
+    <h2>{{ product.name }}</h2>
+    <div class="product-layout">
+      <div class="product-image-section">
+         <img [src]="product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image'" [alt]="product.name" class="product-detail-image">
+      </div>
+      <div class="product-info-section">
+         <h3>Ürün Açıklaması</h3>
+         <p class="description">{{ product.description || 'Açıklama bulunamadı.' }}</p>
+         <p class="price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
+         <button class="btn btn-primary add-to-cart-detail">
+           <i class="fa-solid fa-cart-shopping"></i> Sepete Ekle
+         </button>
+         </div>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #loadingOrNotFound>
+  <p class="loading-message">Ürün bilgisi yükleniyor veya ürün bulunamadı...</p>
+  <a routerLink="/">Ana Sayfaya Dön</a>
+</ng-template>

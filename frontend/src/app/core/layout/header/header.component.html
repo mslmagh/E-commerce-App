@@ -3,32 +3,40 @@
       <a routerLink="/">E-Ticaret Sitem</a>
     </div>
 
-    <div class="search-bar">
-      <input type="text" class="search-input" placeholder="Ürün, kategori veya marka ara...">
-      <button type="button" class="search-button">
-        Ara
-      </button>
-    </div>
+    <form class="search-bar" (ngSubmit)="performSearch()">
+      <input type="text" class="search-input"
+             placeholder="Ürün, kategori veya marka ara..."
+             name="searchInput" [(ngModel)]="searchTerm">
+      <button type="submit" class="search-button">Ara</button>
+    </form>
 
     <div class="user-actions">
 
       <div class="account-menu action-item">
         <div class="account-trigger" tabindex="0">
-          <i class="fa-regular fa-user"></i> <span>Hesabım</span>
+          <i class="fa-regular fa-user"></i>
+          <span>{{ isUserLoggedIn ? 'Hesabım' : 'Giriş Yap' }}</span>
         </div>
         <div class="dropdown-content">
-          <a routerLink="/auth/login">Giriş Yap</a>
-          <a routerLink="/auth/register">Kayıt Ol</a>
-          </div>
+          <ng-container *ngIf="!isUserLoggedIn">
+            <a routerLink="/auth/login">Giriş Yap</a>
+            <a routerLink="/auth/register">Kayıt Ol</a>
+          </ng-container>
+          <ng-container *ngIf="isUserLoggedIn">
+            <a routerLink="/profile">Profilim</a> <a (click)="logout()" style="cursor: pointer;">Çıkış Yap</a>
+          </ng-container>
+        </div>
       </div>
 
-      <a routerLink="/favorites" class="action-item favorites-link">
-        <i class="fa-regular fa-heart"></i> <span>Favorilerim</span>
+      <a *ngIf="isUserLoggedIn" routerLink="/favorites" class="action-item favorites-link">
+        <i class="fa-regular fa-heart"></i>
+        <span>Favorilerim</span>
       </a>
 
       <a routerLink="/cart" class="action-item cart-link">
-        <i class="fa-solid fa-cart-shopping"></i> <span>Sepetim</span>
-        </a>
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span>Sepetim</span>
+        <span *ngIf="cartItemCount > 0" class="cart-count">{{ cartItemCount }}</span>
+      </a>
 
     </div> </div> </header>
-

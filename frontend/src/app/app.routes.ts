@@ -6,7 +6,7 @@ import { HomepageComponent } from './features/homepage/homepage.component';
 export const routes: Routes = [
 
 
-  { path: '', component: HomepageComponent }, // <-- DEĞİŞİKLİK
+  { path: '', component: HomepageComponent },
 
   {
     path: 'auth',
@@ -17,7 +17,17 @@ export const routes: Routes = [
     path: 'favorites',
     loadChildren: () => import('./features/favorites/favorites.routes').then(r => r.FAVORITES_ROUTES)
 
+  },
+  {
+    path: 'cart',
+    // './features/cart/cart.routes' dosyasını ve içindeki CART_ROUTES'u yükle
+    loadChildren: () => import('./features/cart/cart.routes').then(r => r.CART_ROUTES)
+    // , canActivate: [authGuardFn] // Belki giriş gerektirir
+  },
+  {
+    path: 'products',
+    // './features/products/products.routes' dosyasını ve içindeki PRODUCT_ROUTES'u yükle
+    loadChildren: () => import('./features/products/products.routes').then(r => r.PRODUCT_ROUTES)
   }
-
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];

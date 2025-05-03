@@ -19,12 +19,14 @@
     <h3 class="section-title">Öne Çıkanlar</h3>
     <div class="product-grid">
       <div class="product-card" *ngFor="let product of featuredProducts">
-        <a href="#" class="product-link"> <img [src]="product.imageUrl" [alt]="product.name" class="product-image">
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name }}</h4>
-            <p class="product-price">{{ product.price | currency:'TRY':'symbol-narrow':'1.0-0' }}</p> </div>
+        <a [routerLink]="['/products', product.id]" class="product-link">
+           <img [src]="product.imageUrl" [alt]="product.name" class="product-image">
+           <div class="product-info">
+              <h4 class="product-name">{{ product.name }}</h4>
+              <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
+           </div>
         </a>
-        <button class="add-to-cart-btn">Sepete Ekle</button>
+        <button class="add-to-cart-btn" (click)="addToCart(product)">Sepete Ekle</button>
       </div>
     </div>
   </section>

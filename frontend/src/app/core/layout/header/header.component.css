@@ -109,7 +109,7 @@
   z-index: 10;
   top: 100%;
   right: 0;
-  margin-top: 10px;
+
   text-align: left;
 }
 
@@ -128,4 +128,21 @@
 .account-menu:hover .dropdown-content {
   display: block;
 }
-
+.cart-count {
+  background-color: #dc3545; /* Kırmızı */
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 5px; /* Biraz daha küçük padding */
+  border-radius: 50%; /* Tam yuvarlak */
+  position: relative; /* İkonun yanına göre konumlandırma */
+  top: -10px;       /* Biraz yukarı */
+  right: 5px;        /* Biraz sola (ikonun üzerine) */
+  min-width: 16px;
+  height: 16px;      /* Yükseklik ekleyerek tam yuvarlak yap */
+  display: inline-flex; /* İçeriği ortalamak için */
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
