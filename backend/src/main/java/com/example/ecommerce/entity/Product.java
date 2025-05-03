@@ -1,6 +1,7 @@
 package com.example.ecommerce.entity;
 
 import jakarta.persistence.*; // JPA anotasyonları için
+import com.example.ecommerce.entity.User;
 
 @Entity // Bu sınıfın bir veritabanı varlığı olduğunu belirtir
 @Table(name = "products") // İlişkili olduğu veritabanı tablosunun adı
@@ -9,6 +10,10 @@ public class Product {
     @Id // Bu alanın birincil anahtar (primary key) olduğunu belirtir
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ID'nin otomatik artan olacağını belirtir
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY) // FetchType.LAZY genellikle daha performanslıdır
+    @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false) // Veritabanındaki foreign key                                                                     // sütunu
+    private User seller;
 
     @Column(name = "name", nullable = false) // Sütun adı ve boş bırakılamaz kısıtlaması
     private String name;
@@ -61,6 +66,13 @@ public class Product {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
     }
 
     // equals, hashCode, toString metotları da eklenebilir (opsiyonel)
