@@ -58,6 +58,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         http
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/api/auth/**").permitAll()
@@ -72,6 +73,8 @@ public class SecurityConfig {
                 .anyRequest().authenticated()); // Secure everything else
             // ... (csrf, sessionManagement, authenticationProvider, addFilterBefore same) ...
 =======
+=======
+>>>>>>> Stashed changes
         // Log message for confirmation (optional)
         System.out.println(">>> SecurityConfig filterChain method CALLED! (Applying full JWT config) <<<");
 
@@ -105,6 +108,9 @@ public class SecurityConfig {
 
         ; // <<<--- IMPORTANT: Semicolon terminates the http configuration chain here
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         return http.build();
     }
