@@ -9,6 +9,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.authentication.AuthenticationManager; // Import this
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration; // Import this
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -35,7 +37,11 @@ public class SecurityConfig {
 
     // ===> PasswordEncoder bean'i eklendi <===
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+         return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+    }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 }
