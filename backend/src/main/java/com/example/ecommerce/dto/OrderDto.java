@@ -1,5 +1,6 @@
 package com.example.ecommerce.dto;
 
+import com.example.ecommerce.entity.OrderStatus; // Import Enum
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,7 +12,7 @@ public class OrderDto {
     @Schema(description = "Date and time when the order was placed")
     private LocalDateTime orderDate;
     @Schema(description = "Current status of the order", example = "PENDING")
-    private String status;
+    private OrderStatus status; // Use Enum type
     @Schema(description = "Total amount for the order", example = "16350.75")
     private BigDecimal totalAmount;
     @Schema(description = "ID of the customer who placed the order", example = "5")
@@ -22,10 +23,10 @@ public class OrderDto {
     private List<OrderItemDto> items;
 
     // Constructor
-    public OrderDto(Long id, LocalDateTime orderDate, String status, BigDecimal totalAmount, Long customerId, String customerUsername, List<OrderItemDto> items) {
+    public OrderDto(Long id, LocalDateTime orderDate, OrderStatus status, BigDecimal totalAmount, Long customerId, String customerUsername, List<OrderItemDto> items) {
         this.id = id;
         this.orderDate = orderDate;
-        this.status = status;
+        this.status = status; // Accept Enum
         this.totalAmount = totalAmount;
         this.customerId = customerId;
         this.customerUsername = customerUsername;
@@ -38,8 +39,8 @@ public class OrderDto {
     public void setId(Long id) { this.id = id; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public OrderStatus getStatus() { return status; } // Return Enum
+    public void setStatus(OrderStatus status) { this.status = status; } // Accept Enum
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public Long getCustomerId() { return customerId; }

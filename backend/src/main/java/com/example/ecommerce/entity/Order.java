@@ -1,13 +1,13 @@
 package com.example.ecommerce.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal; // Use BigDecimal for currency
-import java.time.LocalDateTime; // Use LocalDateTime for dates
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "orders") // Use plural for table name
+@Table(name = "orders")
 public class Order {
 
     @Id
@@ -17,25 +17,24 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime orderDate;
 
+    @Enumerated(EnumType.STRING) // Store enum name as string
     @Column(nullable = false, length = 50)
-    private String status; // e.g., PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+    private OrderStatus status; // Use the Enum type
 
-    @Column(nullable = false, precision = 10, scale = 2) // Precision for currency
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
-    // Relationship to the customer (User) who placed the order
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_user_id", referencedColumnName = "id", nullable = false)
     private User customer;
 
-    // Relationship to OrderItems (One Order has Many OrderItems)
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
     // Constructors
     public Order() {
-        this.orderDate = LocalDateTime.now(); // Set current date on creation
-        this.status = "PENDING"; // Default status
+        this.orderDate = LocalDateTime.now();
+        this.status = OrderStatus.PENDING; // Default status
     }
 
     // Getters and Setters
@@ -43,8 +42,8 @@ public class Order {
     public void setId(Long id) { this.id = id; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public OrderStatus getStatus() { return status; } // Return Enum type
+    public void setStatus(OrderStatus status) { this.status = status; } // Accept Enum type
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public User getCustomer() { return customer; }
@@ -52,7 +51,7 @@ public class Order {
     public List<OrderItem> getOrderItems() { return orderItems; }
     public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
 
-    // Helper method to add order items and maintain consistency
+    // Helper method
     public void addOrderItem(OrderItem item) {
         this.orderItems.add(item);
         item.setOrder(this);

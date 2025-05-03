@@ -4,10 +4,8 @@ import com.example.ecommerce.dto.CreateOrderRequestDto;
 import com.example.ecommerce.dto.CreateOrderItemDto;
 import com.example.ecommerce.dto.OrderDto;
 import com.example.ecommerce.dto.OrderItemDto;
-import com.example.ecommerce.entity.Order;
-import com.example.ecommerce.entity.OrderItem;
-import com.example.ecommerce.entity.Product;
-import com.example.ecommerce.entity.User;
+import com.example.ecommerce.dto.UpdateOrderStatusRequestDto; // Import new DTO
+import com.example.ecommerce.entity.*; // Import all entities + OrderStatus
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.repository.OrderRepository;
 import com.example.ecommerce.repository.ProductRepository;
@@ -22,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,49 +29,37 @@ public class OrderService {
     @Autowired private OrderRepository orderRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private UserRepository userRepository;
-    // No need for OrderItemRepository injection if using CascadeType.ALL
 
-    @Transactional // Make this transactional as it involves multiple db operations
+    @Transactional
     public OrderDto createOrder(CreateOrderRequestDto requestDto) {
-        // 1. Get the currently authenticated customer
         User customer = getCurrentAuthenticatedUser();
 
-        // 2. Create the Order entity
         Order order = new Order();
         order.setCustomer(customer);
-        order.setOrderDate(LocalDateTime.now());
-        order.setStatus("PENDING"); // Initial status
+        // orderDate and status are set in default constructor now
 
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        // 3. Create OrderItem entities from DTOs
         for (CreateOrderItemDto itemDto : requestDto.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemDto.getProductId()));
-    
+
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setQuantity(itemDto.getQuantity());
-    
-            // ===> DÖNÜŞÜM 1: Double'ı BigDecimal'e çevir <===
-            BigDecimal priceFromProduct = new BigDecimal(product.getPrice().toString());
-            orderItem.setPriceAtPurchase(priceFromProduct); // Artık BigDecimal veriyoruz
-    
+
+            BigDecimal priceFromProduct = product.getPrice();
+            // If product price is BigDecimal: BigDecimal priceFromProduct = product.getPrice();
+            orderItem.setPriceAtPurchase(priceFromProduct);
+
             order.addOrderItem(orderItem);
-    
-            // ===> DÖNÜŞÜM 2: Double'ı BigDecimal'e çevir ve çarp <===
+
             BigDecimal quantityBigDecimal = new BigDecimal(itemDto.getQuantity());
-            totalAmount = totalAmount.add(priceFromProduct.multiply(quantityBigDecimal)
-            );
+            totalAmount = totalAmount.add(priceFromProduct.multiply(quantityBigDecimal));
         }
 
-        // 4. Set the total amount
         order.setTotalAmount(totalAmount);
-
-        // 5. Save the Order (CascadeType.ALL should save OrderItems too)
         Order savedOrder = orderRepository.save(order);
-
-        // 6. Convert to DTO and return
         return convertToDto(savedOrder);
     }
 
@@ -89,16 +76,73 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        // Authorization check: Ensure the user owns the order OR is an admin
-        // Assuming roles are correctly loaded in UserDetails (User entity)
         boolean isAdmin = currentUser.getAuthorities().stream()
-                                     .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+                                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (!order.getCustomer().getUsername().equals(currentUser.getUsername()) && !isAdmin) {
             throw new AccessDeniedException("You are not authorized to view this order.");
         }
 
         return convertToDto(order);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderDto> getOrdersForSeller() {
+        User seller = getCurrentAuthenticatedUser();
+        boolean isSeller = seller.getAuthorities().stream()
+                                  .anyMatch(a -> a.getAuthority().equals("ROLE_SELLER"));
+        // Also allow Admin to use this potentially? Or create separate endpoint for Admin?
+        // For now, strict SELLER check as per endpoint definition
+        if (!isSeller) {
+             throw new AccessDeniedException("Access denied: User is not a seller.");
+        }
+
+        List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(seller.getId());
+        return orders.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequestDto requestDto) {
+        User currentUser = getCurrentAuthenticatedUser();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        OrderStatus newStatus = requestDto.getNewStatus();
+
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isSeller = currentUser.getAuthorities().stream()
+                                      .anyMatch(a -> a.getAuthority().equals("ROLE_SELLER"));
+
+        if (isAdmin) {
+             // Admin can set any status including CANCELLED
+             if (newStatus == OrderStatus.CANCELLED) {
+                 // Add logic for cancellation (e.g., restock, refund trigger) if needed
+                 System.out.println("Admin cancelling order: " + orderId);
+             }
+             order.setStatus(newStatus);
+        } else if (isSeller) {
+            boolean orderContainsSellersProduct = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
+
+            if (!orderContainsSellersProduct) {
+                 throw new AccessDeniedException("Seller is not authorized to update status for this order (no products belong to seller).");
+            }
+
+            // Seller specific allowed statuses
+            if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
+                order.setStatus(newStatus);
+            } else {
+                throw new AccessDeniedException("Seller cannot set status to " + newStatus);
+            }
+        } else {
+            // Other roles cannot update status
+            throw new AccessDeniedException("User is not authorized to update order status.");
+        }
+
+        Order updatedOrder = orderRepository.save(order);
+        return convertToDto(updatedOrder);
     }
 
 
@@ -110,10 +154,13 @@ public class OrderService {
         if (principal instanceof UserDetails) {
             username = ((UserDetails) principal).getUsername();
         } else {
-            username = principal.toString();
+             // This case might occur for anonymous users if security allows access somehow,
+             // or if the principal is not a UserDetails object unexpectedly.
+             // Throwing an exception or handling appropriately is needed.
+            throw new IllegalStateException("Cannot get username from principal: " + principal);
         }
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found in database: " + username));
+                .orElseThrow(() -> new RuntimeException("Authenticated user '" + username + "' not found in database"));
     }
 
     private OrderDto convertToDto(Order order) {
@@ -124,7 +171,7 @@ public class OrderService {
         return new OrderDto(
                 order.getId(),
                 order.getOrderDate(),
-                order.getStatus(),
+                order.getStatus(), // Use Enum
                 order.getTotalAmount(),
                 order.getCustomer().getId(),
                 order.getCustomer().getUsername(),
@@ -133,9 +180,13 @@ public class OrderService {
     }
 
     private OrderItemDto convertItemToDto(OrderItem item) {
+        // Handle potential NullPointerException if product is null (shouldn't happen with DB constraints)
+        Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
+        String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
+
         return new OrderItemDto(
-                item.getProduct().getId(),
-                item.getProduct().getName(),
+                productId,
+                productName,
                 item.getQuantity(),
                 item.getPriceAtPurchase()
         );
