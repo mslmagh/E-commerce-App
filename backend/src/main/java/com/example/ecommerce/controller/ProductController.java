@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.ecommerce.dto.CreateProductRequestDto; // Import the request DTO
 import jakarta.validation.Valid; // Import @Valid for validation
-import org.springframework.http.HttpStatus; // Can be used for ResponseEntity status
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder; // To build the location URI
 import java.util.List; // Import List
 import java.net.URI;
