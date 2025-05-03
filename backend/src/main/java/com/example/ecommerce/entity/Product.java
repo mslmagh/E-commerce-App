@@ -10,6 +10,10 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ID'nin otomatik artan olacağını belirtir
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY) // FetchType.LAZY genellikle daha performanslıdır
+    @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false) // Veritabanındaki foreign key                                                                     // sütunu
+    private User seller;
+
     @Column(name = "name", nullable = false) // Sütun adı ve boş bırakılamaz kısıtlaması
     private String name;
 
@@ -61,6 +65,13 @@ public class Product {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
     }
 
     // equals, hashCode, toString metotları da eklenebilir (opsiyonel)
