@@ -1,148 +1,134 @@
 package com.example.ecommerce.service;
-import java.util.Optional;  // Import Optional for handling optional values
-import com.example.ecommerce.exception.ResourceNotFoundException;
-import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
-import com.example.ecommerce.dto.CreateProductRequestDto; // Import CreateProductRequestDto
-import com.example.ecommerce.dto.UpdateProductRequestDto;
-import com.example.ecommerce.entity.Product;       // Import Product entity
-import com.example.ecommerce.repository.CategoryRepository;
-import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
-import org.springframework.beans.factory.annotation.Autowired; // Import Autowired
-import org.springframework.stereotype.Service;           // Import Service annotation
-import org.springframework.security.core.context.SecurityContextHolder; // Import SecurityContextHolder
-import org.springframework.security.core.userdetails.UserDetails;
-import com.example.ecommerce.entity.User;
-import com.example.ecommerce.repository.UserRepository;
-import com.example.ecommerce.entity.Category; // Import Category entity
-import java.util.List;
-import java.util.stream.Collectors; // Import Collectors for stream processing
 
-@Service // Marks this class as a Spring service component
+import com.example.ecommerce.dto.CreateProductRequestDto;
+import com.example.ecommerce.dto.ProductDto;
+import com.example.ecommerce.dto.UpdateProductRequestDto;
+import com.example.ecommerce.entity.Category;
+import com.example.ecommerce.entity.Product;
+import com.example.ecommerce.entity.User;
+import com.example.ecommerce.exception.ResourceNotFoundException;
+import com.example.ecommerce.repository.CategoryRepository;
+import com.example.ecommerce.repository.ProductRepository;
+import com.example.ecommerce.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Import Transactional
+
+import java.math.BigDecimal; // Import BigDecimal
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+
+@Service
 public class ProductService {
 
-    private final CategoryRepository categoryRepository; 
-    private final ProductRepository productRepository; // Repository dependency
+    private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    // Constructor injection is recommended for dependencies
+    private final CategoryRepository categoryRepository;
+
     @Autowired
     public ProductService(ProductRepository productRepository,
                           UserRepository userRepository,
-                          CategoryRepository categoryRepository // <<<--- Constructor'a EKLE
+                          CategoryRepository categoryRepository
                          ) {
         this.productRepository = productRepository;
         this.userRepository = userRepository;
-        this.categoryRepository = categoryRepository; // <<<--- Atamayı EKLE
+        this.categoryRepository = categoryRepository;
     }
 
-    /**
-     * Retrieves all products from the database and maps them to ProductDto objects.
-     * @return A list of ProductDto objects.
-     */
+    // GET All Products (No change needed here unless filtering by stock later)
+    @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
-        // 1. Fetch all Product entities from the repository
-        List<Product> products = productRepository.findAll();
-
-        // 2. Map the list of Product entities to a list of ProductDto objects
-        // We use Java Streams API here for concise mapping
-        List<ProductDto> productDtos = products.stream()
-                .map(this::convertToDto) // Call mapping method for each product
-                .collect(Collectors.toList()); // Collect results into a List
-
-        // 3. Return the list of DTOs
-        return productDtos;
+        return productRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
-     /**
-     * Retrieves a single product by its ID.
-     * Throws ResourceNotFoundException if the product is not found.
-     * @param id The ID of the product to retrieve.
-     * @return The ProductDto for the found product.
-     * @throws ResourceNotFoundException if no product with the given ID exists.
-     */
+    // GET Product by ID (No change needed here)
+    @Transactional(readOnly = true)
     public ProductDto getProductById(Long id) {
-        // 1. Find the Product entity by ID using the repository.
-        //    findById returns an Optional<Product>.
-        Optional<Product> productOptional = productRepository.findById(id);
-
-        // 2. Check if the product was found.
-        if (productOptional.isPresent()) {
-            // 3. If found, get the Product entity from the Optional.
-            Product product = productOptional.get();
-            // 4. Convert the entity to DTO and return it.
-            return convertToDto(product);
-        } else {
-            // 5. If not found, throw an exception.
-            //    We will create a specific ResourceNotFoundException later.
-            //    For now, we can throw a standard RuntimeException or create a basic one.
-            //    Let's assume we have ResourceNotFoundException for now.
-            throw new ResourceNotFoundException("Product not found with id: " + id);
-            // Alternative (without custom exception yet):
-            // throw new RuntimeException("Product not found with id: " + id);
-        }
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        return convertToDto(product);
     }
-    
-    
+
+    // CREATE Product (Updated to set stock)
+    @Transactional
     public ProductDto createProduct(CreateProductRequestDto requestDto) {
         String username = getCurrentAuthenticatedUsername();
         User seller = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
-        // Find the category by ID provided in DTO
         Category category = categoryRepository.findById(requestDto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + requestDto.getCategoryId()));
 
         Product newProduct = new Product();
         newProduct.setName(requestDto.getName());
         newProduct.setDescription(requestDto.getDescription());
-        newProduct.setPrice(requestDto.getPrice());
+        newProduct.setPrice(requestDto.getPrice()); // Set BigDecimal price
+        newProduct.setStockQuantity(requestDto.getStockQuantity()); // <<<--- SET STOCK QUANTITY
         newProduct.setSeller(seller);
-        newProduct.setCategory(category); // <<<--- Kategoriyi set et
+        newProduct.setCategory(category);
 
         Product savedProduct = productRepository.save(newProduct);
         return convertToDto(savedProduct);
     }
-    public List<ProductDto> getProductsForCurrentUser() {
-        String username = getCurrentAuthenticatedUsername(); // Use helper method
-        List<Product> products = productRepository.findBySellerUsername(username);
-        return products.stream()
-                       .map(this::convertToDto)
-                       .collect(Collectors.toList());
-    }
-  
+
+    // UPDATE Product (Updated to set stock)
+    @Transactional
     public ProductDto updateProduct(Long id, UpdateProductRequestDto requestDto) {
+        // Ownership check is handled by @PreAuthorize in controller
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        // Find the new category
         Category category = categoryRepository.findById(requestDto.getCategoryId())
                  .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + requestDto.getCategoryId()));
 
-        // Update fields
+        // Update fields including stock
         existingProduct.setName(requestDto.getName());
         existingProduct.setDescription(requestDto.getDescription());
-        existingProduct.setPrice(requestDto.getPrice());
-        existingProduct.setCategory(category); // <<<--- Kategoriyi güncelle
+        existingProduct.setPrice(requestDto.getPrice()); // Set BigDecimal price
+        existingProduct.setStockQuantity(requestDto.getStockQuantity()); // <<<--- UPDATE STOCK QUANTITY
+        existingProduct.setCategory(category);
 
         Product updatedProduct = productRepository.save(existingProduct);
         return convertToDto(updatedProduct);
     }
+
+    // DELETE Product (No change needed here)
+    @Transactional
     public void deleteProduct(Long id) {
-        // 1. Check if the product exists before attempting deletion.
+        // Ownership check handled by @PreAuthorize
         if (!productRepository.existsById(id)) {
-            // 2. If not found, throw the specific exception.
             throw new ResourceNotFoundException("Product not found with id: " + id + ". Cannot delete.");
         }
-        // 3. If found, proceed with deletion.
         productRepository.deleteById(id);
-        // deleteById usually returns void.
     }
 
+    // Helper method to get current username
+    private String getCurrentAuthenticatedUsername() {
+         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+         String username;
+         if (principal instanceof UserDetails) {
+             username = ((UserDetails) principal).getUsername();
+         } else {
+             username = principal.toString();
+         }
+         // Ensure user exists - needed for seller assignment
+         userRepository.findByUsername(username)
+                 .orElseThrow(() -> new RuntimeException("Authenticated user '" + username + "' not found in database"));
+         return username;
+     }
 
-  
+
+    // Helper method to convert Entity to DTO (Updated for stock and BigDecimal price)
     private ProductDto convertToDto(Product product) {
         Long categoryId = null;
         String categoryName = null;
-        if (product.getCategory() != null) { // Check if category exists
+        if (product.getCategory() != null) {
             categoryId = product.getCategory().getId();
             categoryName = product.getCategory().getName();
         }
@@ -150,28 +136,10 @@ public class ProductService {
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
-                product.getPrice(),
-                categoryId,     // <<<--- Category ID ekle
-                categoryName    // <<<--- Category Name ekle
+                product.getPrice(), // Pass BigDecimal price
+                product.getStockQuantity(), // <<<--- PASS STOCK QUANTITY
+                categoryId,
+                categoryName
         );
     }
-
-// Helper method to get current username
-    private String getCurrentAuthenticatedUsername() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails) {
-            return ((UserDetails) principal).getUsername();
-        } else {
-            // Handle cases where principal might be a String or anonymous
-            // This part might need adjustment based on your full security config
-            if (principal != null) {
-                 return principal.toString();
-            } else {
-                // Should not happen for authenticated requests protected by security filters
-                throw new IllegalStateException("Cannot get username from anonymous or unauthenticated user.");
-            }
-        }
-    }
-
-    // Add other service methods here later (e.g., getProductById, createProduct, etc.)
 }

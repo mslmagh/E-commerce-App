@@ -1,5 +1,4 @@
 package com.example.ecommerce.dto; // Paket adı sizin yapınıza uygun
-import io.swagger.v3.oas.annotations.media.Schema; // ===> Import ekle
 
 public class StatusDto {
 
