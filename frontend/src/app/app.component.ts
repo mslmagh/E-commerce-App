@@ -1,26 +1,26 @@
 // frontend/src/app/app.component.ts
+// SON HAL (Header ve Footer Import Edilmiş)
+
 import { Component } from '@angular/core';
-// RouterOutlet genellikle zaten import edilmiştir standalone projelerde
+// RouterOutlet, HeaderComponent ve FooterComponent'i kullanabilmek için import ediyoruz
 import { RouterOutlet } from '@angular/router';
-// Yeni oluşturduğumuz Header ve Footer component'lerini import ediyoruz
-// !!! Yolları kontrol et, app.component.ts'e göre doğru olmalı !!!
-import { HeaderComponent } from './core/layout/header/header.component';
-import { FooterComponent } from './core/layout/footer/footer.component';
+import { HeaderComponent } from './core/layout/header/header.component'; // Yolu kontrol et
+import { FooterComponent } from './core/layout/footer/footer.component'; // Yolu kontrol et
+// import { CommonModule } from '@angular/common'; // Gerekirse eklenebilir
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  // imports dizisine RouterOutlet YANINA HeaderComponent ve FooterComponent'i ekliyoruz:
+  selector: 'app-root', // index.html'deki <app-root> etiketi
+  standalone: true,    // Standalone component
   imports: [
-      RouterOutlet,
-      HeaderComponent, // <-- EKLENDİ
-      FooterComponent  // <-- EKLENDİ
-      // Muhtemelen CommonModule gibi başka importlar da olabilir veya eklenebilir
+      RouterOutlet,     // <router-outlet> için gerekli
+      HeaderComponent,  // <app-header> için gerekli
+      FooterComponent   // <app-footer> için gerekli
+      // CommonModule    // *ngIf, *ngFor gibi direktifler gerekirse
   ],
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'] // veya .scss
+  templateUrl: './app.component.html', // Bu component'in HTML'i
+  styleUrls: ['./app.component.css']    // Bu component'in CSS'i (Sticky footer için düzenlemiştik)
 })
 export class AppComponent {
-  // title özelliği genellikle başlangıç projesinde olur, kalabilir veya silebilirsin
-  title = 'frontend'; // Veya proje adın neyse
+  // CLI'ın oluşturduğu varsayılan özellik, silebilirsin de
+  title = 'frontend'; // Veya projenin package.json'daki adı
 }

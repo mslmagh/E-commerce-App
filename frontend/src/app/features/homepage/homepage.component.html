@@ -1,0 +1,32 @@
+<div class="homepage-container">
+
+  <section class="hero-section mb-4"> <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=350&fit=crop&q=80" alt="Ana Banner" class="hero-image">
+    </section>
+
+  <section class="category-links mb-4">
+    <h3 class="section-title">Popüler Kategoriler</h3>
+    <div class="categories">
+      <a href="#" class="category-link">Elektronik</a>
+      <a href="#" class="category-link">Moda</a>
+      <a href="#" class="category-link">Ev & Yaşam</a>
+      <a href="#" class="category-link">Kozmetik</a>
+      <a href="#" class="category-link">Süpermarket</a>
+      <a href="#" class="category-link">Anne & Bebek</a>
+    </div>
+  </section>
+
+  <section class="product-grid-section mb-4">
+    <h3 class="section-title">Öne Çıkanlar</h3>
+    <div class="product-grid">
+      <div class="product-card" *ngFor="let product of featuredProducts">
+        <a href="#" class="product-link"> <img [src]="product.imageUrl" [alt]="product.name" class="product-image">
+          <div class="product-info">
+            <h4 class="product-name">{{ product.name }}</h4>
+            <p class="product-price">{{ product.price | currency:'TRY':'symbol-narrow':'1.0-0' }}</p> </div>
+        </a>
+        <button class="add-to-cart-btn">Sepete Ekle</button>
+      </div>
+    </div>
+  </section>
+
+  </div>
