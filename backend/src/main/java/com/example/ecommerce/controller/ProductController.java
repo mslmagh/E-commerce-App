@@ -14,11 +14,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity; // Import ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping; // Import PutMapping
 import org.springframework.web.bind.annotation.DeleteMapping; // Import DeleteMapping
-import org.springframework.http.HttpStatus; // Import HttpStatus (optional, for ResponseEntity status)
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -90,6 +90,7 @@ public class ProductController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content)
     })
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
     @PostMapping // Handles POST requests to /api/products
     public ResponseEntity<ProductDto> createProduct(
             @Valid // Enables validation on the request DTO based on annotations (@NotBlank etc.)
@@ -124,6 +125,7 @@ public class ProductController {
                 @ApiResponse(responseCode = "404", description = "Product not found with the specified ID", content = @Content),
                 @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
         })
+        @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
         @PutMapping("/{id}") // Handles PUT requests to /api/products/{id}
         public ResponseEntity<ProductDto> updateProduct(
                 @PathVariable Long id,
@@ -143,6 +145,7 @@ public class ProductController {
                 @ApiResponse(responseCode = "500", description = "Internal server error",
                         content = @Content)
         })
+        @PreAuthorize("hasRole('ADMIN')")
         @DeleteMapping("/{id}") // Handles DELETE requests to /api/products/{id}
         public ResponseEntity<Void> deleteProduct(
                 @PathVariable Long id // Extracts the 'id' value from the URL path
