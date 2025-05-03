@@ -1,6 +1,7 @@
 package com.example.ecommerce.entity;
 
 import jakarta.persistence.*; // JPA anotasyonları için
+import com.example.ecommerce.entity.User;
 
 @Entity // Bu sınıfın bir veritabanı varlığı olduğunu belirtir
 @Table(name = "products") // İlişkili olduğu veritabanı tablosunun adı
