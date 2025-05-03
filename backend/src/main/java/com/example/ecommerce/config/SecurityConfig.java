@@ -60,13 +60,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/status").permitAll()
+                // Products
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                // Categories
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                // Category POST requires ADMIN or SELLER (defined in controller with @PreAuthorize now, but explicit rule doesn't hurt)
-                .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "SELLER")
-                // Order related endpoints require authentication (specific authz checked in controller/service)
+                // Orders
                 .requestMatchers("/api/orders/**").authenticated()
-                // Secure everything else
+                // ===> YENİ ADRES KURALI <===
+                .requestMatchers("/api/my-addresses/**").authenticated() // Require auth for address management
+                // ===> YENİ ADRES KURALI SONU <===
+                // Default fallback
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -74,6 +77,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-    // Ensure WebSecurityCustomizer bean is removed or commented out
 }

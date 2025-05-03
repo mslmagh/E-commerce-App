@@ -35,6 +35,8 @@ public class User implements UserDetails {
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Address> addresses = new ArrayList<>();
     private Set<Role> roles = new HashSet<>();
 
     public User() {
@@ -89,8 +91,10 @@ public class User implements UserDetails {
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
     }
+    public List<Address> getAddresses() { return addresses; }
+    public void setAddresses(List<Address> addresses) { this.addresses = addresses; }
 
-    // === UserDetails interface methods ===
+   
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -112,5 +116,10 @@ public class User implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() {
         return true; // You can customize later
+    }
+
+    public void addAddress(Address address) {
+        this.addresses.add(address);
+        address.setUser(this);
     }
 }
