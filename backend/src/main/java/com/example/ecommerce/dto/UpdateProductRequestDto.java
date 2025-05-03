@@ -1,5 +1,7 @@
 package com.example.ecommerce.dto;
 
+import java.math.BigDecimal;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -25,15 +27,15 @@ public class UpdateProductRequestDto {
     @Schema(description = "New price of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "49.99")
     @NotNull(message = "Product price cannot be null")
     @DecimalMin(value = "0.0", inclusive = true, message = "Price must be zero or positive")
-    private Double price;
+    private BigDecimal price;
 
     // --- Getters and Setters ---
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 }

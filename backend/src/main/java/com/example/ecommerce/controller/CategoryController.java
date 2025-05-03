@@ -16,8 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize; // Import PreAuthorize
 import org.springframework.web.bind.annotation.*; // General web annotations
-
-import java.net.URI;
 import java.util.List;
 
 @RestController
