@@ -1,6 +1,7 @@
 package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.CreateOrderRequestDto;
+import com.example.ecommerce.dto.CreateOrderItemDto;
 import com.example.ecommerce.dto.OrderDto;
 import com.example.ecommerce.dto.OrderItemDto;
 import com.example.ecommerce.entity.Order;
@@ -46,22 +47,22 @@ public class OrderService {
 
         // 3. Create OrderItem entities from DTOs
         for (CreateOrderItemDto itemDto : requestDto.getItems()) {
-            // Find the product
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemDto.getProductId()));
-
-            // Create OrderItem
+    
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setQuantity(itemDto.getQuantity());
-            orderItem.setPriceAtPurchase(product.getPrice()); // Use current product price
-
-            // Add item to order (this also sets the order on the item)
+    
+            // ===> DÖNÜŞÜM 1: Double'ı BigDecimal'e çevir <===
+            BigDecimal priceFromProduct = new BigDecimal(product.getPrice().toString());
+            orderItem.setPriceAtPurchase(priceFromProduct); // Artık BigDecimal veriyoruz
+    
             order.addOrderItem(orderItem);
-
-            // Update total amount
-            totalAmount = totalAmount.add(
-                    product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()))
+    
+            // ===> DÖNÜŞÜM 2: Double'ı BigDecimal'e çevir ve çarp <===
+            BigDecimal quantityBigDecimal = new BigDecimal(itemDto.getQuantity());
+            totalAmount = totalAmount.add(priceFromProduct.multiply(quantityBigDecimal)
             );
         }
 
