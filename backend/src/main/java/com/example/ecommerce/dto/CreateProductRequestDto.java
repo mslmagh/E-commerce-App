@@ -1,5 +1,7 @@
 package com.example.ecommerce.dto;
 
+import java.math.BigDecimal;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin; // Import validation annotations
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +10,10 @@ import jakarta.validation.constraints.Size;
 
 @Schema(description = "DTO for creating a new product")
 public class CreateProductRequestDto {
+
+    @Schema(description = "ID of the category to assign the product to", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @NotNull(message = "Category ID cannot be null") // <<<--- YENİ ALAN VE VALIDASYON
+    private Long categoryId;
 
     @Schema(description = "Name of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "Wireless Mouse")
     @NotBlank(message = "Product name cannot be blank") // Cannot be null or empty whitespace
@@ -21,7 +27,7 @@ public class CreateProductRequestDto {
     @Schema(description = "Price of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "45.50")
     @NotNull(message = "Product price cannot be null") // Cannot be null
     @DecimalMin(value = "0.0", inclusive = true, message = "Price must be zero or positive") // Must be >= 0
-    private Double price;
+    private BigDecimal price;
 
     // --- Getters and Setters ---
     // Needed for Spring to map JSON data to this object
@@ -42,11 +48,13 @@ public class CreateProductRequestDto {
         this.description = description;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 }

@@ -1,5 +1,7 @@
 package com.example.ecommerce.dto;
 
+import java.math.BigDecimal;
+
 import io.swagger.v3.oas.annotations.media.Schema; // Import Schema annotation
 
 @Schema(description = "Data Transfer Object representing a product for API responses") // English comment
@@ -21,10 +23,10 @@ public class ProductDto {
     private String description;
 
     @Schema(description = "Price of the product", example = "2499.99") // English comment
-    private Double price;
+    private BigDecimal price;
 
    
-public ProductDto(Long id, String name, String description, Double price, Long categoryId, String categoryName) {
+public ProductDto(Long id, String name, String description, BigDecimal price, Long categoryId, String categoryName) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -60,11 +62,11 @@ public ProductDto(Long id, String name, String description, Double price, Long c
         this.description = description;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
      public Long getCategoryId() { return categoryId; }

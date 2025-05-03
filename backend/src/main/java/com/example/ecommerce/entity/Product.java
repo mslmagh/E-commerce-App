@@ -1,6 +1,9 @@
 package com.example.ecommerce.entity;
 
 import jakarta.persistence.*; // JPA anotasyonları için
+
+import java.math.BigDecimal;
+
 import com.example.ecommerce.entity.User;
 
 @Entity // Bu sınıfın bir veritabanı varlığı olduğunu belirtir
@@ -27,7 +30,7 @@ public class Product {
     private String description;
 
     @Column(name = "price", nullable = false)
-    private Double price;
+    private BigDecimal price;
 
     // Constructors (Yapıcı Metotlar)
     public Product() {
@@ -40,7 +43,7 @@ public class Product {
     public void setCategory(Category category) {
         this.category = category;
     }
-    public Product(String name, String description, Double price) {
+    public Product(String name, String description, BigDecimal price) {
         this.name = name;
         this.description = description;
         this.price = price;
@@ -71,11 +74,11 @@ public class Product {
         this.description = description;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
     public User getSeller() {

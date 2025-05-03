@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice; // Import Contr
 import org.springframework.web.bind.annotation.ExceptionHandler; // Import ExceptionHandler
 import org.springframework.web.context.request.WebRequest; // Import WebRequest
 
-import java.util.Date; // For timestamp, optional
-
 // Use @RestControllerAdvice for REST APIs as it combines @ControllerAdvice and @ResponseBody
 @ControllerAdvice // Or @RestControllerAdvice
 public class GlobalExceptionHandler {

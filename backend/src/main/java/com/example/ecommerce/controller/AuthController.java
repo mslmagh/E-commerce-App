@@ -5,7 +5,6 @@ import com.example.ecommerce.dto.LoginRequest;
 import com.example.ecommerce.dto.SignupRequest;
 import com.example.ecommerce.entity.Role;
 import com.example.ecommerce.entity.User;
-import com.example.ecommerce.exception.ResourceNotFoundException; // For role not found
 import com.example.ecommerce.repository.RoleRepository;
 import com.example.ecommerce.repository.UserRepository;
 import com.example.ecommerce.security.jwt.JwtUtils; // Your JWT utility class

@@ -54,25 +54,44 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // Configure HttpSecurity - THIS IS THE MAIN PART
     @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            // ... (println etc.) ...
-            http
-                .authorizeHttpRequests(authorize -> authorize
-                    .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                    .requestMatchers("/api/status").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "SELLER")
-                    // ===> YENİ SİPARİŞ KURALI <===
-                    .requestMatchers("/api/orders/**").authenticated() // Require authentication for all order operations
-                    // ===> YENİ SİPARİŞ KURALI SONU <===
-                    .anyRequest().authenticated() // Secure everything else
-                )
-                 // ... (csrf, sessionManagement, authenticationProvider, addFilterBefore same) ...
-            return http.build();
-        }
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // Log message for confirmation (optional)
+        System.out.println(">>> SecurityConfig filterChain method CALLED! (Applying full JWT config) <<<");
+
+        http
+            // Disable CSRF (common for stateless APIs)
+            .csrf(AbstractHttpConfigurer::disable)
+
+            // Configure Session Management to STATELESS for JWT
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // Configure Authorization Rules
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/api/auth/**").permitAll()                 // Allow auth endpoints
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Allow Swagger
+                .requestMatchers("/api/status").permitAll()                 // Allow status endpoint
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll() // Allow GET products
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()// Allow GET categories
+                // Require ADMIN or SELLER for POST categories (Example role check)
+                .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "SELLER")
+                // Require authentication for Order APIs (further checks might be in service/controller)
+                .requestMatchers("/api/orders/**").authenticated()
+                // Secure all other requests - MUST be authenticated
+                .anyRequest().authenticated()
+            ) // End of authorizeHttpRequests configuration block
+
+            // Register the custom AuthenticationProvider
+            .authenticationProvider(authenticationProvider())
+
+            // Add the custom JWT filter before the standard UsernamePasswordAuthenticationFilter
+            .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
+
+        ; // <<<--- IMPORTANT: Semicolon terminates the http configuration chain here
+
+        return http.build();
+    }
 
     // REMOVE the WebSecurityCustomizer bean if you still have it
     /*
