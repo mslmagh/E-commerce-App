@@ -9,6 +9,10 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "DTO for updating an existing product")
 public class UpdateProductRequestDto {
 
+    @Schema(description = "ID of the category to assign the product to", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @NotNull(message = "Category ID cannot be null") // <<<--- YENİ ALAN VE VALIDASYON
+    private Long categoryId;
+
     @Schema(description = "New name of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "Updated Wireless Mouse")
     @NotBlank(message = "Product name cannot be blank")
     @Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
@@ -30,4 +34,6 @@ public class UpdateProductRequestDto {
     public void setDescription(String description) { this.description = description; }
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price; }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 }

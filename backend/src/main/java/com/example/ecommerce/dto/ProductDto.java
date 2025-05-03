@@ -4,6 +4,12 @@ import io.swagger.v3.oas.annotations.media.Schema; // Import Schema annotation
 
 @Schema(description = "Data Transfer Object representing a product for API responses") // English comment
 public class ProductDto {
+    // ... (id, name, description, price alanları ve getter/setterları aynı) ...
+    @Schema(description = "ID of the product's category", example = "3")
+    private Long categoryId; // <<<--- YENİ ALAN
+
+    @Schema(description = "Name of the product's category", example = "Electronics")
+    private String categoryName; // <<<--- YENİ ALAN
 
     @Schema(description = "Unique identifier of the product", example = "1") // English comment
     private Long id;
@@ -17,17 +23,16 @@ public class ProductDto {
     @Schema(description = "Price of the product", example = "2499.99") // English comment
     private Double price;
 
-    // Default constructor (may be required by some frameworks/libraries)
-    public ProductDto() {
-    }
-
-    // Constructor with fields
-    public ProductDto(Long id, String name, String description, Double price) {
+   
+public ProductDto(Long id, String name, String description, Double price, Long categoryId, String categoryName) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
+        this.categoryId = categoryId; // <<<--- YENİ ATAMA
+        this.categoryName = categoryName; // <<<--- YENİ ATAMA
     }
+    public ProductDto() {} // Default constructor
 
     // --- Getters and Setters ---
 
@@ -62,4 +67,8 @@ public class ProductDto {
     public void setPrice(Double price) {
         this.price = price;
     }
+     public Long getCategoryId() { return categoryId; }
+     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+     public String getCategoryName() { return categoryName; }
+     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 }

@@ -5,6 +5,7 @@ import com.example.ecommerce.dto.ProductDto;     // Import ProductDto
 import com.example.ecommerce.dto.CreateProductRequestDto; // Import CreateProductRequestDto
 import com.example.ecommerce.dto.UpdateProductRequestDto;
 import com.example.ecommerce.entity.Product;       // Import Product entity
+import com.example.ecommerce.repository.CategoryRepository;
 import com.example.ecommerce.repository.ProductRepository; // Import ProductRepository
 import org.springframework.beans.factory.annotation.Autowired; // Import Autowired
 import org.springframework.stereotype.Service;           // Import Service annotation
@@ -12,19 +13,25 @@ import org.springframework.security.core.context.SecurityContextHolder; // Impor
 import org.springframework.security.core.userdetails.UserDetails;
 import com.example.ecommerce.entity.User;
 import com.example.ecommerce.repository.UserRepository;
+import com.example.ecommerce.entity.Category; // Import Category entity
 import java.util.List;
 import java.util.stream.Collectors; // Import Collectors for stream processing
 
 @Service // Marks this class as a Spring service component
 public class ProductService {
 
+    private final CategoryRepository categoryRepository; 
     private final ProductRepository productRepository; // Repository dependency
     private final UserRepository userRepository;
     // Constructor injection is recommended for dependencies
     @Autowired
-    public ProductService(ProductRepository productRepository, UserRepository userRepository) { // <<<--- UserRepository PARAMETRESİNİ EKLEYİN
+    public ProductService(ProductRepository productRepository,
+                          UserRepository userRepository,
+                          CategoryRepository categoryRepository // <<<--- Constructor'a EKLE
+                         ) {
         this.productRepository = productRepository;
-        this.userRepository = userRepository; // <<<--- BU ATAMAYI EKLEYİN
+        this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository; // <<<--- Atamayı EKLE
     }
 
     /**
@@ -76,24 +83,22 @@ public class ProductService {
     
     
     public ProductDto createProduct(CreateProductRequestDto requestDto) {
-        // 1. Get current authenticated user's username
         String username = getCurrentAuthenticatedUsername();
-        // Find the user entity corresponding to this username
-        // Throw exception if user somehow not found (shouldn't happen if authenticated)
         User seller = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found in database: " + username));
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
-        // 2. Create a new Product entity instance
+        // Find the category by ID provided in DTO
+        Category category = categoryRepository.findById(requestDto.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + requestDto.getCategoryId()));
+
         Product newProduct = new Product();
         newProduct.setName(requestDto.getName());
         newProduct.setDescription(requestDto.getDescription());
         newProduct.setPrice(requestDto.getPrice());
-        newProduct.setSeller(seller); // <<<--- SET THE SELLER
+        newProduct.setSeller(seller);
+        newProduct.setCategory(category); // <<<--- Kategoriyi set et
 
-        // 3. Save the new entity
         Product savedProduct = productRepository.save(newProduct);
-
-        // 4. Convert and return DTO
         return convertToDto(savedProduct);
     }
     public List<ProductDto> getProductsForCurrentUser() {
@@ -103,29 +108,24 @@ public class ProductService {
                        .map(this::convertToDto)
                        .collect(Collectors.toList());
     }
-    /**
-     * @param id The ID of the product to update.
-     * @param requestDto DTO containing the updated product details.
-     * @return ProductDto representing the updated product.
-     * @throws ResourceNotFoundException if no product with the given ID exists.
-     */
+  
     public ProductDto updateProduct(Long id, UpdateProductRequestDto requestDto) {
-        // 1. Find the existing product by ID. Throw exception if not found.
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        // 2. Update the fields of the existing entity with data from the DTO
+        // Find the new category
+        Category category = categoryRepository.findById(requestDto.getCategoryId())
+                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + requestDto.getCategoryId()));
+
+        // Update fields
         existingProduct.setName(requestDto.getName());
         existingProduct.setDescription(requestDto.getDescription());
         existingProduct.setPrice(requestDto.getPrice());
+        existingProduct.setCategory(category); // <<<--- Kategoriyi güncelle
 
-        // 3. Save the updated entity back to the database
         Product updatedProduct = productRepository.save(existingProduct);
-
-        // 4. Convert the updated entity to DTO and return it
         return convertToDto(updatedProduct);
     }
-
     public void deleteProduct(Long id) {
         // 1. Check if the product exists before attempting deletion.
         if (!productRepository.existsById(id)) {
@@ -138,19 +138,24 @@ public class ProductService {
     }
 
 
-    /**
-     * Helper method to convert a Product entity to a ProductDto.
-     * @param product The Product entity to convert.
-     * @return The corresponding ProductDto.
-     */
+  
     private ProductDto convertToDto(Product product) {
+        Long categoryId = null;
+        String categoryName = null;
+        if (product.getCategory() != null) { // Check if category exists
+            categoryId = product.getCategory().getId();
+            categoryName = product.getCategory().getName();
+        }
         return new ProductDto(
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
-                product.getPrice()
+                product.getPrice(),
+                categoryId,     // <<<--- Category ID ekle
+                categoryName    // <<<--- Category Name ekle
         );
     }
+
 // Helper method to get current username
     private String getCurrentAuthenticatedUsername() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

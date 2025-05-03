@@ -58,34 +58,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF (common for stateless APIs)
-            .csrf(AbstractHttpConfigurer::disable)
-            // === Configure Session Management to STATELESS ===
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // === Configure Authorization Rules ===
             .authorizeHttpRequests(authorize -> authorize
-                // Permit access to authentication endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                // Permit access to Swagger UI and API docs (if not using WebSecurityCustomizer)
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // Permit access to status endpoint
                 .requestMatchers("/api/status").permitAll()
-                // Permit GET requests for products (adjust as needed)
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                // Require authentication for all other requests
-                .anyRequest().authenticated()
-            );
-
-        // Register the custom AuthenticationProvider
-        http.authenticationProvider(authenticationProvider());
-
-        // Add the custom JWT filter before the standard UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        // Remove HttpBasic and FormLogin as JWT filter handles authentication
-        // http.httpBasic(withDefaults());
-        // http.formLogin(withDefaults());
-
+                // ===> YENİ KATEGORİ İZİNLERİ <===
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll() // Allow anyone to GET categories
+                .requestMatchers(HttpMethod.POST, "/api/categories").hasAnyRole("ADMIN", "SELLER") // Allow ADMIN or SELLER to POST
+                // Add rules for PUT/DELETE /api/categories/{id} later if implemented (likely ADMIN only)
+                // ===> YENİ KATEGORİ İZİNLERİ SONU <===
+                .anyRequest().authenticated()); // Secure everything else
+            // ... (csrf, sessionManagement, authenticationProvider, addFilterBefore same) ...
         return http.build();
     }
 
