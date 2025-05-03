@@ -28,16 +28,15 @@ public class User implements UserDetails {
     // If the user account is enabled
     private boolean enabled = true;
 
-    // Many-to-many relationship with roles
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "users_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+    @JoinTable( name = "user_roles",
+                joinColumns = @JoinColumn(name = "user_id"),
+                inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<Role> roles = new HashSet<>();
+
+    // Adres ilişkisi - SADECE @OneToMany olmalı
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Address> addresses = new ArrayList<>();
-    private Set<Role> roles = new HashSet<>();
 
     public User() {
     }

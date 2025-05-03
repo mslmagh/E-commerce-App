@@ -42,7 +42,7 @@ public class AddressController {
     @Operation(summary = "Get My Address by ID")
     @ApiResponses(value = { /* ... */ })
     @GetMapping("/{addressId}")
-    public ResponseEntity<AddressDto> getMyAddressById(@Parameter(description = "ID of address") @PathVariable Long addressId) {
+    public ResponseEntity<AddressDto> getMyAddressById(@PathVariable Long addressId) {
         AddressDto addressDto = addressService.getAddressByIdForCurrentUser(addressId);
         return ResponseEntity.ok(addressDto);
     }
@@ -73,7 +73,6 @@ public class AddressController {
                        content = @Content(schema = @Schema(implementation = AddressRequestDto.class))
                )
     )
-    @Parameter(description = "ID of address to update", required = true) // Keep @Parameter for path variable
     // Remove the separate @RequestBody annotation here
     @ApiResponses(value = { /* ... */ })
     @PutMapping("/{addressId}")
@@ -85,7 +84,6 @@ public class AddressController {
     }
 
     @Operation(summary = "Delete My Address")
-    @Parameter(description = "ID of the address to delete", required = true)
     @ApiResponses(value = { /* ... */ })
     @DeleteMapping("/{addressId}")
     public ResponseEntity<Void> deleteMyAddress(@PathVariable Long addressId) {
