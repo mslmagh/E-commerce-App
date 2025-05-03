@@ -1,76 +1,57 @@
 package com.example.ecommerce.dto;
 
-import java.math.BigDecimal;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal; // Import BigDecimal
 
-import io.swagger.v3.oas.annotations.media.Schema; // Import Schema annotation
-
-@Schema(description = "Data Transfer Object representing a product for API responses") // English comment
+@Schema(description = "Data Transfer Object representing a product for API responses")
 public class ProductDto {
-    // ... (id, name, description, price alanları ve getter/setterları aynı) ...
-    @Schema(description = "ID of the product's category", example = "3")
-    private Long categoryId; // <<<--- YENİ ALAN
 
-    @Schema(description = "Name of the product's category", example = "Electronics")
-    private String categoryName; // <<<--- YENİ ALAN
-
-    @Schema(description = "Unique identifier of the product", example = "1") // English comment
+    @Schema(description = "Unique identifier of the product", example = "1")
     private Long id;
 
-    @Schema(description = "Name of the product", example = "Gaming Laptop X") // English comment
+    @Schema(description = "Name of the product", example = "Gaming Laptop X")
     private String name;
 
-    @Schema(description = "Detailed description of the product", example = "High-end gaming laptop with latest specs") // English comment
+    @Schema(description = "Detailed description of the product", example = "High-end gaming laptop with latest specs")
     private String description;
 
-    @Schema(description = "Price of the product", example = "2499.99") // English comment
-    private BigDecimal price;
+    @Schema(description = "Price of the product", example = "2499.99")
+    private BigDecimal price; // Use BigDecimal
 
-   
-public ProductDto(Long id, String name, String description, BigDecimal price, Long categoryId, String categoryName) {
+    @Schema(description = "Available stock quantity", example = "50")
+    private Integer stockQuantity; // <<<--- YENİ ALAN
+
+    @Schema(description = "ID of the product's category", example = "3")
+    private Long categoryId;
+
+    @Schema(description = "Name of the product's category", example = "Electronics")
+    private String categoryName;
+
+    // Update Constructor
+    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
-        this.categoryId = categoryId; // <<<--- YENİ ATAMA
-        this.categoryName = categoryName; // <<<--- YENİ ATAMA
+        this.stockQuantity = stockQuantity; // <<<--- YENİ ATAMA
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
     }
     public ProductDto() {} // Default constructor
 
-    // --- Getters and Setters ---
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-     public Long getCategoryId() { return categoryId; }
-     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
-     public String getCategoryName() { return categoryName; }
-     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+    // Getters & Setters (Including new stockQuantity)
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public BigDecimal getPrice() { return price; } // Return BigDecimal
+    public void setPrice(BigDecimal price) { this.price = price; } // Accept BigDecimal
+    public Integer getStockQuantity() { return stockQuantity; } // Getter for stock
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; } // Setter for stock
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 }

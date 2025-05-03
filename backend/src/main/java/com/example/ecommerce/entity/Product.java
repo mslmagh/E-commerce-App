@@ -1,92 +1,57 @@
 package com.example.ecommerce.entity;
 
-import jakarta.persistence.*; // JPA anotasyonları için
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Min; // For @Min
+import java.math.BigDecimal; // Import BigDecimal
 
-import java.math.BigDecimal;
-
-import com.example.ecommerce.entity.User;
-
-@Entity // Bu sınıfın bir veritabanı varlığı olduğunu belirtir
-@Table(name = "products") // İlişkili olduğu veritabanı tablosunun adı
+@Entity
+@Table(name = "products")
 public class Product {
 
-    @Id // Bu alanın birincil anahtar (primary key) olduğunu belirtir
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // ID'nin otomatik artan olacağını belirtir
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) // FetchType.LAZY genellikle daha performanslıdır
-    @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false) // Veritabanındaki foreign key                                                                     // sütunu
-    private User seller;
-
-    // ===> YENİ ALAN: Ürünün Kategorisi <===
-    @ManyToOne(fetch = FetchType.LAZY) // A Product belongs to One Category
-    @JoinColumn(name = "category_id") // Foreign key column in the 'products' table, defaults to nullable
-    private Category category; 
-
-    @Column(name = "name", nullable = false) // Sütun adı ve boş bırakılamaz kısıtlaması
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description") // Sütun adı (opsiyonel, belirtmezsek alan adıyla aynı olur)
+    @Column(name = "description", length = 500) // Set max length for description
     private String description;
 
-    @Column(name = "price", nullable = false)
-    private BigDecimal price;
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal price; // Use BigDecimal for price
 
-    // Constructors (Yapıcı Metotlar)
-    public Product() {
-        // Varsayılan yapıcı (JPA için gerekli olabilir)
-    }
-    public Category getCategory() {
-        return category;
-    }
+    // ===> YENİ STOK ALANI <===
+    @Min(0) // Stock cannot be negative
+    @Column(name = "stock_quantity", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer stockQuantity = 0; // Default stock to 0
+    // ===> YENİ STOK ALANI SONU <===
 
-    public void setCategory(Category category) {
-        this.category = category;
-    }
-    public Product(String name, String description, BigDecimal price) {
-        this.name = name;
-        this.description = description;
-        this.price = price;
-    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false)
+    private User seller;
 
-    // Getters and Setters (Erişim Metotları)
-    public Long getId() {
-        return id;
-    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
 
-    public String getName() {
-        return name;
-    }
+    // Constructors
+    public Product() {}
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-    public User getSeller() {
-        return seller;
-    }
-
-    public void setSeller(User seller) {
-        this.seller = seller;
-    }
-    // equals, hashCode, toString metotları da eklenebilir (opsiyonel)
+    // Getters and Setters (Including new stockQuantity)
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public BigDecimal getPrice() { return price; } // Return BigDecimal
+    public void setPrice(BigDecimal price) { this.price = price; } // Accept BigDecimal
+    public Integer getStockQuantity() { return stockQuantity; } // Getter for stock
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; } // Setter for stock
+    public User getSeller() { return seller; }
+    public void setSeller(User seller) { this.seller = seller; }
+    public Category getCategory() { return category; }
+    public void setCategory(Category category) { this.category = category; }
 }

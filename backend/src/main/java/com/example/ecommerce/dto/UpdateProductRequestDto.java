@@ -1,19 +1,11 @@
 package com.example.ecommerce.dto;
 
-import java.math.BigDecimal;
-
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*; // Import validation constraints
+import java.math.BigDecimal; // Import BigDecimal
 
 @Schema(description = "DTO for updating an existing product")
 public class UpdateProductRequestDto {
-
-    @Schema(description = "ID of the category to assign the product to", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @NotNull(message = "Category ID cannot be null") // <<<--- YENİ ALAN VE VALIDASYON
-    private Long categoryId;
 
     @Schema(description = "New name of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "Updated Wireless Mouse")
     @NotBlank(message = "Product name cannot be blank")
@@ -27,15 +19,26 @@ public class UpdateProductRequestDto {
     @Schema(description = "New price of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "49.99")
     @NotNull(message = "Product price cannot be null")
     @DecimalMin(value = "0.0", inclusive = true, message = "Price must be zero or positive")
-    private BigDecimal price;
+    private BigDecimal price; // Use BigDecimal
 
-    // --- Getters and Setters ---
+    @Schema(description = "New stock quantity", requiredMode = Schema.RequiredMode.REQUIRED, example = "75")
+    @NotNull(message = "Stock quantity cannot be null")
+    @Min(value = 0, message = "Stock quantity cannot be negative")
+    private Integer stockQuantity; // <<<--- YENİ ALAN
+
+    @Schema(description = "ID of the category to assign the product to", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @NotNull(message = "Category ID cannot be null")
+    private Long categoryId;
+
+    // Getters & Setters (Including new stockQuantity)
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
+    public BigDecimal getPrice() { return price; } // Return BigDecimal
+    public void setPrice(BigDecimal price) { this.price = price; } // Accept BigDecimal
+    public Integer getStockQuantity() { return stockQuantity; } // Getter for stock
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; } // Setter for stock
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 }
