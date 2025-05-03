@@ -15,6 +15,11 @@ public class Product {
     @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false) // Veritabanındaki foreign key                                                                     // sütunu
     private User seller;
 
+    // ===> YENİ ALAN: Ürünün Kategorisi <===
+    @ManyToOne(fetch = FetchType.LAZY) // A Product belongs to One Category
+    @JoinColumn(name = "category_id") // Foreign key column in the 'products' table, defaults to nullable
+    private Category category; 
+
     @Column(name = "name", nullable = false) // Sütun adı ve boş bırakılamaz kısıtlaması
     private String name;
 
@@ -28,7 +33,13 @@ public class Product {
     public Product() {
         // Varsayılan yapıcı (JPA için gerekli olabilir)
     }
+    public Category getCategory() {
+        return category;
+    }
 
+    public void setCategory(Category category) {
+        this.category = category;
+    }
     public Product(String name, String description, Double price) {
         this.name = name;
         this.description = description;
@@ -74,6 +85,5 @@ public class Product {
     public void setSeller(User seller) {
         this.seller = seller;
     }
-
     // equals, hashCode, toString metotları da eklenebilir (opsiyonel)
 }
