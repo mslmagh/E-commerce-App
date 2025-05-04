@@ -1,18 +1,18 @@
 package com.example.ecommerce.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-import java.util.List;
-
+import jakarta.validation.constraints.NotNull;
 public class CreateOrderRequestDto {
 
-    @Schema(description = "List of items included in the order", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "Order must contain at least one item")
-    @Valid // Validate each item in the list
-    private List<CreateOrderItemDto> items;
+    @Schema(description = "ID of the shipping address to use for this order", requiredMode = Schema.RequiredMode.REQUIRED, example = "7")
+    @NotNull(message = "Shipping address ID cannot be null")
+    private Long shippingAddressId;
 
-    // Getters & Setters
-    public List<CreateOrderItemDto> getItems() { return items; }
-    public void setItems(List<CreateOrderItemDto> items) { this.items = items; }
+    public Long getShippingAddressId() {
+        return shippingAddressId;
+    }
+
+    public void setShippingAddressId(Long shippingAddressId) {
+        this.shippingAddressId = shippingAddressId;
+    }
 }

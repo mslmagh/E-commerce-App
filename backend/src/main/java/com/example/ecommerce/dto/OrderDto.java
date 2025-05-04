@@ -1,6 +1,6 @@
 package com.example.ecommerce.dto;
 
-import com.example.ecommerce.entity.OrderStatus; // Import Enum
+import com.example.ecommerce.entity.OrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,16 +21,22 @@ public class OrderDto {
     private String customerUsername;
     @Schema(description = "List of items included in the order")
     private List<OrderItemDto> items;
+    @Schema(description = "Shipping address details for the order")
+    private AddressDto shippingAddress; // Use AddressDto
 
-    // Constructor
-    public OrderDto(Long id, LocalDateTime orderDate, OrderStatus status, BigDecimal totalAmount, Long customerId, String customerUsername, List<OrderItemDto> items) {
+    // Updated Constructor
+    public OrderDto(Long id, LocalDateTime orderDate, OrderStatus status, BigDecimal totalAmount,
+                    Long customerId, String customerUsername, List<OrderItemDto> items,
+                    AddressDto shippingAddress // Accept AddressDto
+                   ) {
         this.id = id;
         this.orderDate = orderDate;
-        this.status = status; // Accept Enum
+        this.status = status;
         this.totalAmount = totalAmount;
         this.customerId = customerId;
         this.customerUsername = customerUsername;
         this.items = items;
+        this.shippingAddress = shippingAddress; // Assign AddressDto
     }
     public OrderDto() {} // Default constructor
 
@@ -39,8 +45,8 @@ public class OrderDto {
     public void setId(Long id) { this.id = id; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-    public OrderStatus getStatus() { return status; } // Return Enum
-    public void setStatus(OrderStatus status) { this.status = status; } // Accept Enum
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public Long getCustomerId() { return customerId; }
@@ -49,4 +55,6 @@ public class OrderDto {
     public void setCustomerUsername(String customerUsername) { this.customerUsername = customerUsername; }
     public List<OrderItemDto> getItems() { return items; }
     public void setItems(List<OrderItemDto> items) { this.items = items; }
+    public AddressDto getShippingAddress() { return shippingAddress; } // Return AddressDto
+    public void setShippingAddress(AddressDto shippingAddress) { this.shippingAddress = shippingAddress; } // Accept AddressDto
 }

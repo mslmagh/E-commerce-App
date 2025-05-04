@@ -17,7 +17,7 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime orderDate;
 
-    @Enumerated(EnumType.STRING) // Store enum name as string
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private OrderStatus status; // Use the Enum type
 
@@ -27,6 +27,11 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_user_id", referencedColumnName = "id", nullable = false)
     private User customer;
+
+    // Relationship to Shipping Address
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipping_address_id", referencedColumnName = "id", nullable = false) // Assume address is required
+    private Address shippingAddress;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
@@ -42,17 +47,22 @@ public class Order {
     public void setId(Long id) { this.id = id; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-    public OrderStatus getStatus() { return status; } // Return Enum type
-    public void setStatus(OrderStatus status) { this.status = status; } // Accept Enum type
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public User getCustomer() { return customer; }
     public void setCustomer(User customer) { this.customer = customer; }
+    public Address getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(Address shippingAddress) { this.shippingAddress = shippingAddress; }
     public List<OrderItem> getOrderItems() { return orderItems; }
     public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
 
     // Helper method
     public void addOrderItem(OrderItem item) {
+        if (this.orderItems == null) {
+             this.orderItems = new ArrayList<>();
+        }
         this.orderItems.add(item);
         item.setOrder(this);
     }
