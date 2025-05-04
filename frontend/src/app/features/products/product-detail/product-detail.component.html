@@ -1,23 +1,93 @@
 <ng-container *ngIf="product$ | async as product; else loadingOrNotFound">
-  <div class="product-detail-container">
-    <h2>{{ product.name }}</h2>
-    <div class="product-layout">
-      <div class="product-image-section">
-         <img [src]="product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image'" [alt]="product.name" class="product-detail-image">
+  <div class="product-detail-page">
+
+    <section class="product-main-section">
+
+      <div class="image-column">
+        <div class="main-image-container">
+          <img [src]="product.imageUrl || 'https://via.placeholder.com/450x450?text=No+Image'" [alt]="product.name" class="main-product-image">
+          </div>
+        <div class="thumbnail-container">
+          <img [src]="product.imageUrl || 'https://via.placeholder.com/80x80?text=No+Image'" [alt]="product.name + ' küçük resim'" class="thumbnail active">
+          <img src="https://via.placeholder.com/80x80?text=Thumb+2" alt="Küçük Resim 2" class="thumbnail">
+          <img src="https://via.placeholder.com/80x80?text=Thumb+3" alt="Küçük Resim 3" class="thumbnail">
+        </div>
       </div>
-      <div class="product-info-section">
-         <h3>Ürün Açıklaması</h3>
-         <p class="description">{{ product.description || 'Açıklama bulunamadı.' }}</p>
-         <p class="price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
-         <button class="btn btn-primary add-to-cart-detail">
-           <i class="fa-solid fa-cart-shopping"></i> Sepete Ekle
-         </button>
+
+      <div class="info-column">
+        <h1 class="product-title">{{ product.name }}</h1>
+
+        <div class="product-meta">
+          <span class="seller">Satıcı: <a href="#">Örnek Satıcı</a></span>
+          <span class="rating">(<i class="fa-solid fa-star" style="color: #ffc107;"></i> 4.7 | 250+ Değerlendirme)</span>
+        </div>
+
+        <div class="price-box">
+          <span class="current-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</span>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-add-to-cart" (click)="addToCart(product)">
+              <i class="fa-solid fa-cart-shopping"></i> Sepete Ekle
+            </button>
+            <button class="btn btn-favorite"
+                    (click)="toggleFavorite(product)"
+                    [class.is-favorite]="isFavorite" title="Favorilere Ekle/Çıkar">
+               <i [class]="isFavorite ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+            </button>
+          </div>
+
+        <div class="delivery-estimation">
+          <p><i class="fa-solid fa-truck"></i> Tahmini Teslimat: Yarın</p>
+        </div>
+      </div>
+
+      <div class="sidebar-column">
+        <div class="sidebar-box campaign-box">
+          <strong>Kampanyalar</strong>
+          <p>150 TL Üzeri Kargo Bedava!</p>
+        </div>
+        <div class="sidebar-box seller-box">
+          <strong>Satıcı: Örnek Satıcı</strong>
+          <p>Puan: 9.5</p>
+          <a href="#">Mağazaya Git ></a>
+        </div>
+      </div>
+
+    </section><section class="product-tabs-section mt-4">
+      <div class="tab-headers">
+         <a class="tab-link"
+            [class.active]="activeTab === 'description'"
+            (click)="selectTab('description')">Ürün Açıklaması</a>
+         <a class="tab-link"
+            [class.active]="activeTab === 'reviews'"
+            (click)="selectTab('reviews')">Değerlendirmeler</a>
+         <a class="tab-link"
+            [class.active]="activeTab === 'qa'"
+            (click)="selectTab('qa')">Soru & Cevap</a>
+      </div>
+
+      <div class="tab-content">
+         <div *ngIf="activeTab === 'description'">
+           <h3>Ürün Açıklaması</h3>
+           <p>{{ product?.description || 'Bu ürün için bir açıklama bulunmamaktadır.' }}</p>
          </div>
-    </div>
-  </div>
-</ng-container>
+
+         <div *ngIf="activeTab === 'reviews'">
+           <h3>Değerlendirmeler</h3>
+           <p>Henüz hiç değerlendirme yapılmamış.</p>
+           </div>
+
+         <div *ngIf="activeTab === 'qa'">
+           <h3>Soru & Cevap</h3>
+           <p>Henüz hiç soru sorulmamış.</p>
+           </div>
+      </div>
+    </section> </div> </ng-container>
 
 <ng-template #loadingOrNotFound>
-  <p class="loading-message">Ürün bilgisi yükleniyor veya ürün bulunamadı...</p>
-  <a routerLink="/">Ana Sayfaya Dön</a>
+  <div class="loading-container">
+    <p>Ürün bilgisi yükleniyor veya ürün bulunamadı...</p>
+    <a routerLink="/" class="btn btn-secondary">Ana Sayfaya Dön</a>
+  </div>
 </ng-template>

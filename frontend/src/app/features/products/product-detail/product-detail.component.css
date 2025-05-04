@@ -1,0 +1,269 @@
+/* frontend/src/app/features/products/product-detail/product-detail.component.css */
+/* TAM HAL (Layout + Resim/Bilgi Stilleri) - YORUM SATIRSIZ */
+
+.product-detail-page {
+  max-width: 1300px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.product-main-section {
+  display: grid;
+  grid-template-columns: minmax(350px, 1fr) minmax(400px, 1.5fr) minmax(200px, 0.8fr);
+  gap: 35px;
+  margin-bottom: 50px;
+}
+
+.image-column,
+.info-column,
+.sidebar-column {
+  padding-top: 10px;
+}
+
+.sidebar-column {
+   border-left: 1px solid #eee;
+   padding-left: 25px;
+}
+
+.product-tabs-section {
+   margin-bottom: 40px;
+}
+
+.main-image-container {
+  margin-bottom: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.main-product-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  max-height: 500px; /* Resmin çok büyümesini engelle */
+}
+
+.thumbnail-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.thumbnail {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.thumbnail.active,
+.thumbnail:hover {
+  border-color: #007bff;
+}
+
+.info-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #212529;
+  margin-top: 0;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.product-meta {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 15px;
+  align-items: center;
+}
+
+.product-meta a {
+  color: #007bff;
+  text-decoration: none;
+}
+.product-meta a:hover {
+  text-decoration: underline;
+}
+
+.product-meta .rating .fa-star {
+  color: #ffc107;
+  margin-right: 3px; /* Yıldızla yazı arasına boşluk */
+}
+
+.price-box {
+  margin-bottom: 25px;
+}
+
+.current-price {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #d63384; /* Veya başka bir fiyat rengi */
+  margin-right: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  align-items: stretch; /* Butonların yüksekliğini eşitle */
+}
+
+/* Genel Buton Stilleri (Bootstrap benzeri - global stillere taşınabilir) */
+.btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; border: 1px solid transparent; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 0.25rem; transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out; }
+.btn:hover { text-decoration: none; }
+.btn i { margin-right: 0.5em; } /* Buton içindeki ikonlara sağ boşluk */
+
+/* Primary Buton Stili */
+.btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
+.btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
+
+.btn-add-to-cart {
+  flex-grow: 1; /* Daha fazla yer kaplasın */
+  background-color: #ff6f00; /* Turuncu */
+  color: white;
+  border-color: #ff6f00;
+  font-weight: bold;
+  padding: 10px 15px; /* Padding'i btn'den alabilir veya özelleşebilir */
+  font-size: 1.1rem;
+}
+.btn-add-to-cart:hover {
+  background-color: #e66000;
+  border-color: #e66000;
+}
+
+.btn-favorite {
+  background-color: #ffffff;
+  color: #6c757d; /* Gri kalp */
+  border: 1px solid #ced4da;
+  padding: 0.5rem 0.8rem;
+  font-size: 1.2rem;
+  line-height: 1; /* İkonu dikeyde ortalamak için */
+}
+ .btn-favorite:hover {
+    background-color: #f8f9fa;
+    color: #dc3545; /* Üzerine gelince kırmızı kalp */
+    border-color: #ced4da;
+ }
+
+.delivery-estimation {
+  font-size: 0.9rem;
+  color: #28a745;
+  font-weight: 500;
+  margin-top: auto; /* Butonlarla arasında kalan boşluğu doldur */
+  padding-top: 15px; /* Üstündeki elemanla boşluk */
+}
+.delivery-estimation i {
+   margin-right: 6px;
+}
+/* frontend/src/app/features/products/product-detail/product-detail.component.css */
+/* Önceki stillerin SONUNA Eklenecek */
+
+/* === SAĞ KENAR ÇUBUĞU (SIDEBAR) STİLLERİ === */
+/* .sidebar-column için zaten border-left ve padding-left vardı */
+
+.sidebar-box {
+  border: 1px solid #e9ecef; /* Biraz daha açık kenarlık */
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 25px;
+  font-size: 0.9rem;
+  background-color: #f8f9fa; /* Hafif gri arka plan */
+}
+
+.sidebar-box h4,
+.sidebar-box strong {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 600;
+  color: #343a40; /* Daha koyu başlık */
+  font-size: 1rem;
+}
+.sidebar-box p {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #495057; /* Biraz daha koyu metin */
+  line-height: 1.6;
+}
+.sidebar-box a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+.sidebar-box a:hover {
+    text-decoration: underline;
+}
+
+/* Kampanya kutusuna özel belki farklı stil */
+.campaign-box {
+  border-left: 3px solid #007bff; /* Soluna mavi çizgi */
+}
+
+/* Satıcı kutusu */
+.seller-box {
+  /* Ekstra özel stil gerekirse */
+}
+
+
+/* === ALT SEKMELER BÖLÜMÜ STİLLERİ === */
+.product-tabs-section {
+  margin-top: 50px; /* Üst bölümle arasını daha çok aç */
+  border-top: 1px solid #dee2e6; /* Üstüne ayırıcı çizgi */
+  padding-top: 30px;
+}
+
+.tab-headers {
+  display: flex;
+  border-bottom: 2px solid #dee2e6; /* Sekmelerin altındaki ana çizgi */
+  margin-bottom: 30px; /* Başlıklarla içerik arasına boşluk */
+  gap: 5px; /* Sekme başlıkları arasına hafif boşluk */
+}
+
+.tab-link {
+  padding: 12px 25px; /* Daha geniş tıklama alanı */
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  margin-bottom: -2px; /* Aktif sekmenin alt çizgisiyle bütünleşsin */
+  border-bottom: 2px solid transparent; /* Normalde alt çizgi görünmez */
+  font-size: 1.05rem; /* Biraz daha büyük sekme yazısı */
+  font-weight: 500; /* Orta kalınlıkta */
+  color: #6c757d; /* Pasif sekme rengi */
+  transition: color 0.2s ease, border-color 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap; /* Başlıkların alta kaymasını engelle */
+}
+
+.tab-link.active,
+.tab-link:hover {
+  color: #0d6efd; /* Daha canlı bir mavi (Bootstrap primary) */
+  border-bottom-color: #0d6efd; /* Aktif/Hover sekmenin alt çizgisi */
+}
+
+.tab-content {
+  line-height: 1.7;
+  color: #495057;
+  padding: 10px 0; /* İçeriğe hafif dikey boşluk */
+}
+
+.tab-content h3 {
+   font-size: 1.5rem;
+   font-weight: 600;
+   color: #333;
+   margin-top: 0;
+   margin-bottom: 20px;
+   border-bottom: 1px solid #eee; /* İçerik başlığı altına çizgi */
+   padding-bottom: 10px;
+}

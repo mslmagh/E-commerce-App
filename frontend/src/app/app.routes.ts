@@ -28,6 +28,12 @@ export const routes: Routes = [
     path: 'products',
     // './features/products/products.routes' dosyasını ve içindeki PRODUCT_ROUTES'u yükle
     loadChildren: () => import('./features/products/products.routes').then(r => r.PRODUCT_ROUTES)
+  },
+  {
+    path: 'checkout', // '/checkout' adresi için
+    loadChildren: () => import('./features/checkout/checkout.routes').then(r => r.CHECKOUT_ROUTES)
+    // TODO: Bu rota kesinlikle giriş yapmış olmayı gerektirir! AuthGuard eklenecek.
+    // , canActivate: [authGuardFn]
   }
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];
