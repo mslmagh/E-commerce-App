@@ -39,7 +39,7 @@ public class CartService {
 
     // --- Core Cart Logic ---
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CartDto getCartForCurrentUser() {
         Cart cart = findOrCreateCartForCurrentUser();
         return convertCartToDto(cart);
