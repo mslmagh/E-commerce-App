@@ -8,6 +8,7 @@ export interface Product {
   price: number;
   imageUrl?: string;
   description?: string;
+  categorySlug?: string; // Kategori alanı eklendi
 }
 
 @Injectable({
@@ -16,12 +17,13 @@ export interface Product {
 export class ProductService {
 
   private mockProducts: Product[] = [
-    { id: 1, name: 'Kablosuz Kulaklık Pro X', price: 899, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Kulaklık', description: 'Aktif gürültü engelleme ve uzun pil ömrü sunan yüksek kaliteli kablosuz kulaklık.' },
-    { id: 2, name: 'Akıllı Saat Fit+', price: 1450, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Akıllı+Saat', description: 'Adım sayar, nabız ölçer, uyku takibi ve GPS özellikli modern akıllı saat.' },
-    { id: 3, name: 'Mekanik Klavye RGB', price: 650, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Klavye', description: 'Oyuncular ve yazarlar için özelleştirilebilir RGB aydınlatmalı, dayanıklı mekanik klavye.' },
-    { id: 4, name: 'Yoga Matı Kaymaz', price: 250, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Yoga+Matı', description: 'TPE malzemeden üretilmiş, çevre dostu, ekstra kalın ve kaymaz yüzeyli yoga matı.' },
-    { id: 5, name: 'Blender Seti PowerMix', price: 1100, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Blender', description: 'Çorba, smoothie ve soslar için ideal, çok fonksiyonlu, 1000W güçlü motorlu mutfak blender seti.' },
-    { id: 6, name: 'Erkek Sneaker Air', price: 1999, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Sneaker', description: 'Hava tabanlı yastıklama sistemiyle gün boyu konfor sunan hafif ve şık erkek sneaker.' }
+    { id: 1, name: 'Kablosuz Kulaklık Pro X', price: 899, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Kulaklık', description: 'Aktif gürültü engelleme ve uzun pil ömrü sunan yüksek kaliteli kablosuz kulaklık.', categorySlug: 'elektronik' },
+    { id: 2, name: 'Akıllı Saat Fit+', price: 1450, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Akıllı+Saat', description: 'Adım sayar, nabız ölçer, uyku takibi ve GPS özellikli modern akıllı saat.', categorySlug: 'elektronik' },
+    { id: 3, name: 'Mekanik Klavye RGB', price: 650, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Klavye', description: 'Oyuncular ve yazarlar için özelleştirilebilir RGB aydınlatmalı, dayanıklı mekanik klavye.', categorySlug: 'elektronik' },
+    { id: 4, name: 'Yoga Matı Kaymaz', price: 250, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Yoga+Matı', description: 'TPE malzemeden üretilmiş, çevre dostu, ekstra kalın ve kaymaz yüzeyli yoga matı.', categorySlug: 'spor-outdoor' },
+    { id: 5, name: 'Blender Seti PowerMix', price: 1100, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Blender', description: 'Çok fonksiyonlu, güçlü motorlu mutfak blender seti.', categorySlug: 'ev-yasam' },
+    { id: 6, name: 'Erkek Sneaker Air', price: 1999, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Sneaker', description: 'Hafif ve rahat, günlük kullanıma uygun erkek sneaker.', categorySlug: 'erkek-giyim' }
+    // Diğer kategoriler için ürünler eklenebilir: kadin-giyim, anne-cocuk, supermarket, kozmetik, ayakkabi-canta ...
   ];
 
   constructor() { }
@@ -41,9 +43,12 @@ export class ProductService {
         return foundProduct;
       })
     );
-    // Alternatif: Direkt mock data üzerinden bulup Observable yapma
-    // const product = this.mockProducts.find(p => p.id === productId);
-    // return of(product);
   }
 
+  getProductsByCategory(categorySlug: string): Observable<Product[]> {
+    console.log(`ProductService: Fetching products for category: ${categorySlug}`);
+    return this.getProducts().pipe(
+      map(products => products.filter(product => product.categorySlug === categorySlug))
+    );
+  }
 }

@@ -138,3 +138,75 @@
 .add-to-cart-btn:hover {
   background-color: #e66000;
 }
+/* frontend/src/app/features/homepage/homepage.component.css */
+/* Önceki Banner ve Product Grid stillerinin SONUNA Eklenecek */
+
+/* === KATEGORİ NAVİGASYON BARI STİLLERİ === */
+
+.category-navbar-section {
+  /* Bölümün kendisine biraz stil verelim */
+  background-color: #ffffff; /* Veya #f8f9fa gibi hafif gri */
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  padding: 5px 0; /* Dikeyde az boşluk yeterli */
+  /* Banner ile arasını ayarlamak için gerekirse üst margin */
+  /* margin-top: -20px; */
+}
+
+.category-nav {
+  /* Navigasyonun içereceği konteyner (varsa) için */
+  max-width: 1200px; /* Header/Footer ile aynı hizada olabilir */
+  margin: 0 auto;
+  padding: 0 15px; /* Yan boşluklar */
+}
+
+.category-nav-list {
+  list-style: none; /* Liste noktalarını kaldır */
+  padding: 0;
+  margin: 0;
+  display: flex; /* !!! ÖĞELERİ YAN YANA DİZ !!! */
+  flex-wrap: wrap; /* Ekran daralırsa alt satıra geç */
+  justify-content: center; /* Öğeleri ortala */
+  gap: 10px 30px; /* Önce dikey, sonra yatay boşluk */
+}
+
+/* Navigasyon linkleri */
+.nav-link {
+  text-decoration: none; /* Alt çizgiyi kaldır */
+  color: #495057; /* Biraz daha koyu gri yazı */
+  font-weight: 500; /* Orta kalınlık */
+  font-size: 0.9rem; /* Biraz daha küçük */
+  padding: 10px 5px; /* Linkin tıklama alanını artır */
+  border-bottom: 2px solid transparent; /* Hover efekti için yer hazırla */
+  transition: color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap; /* Linklerin kırılmasını engelle */
+  display: inline-block; /* Border-bottom düzgün görünsün */
+}
+
+/* Linklerin üzerine gelince */
+.nav-link:hover {
+  color: #007bff; /* Ana link rengimiz */
+  border-bottom-color: #007bff; /* Alt çizgi belirsin */
+  text-decoration: none;
+}
+
+/* "Yeni" Etiketi (Badge) */
+.badge {
+   display: inline-block;
+   padding: 0.25em 0.5em; /* İç boşluk */
+   font-size: 75%; /* Yazı boyutunu küçült */
+   font-weight: 700; /* Kalın */
+   line-height: 1;
+   text-align: center;
+   white-space: nowrap;
+   vertical-align: baseline; /* Yanındaki yazı ile hizala */
+   border-radius: 0.25rem; /* Hafif yuvarlak köşe */
+   margin-left: 4px; /* Önceki yazı ile arasına boşluk */
+   position: relative; /* Dikeyde hafif yukarı almak için */
+   top: -1px;
+}
+
+.new-badge {
+   color: #fff; /* Beyaz yazı */
+   background-color: #dc3545; /* Kırmızı arka plan */
+}

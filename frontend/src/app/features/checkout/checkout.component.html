@@ -1,1 +1,84 @@
-<p>checkout works!</p>
+<div class="checkout-container">
+  <h2>Teslimat Adresi</h2>
+  <div *ngIf="checkoutMessage" class="checkout-message error"> {{ checkoutMessage }}
+  </div>
+  <p class="info-text">Lütfen teslimat için adres bilgilerinizi girin.</p>
+
+  <form [formGroup]="addressForm" (ngSubmit)="onSubmit()" class="address-form">
+
+    <div class="form-row">
+      <div class="form-group half-width">
+        <label for="country">Ülke *</label>
+        <select id="country" formControlName="country" required>
+          <option value="" disabled>Seçiniz...</option>
+          <option *ngFor="let country of countries" [value]="country">{{ country }}</option>
+        </select>
+        <div *ngIf="country?.invalid && (country?.dirty || country?.touched)" class="error-message">
+          <small *ngIf="country?.errors?.['required']">Ülke seçimi zorunludur.</small>
+        </div>
+      </div>
+      <div class="form-group half-width">
+        <label for="city">İl (Şehir) *</label>
+        <select id="city" formControlName="city" required>
+          <option value="" disabled>Önce Ülke Seçin...</option>
+          <option *ngFor="let city of availableCities" [value]="city">{{ city }}</option>
+        </select>
+        <div *ngIf="city?.invalid && (city?.dirty || city?.touched)" class="error-message">
+          <small *ngIf="city?.errors?.['required']">İl seçimi zorunludur.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group half-width">
+        <label for="firstName">Ad *</label>
+        <input type="text" id="firstName" formControlName="firstName" placeholder="Adınızı Girin" required>
+        <div *ngIf="firstName?.invalid && (firstName?.dirty || firstName?.touched)" class="error-message">
+          <small *ngIf="firstName?.errors?.['required']">Ad alanı zorunludur.</small>
+        </div>
+      </div>
+      <div class="form-group half-width">
+        <label for="lastName">Soyad *</label>
+        <input type="text" id="lastName" formControlName="lastName" placeholder="Soyadınızı Girin" required>
+        <div *ngIf="lastName?.invalid && (lastName?.dirty || lastName?.touched)" class="error-message">
+          <small *ngIf="lastName?.errors?.['required']">Soyad alanı zorunludur.</small>
+        </div>
+      </div>
+    </div>
+
+     <div class="form-row">
+       <div class="form-group half-width">
+         <label for="email">E-posta *</label>
+         <input type="email" id="email" formControlName="email" placeholder="E-posta Adresiniz" required email>
+         <div *ngIf="email?.invalid && (email?.dirty || email?.touched)" class="error-message">
+           <small *ngIf="email?.errors?.['required']">E-posta alanı zorunludur.</small>
+           <small *ngIf="email?.errors?.['email']">Geçerli bir e-posta girin.</small>
+         </div>
+       </div>
+        <div class="form-group half-width">
+          <label for="phone">Telefon *</label>
+          <input type="tel" id="phone" formControlName="phone" placeholder="örn: 5xxxxxxxxx" required>
+          <div *ngIf="phone?.invalid && (phone?.dirty || phone?.touched)" class="error-message">
+            <small *ngIf="phone?.errors?.['required']">Telefon alanı zorunludur.</small>
+            <small *ngIf="phone?.errors?.['pattern']">Geçerli bir telefon numarası girin (10-15 rakam).</small>
+          </div>
+        </div>
+     </div>
+
+    <div class="form-group">
+        <label for="addressTitle">Adres Başlığı *</label>
+        <input type="text" id="addressTitle" formControlName="addressTitle" placeholder="Ev, İş Yeri vb." required>
+        <div *ngIf="addressTitle?.invalid && (addressTitle?.dirty || addressTitle?.touched)" class="error-message">
+          <small *ngIf="addressTitle?.errors?.['required']">Adres başlığı zorunludur.</small>
+        </div>
+      </div>
+
+    <div class="form-actions">
+       <button type="submit" class="btn btn-success" [disabled]="addressForm.invalid">
+         Adresi Kaydet ve Devam Et
+       </button>
+       <button type="button" class="btn btn-secondary" routerLink="/cart">Sepete Dön</button>
+    </div>
+
+  </form>
+</div>

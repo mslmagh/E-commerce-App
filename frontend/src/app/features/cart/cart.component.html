@@ -70,7 +70,7 @@
     <div class="cart-summary">
       <h3>Sepet Özeti</h3>
       <p>Toplam Tutar: <span class="total-price">{{ calculateTotalPrice() | currency:'TRY':'symbol':'1.0-0' }}</span></p>
-      <button class="checkout-btn btn btn-success">Siparişi Tamamla</button>
+      <button class="checkout-btn btn btn-success" (click)="goToCheckout()">Siparişi Tamamla</button>
     </div>
 
   </ng-container>

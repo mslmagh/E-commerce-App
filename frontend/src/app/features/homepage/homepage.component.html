@@ -1,30 +1,34 @@
 <div class="homepage-container">
 
-  <section class="hero-section mb-4"> <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=350&fit=crop&q=80" alt="Ana Banner" class="hero-image">
-    </section>
+  <section class="hero-section mb-4">
+    <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=350&fit=crop&q=80" alt="Ana Banner" class="hero-image"> </section>
 
-  <section class="category-links mb-4">
-    <h3 class="section-title">Popüler Kategoriler</h3>
-    <div class="categories">
-      <a href="#" class="category-link">Elektronik</a>
-      <a href="#" class="category-link">Moda</a>
-      <a href="#" class="category-link">Ev & Yaşam</a>
-      <a href="#" class="category-link">Kozmetik</a>
-      <a href="#" class="category-link">Süpermarket</a>
-      <a href="#" class="category-link">Anne & Bebek</a>
-    </div>
+  <section class="category-navbar-section mb-4">
+    <nav class="category-nav">
+      <ul class="category-nav-list">
+        <li><a [routerLink]="['/products', 'category', 'kadin-giyim']" class="nav-link">Kadın</a></li>
+        <li><a [routerLink]="['/products', 'category', 'erkek-giyim']" class="nav-link">Erkek</a></li>
+        <li><a [routerLink]="['/products', 'category', 'anne-cocuk']" class="nav-link">Anne & Çocuk</a></li>
+        <li><a [routerLink]="['/products', 'category', 'ev-yasam']" class="nav-link">Ev & Yaşam</a></li>
+        <li><a [routerLink]="['/products', 'category', 'supermarket']" class="nav-link">Süpermarket</a></li>
+        <li><a [routerLink]="['/products', 'category', 'kozmetik']" class="nav-link">Kozmetik</a></li>
+        <li><a [routerLink]="['/products', 'category', 'ayakkabi-canta']" class="nav-link">Ayakkabı & Çanta</a></li>
+        <li><a [routerLink]="['/products', 'category', 'elektronik']" class="nav-link">Elektronik</a></li>
+        <li><a [routerLink]="['/products', 'category', 'cok-satanlar']" class="nav-link">Çok Satanlar <span class="badge new-badge">Yeni</span></a></li>
+        <li><a [routerLink]="['/products', 'category', 'flas-indirimler']" class="nav-link">Flaş İndirimler <span class="badge new-badge">Yeni</span></a></li>
+      </ul>
+    </nav>
   </section>
-
   <section class="product-grid-section mb-4">
     <h3 class="section-title">Öne Çıkanlar</h3>
     <div class="product-grid">
       <div class="product-card" *ngFor="let product of featuredProducts">
         <a [routerLink]="['/products', product.id]" class="product-link">
-           <img [src]="product.imageUrl" [alt]="product.name" class="product-image">
-           <div class="product-info">
-              <h4 class="product-name">{{ product.name }}</h4>
-              <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
-           </div>
+          <img [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name" class="product-image">
+          <div class="product-info">
+            <h4 class="product-name">{{ product.name }}</h4>
+            <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
+          </div>
         </a>
         <button class="add-to-cart-btn" (click)="addToCart(product)">Sepete Ekle</button>
       </div>
