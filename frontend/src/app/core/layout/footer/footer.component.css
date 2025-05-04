@@ -1,31 +1,95 @@
-
+/* frontend/src/app/core/layout/footer/footer.component.css */
+/* TAM HAL - YORUM SATIRSIZ */
 
 .app-footer {
   background-color: #343a40;
   color: #adb5bd;
-  padding: 25px 0;
+  padding: 40px 0 20px 0;
   margin-top: 50px;
-  text-align: center;
   font-size: 0.9rem;
   border-top: 1px solid #495057;
 }
 
-.app-footer .container {
+.footer-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
-.app-footer p {
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.footer-column {
+  min-width: 180px;
+  flex: 1;
+}
+
+.footer-column h4 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #495057;
+  padding-bottom: 10px;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
   margin: 0;
 }
 
-.app-footer a {
-  color: #ced4da;
-  text-decoration: none;
+.footer-column ul li {
+  margin-bottom: 10px;
 }
 
-.app-footer a:hover {
+.footer-column ul li a,
+.footer-column > a {
+  color: #ced4da;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-column ul li a:hover,
+.footer-column > a:hover {
   color: #ffffff;
   text-decoration: underline;
 }
+
+.social-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.social-icons a {
+  color: #ced4da;
+  font-size: 1.5rem;
+  transition: color 0.2s ease;
+}
+.social-icons a:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footer-copyright {
+  border-top: 1px solid #495057;
+  padding-top: 20px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.footer-copyright p {
+  margin: 0;
+}
+
+

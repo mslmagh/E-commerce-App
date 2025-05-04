@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { CartService, CartItem } from '../../core/services/cart.service';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 // Checkbox'lar için FormsModule'e gerek yok, (change) event'i ile handle edeceğiz.
 // import { FormsModule } from '@angular/forms';
 
@@ -20,7 +20,7 @@ export class CartComponent implements OnInit, OnDestroy {
   isAllSelected: boolean = false;
   private cartSubscription?: Subscription;
 
-  constructor(private cartService: CartService) { }
+  constructor(private cartService: CartService,private router :Router) { }
 
   ngOnInit(): void {
     console.log('CartComponent loaded');
@@ -123,5 +123,9 @@ export class CartComponent implements OnInit, OnDestroy {
 
   clearCart(): void {
      this.cartService.clearCart();
+  }
+  goToCheckout(): void {
+    console.log('Navigating to checkout...');
+    this.router.navigate(['/checkout']);
   }
 }
