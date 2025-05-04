@@ -2,10 +2,6 @@ package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.*; // Import all DTOs from package
 import com.example.ecommerce.entity.*; // Import all Entities + OrderStatus
-import com.example.ecommerce.service.CartService;
-import com.example.ecommerce.service.ProductService;
-import com.example.ecommerce.entity.Cart;
-import com.example.ecommerce.entity.CartItem;
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.repository.AddressRepository;
 import com.example.ecommerce.repository.CartRepository;
@@ -16,17 +12,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication; // Import Authentication
+import org.springframework.security.core.GrantedAuthority; // Import GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Transactional; // Ensure this is imported
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Set; // Import Set for roles/authorities
 
 @Service
 public class OrderService {
@@ -37,32 +34,21 @@ public class OrderService {
     @Autowired private ProductRepository productRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private AddressRepository addressRepository;
-    @Autowired private CartRepository cartRepository; // Still needed maybe? Or let CartService handle all? Let's keep for now.
-    @Autowired private CartService cartService;         // Inject CartService
-    @Autowired private ProductService productService;    // Inject ProductService
+    @Autowired private CartRepository cartRepository;
+    @Autowired private CartService cartService;
+    @Autowired private ProductService productService;
 
     @Transactional
-    public OrderDto createOrder(CreateOrderRequestDto requestDto) { // Takes DTO with addressId
-        // 1. Get the current authenticated user
+    public OrderDto createOrder(CreateOrderRequestDto requestDto) {
         User customer = getCurrentAuthenticatedUserEntity();
+        Cart cart = cartService.findOrCreateCartForCurrentUser();
 
-        // ===> DEĞİŞİKLİK: Find OR CREATE Cart using CartService <===
-        // Cart cart = cartRepository.findByUserId(customer.getId()) // Eski yöntem
-        //         .orElseThrow(() -> {
-        //             logger.warn("Attempt to create order for user {} without a cart.", customer.getUsername());
-        //             return new ResourceNotFoundException("Shopping cart not found for user: " + customer.getUsername());
-        //          });
-        Cart cart = cartService.findOrCreateCartForCurrentUser(); // Yeni Yöntem (Sepet yoksa oluşturur)
-        // ===> DEĞİŞİKLİK SONU <===
-
-        // Check if the cart (found or created) is empty
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
             logger.warn("Attempt to create order from empty cart for user {}.", customer.getUsername());
-            throw new IllegalArgumentException("Cannot create order from an empty cart."); // Bu hata 400 Bad Request döndürmeli
+            throw new IllegalArgumentException("Cannot create order from an empty cart.");
         }
         logger.info("Creating order for user {} from cart ID {}", customer.getUsername(), cart.getId());
 
-        // 2. Get Shipping Address and verify ownership
         Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
                  .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found with id: " + requestDto.getShippingAddressId()));
         if (!shippingAddress.getUser().getId().equals(customer.getId())) {
@@ -70,22 +56,18 @@ public class OrderService {
             throw new AccessDeniedException("Shipping address does not belong to the current user.");
         }
 
-        // 3. Create Order entity
         Order order = new Order();
         order.setCustomer(customer);
         order.setShippingAddress(shippingAddress);
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> newOrderItems = new ArrayList<>();
-
-        // 4. Process items, check stock (re-check here!), create OrderItems
-        logger.debug("Processing {} items from cart ID {}", cart.getItems().size(), cart.getId());
-        // Create a copy to avoid issues if clearing the cart affects iteration
         List<CartItem> itemsToProcess = new ArrayList<>(cart.getItems());
+
         for (CartItem cartItem : itemsToProcess) {
             Product product = cartItem.getProduct();
             int quantity = cartItem.getQuantity();
-            Product currentProductState = productRepository.findById(product.getId()) // Re-fetch product for fresh stock info
+            Product currentProductState = productRepository.findById(product.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product with id: " + product.getId() + " not found during order creation."));
 
             logger.debug("Checking stock for product ID {}. Requested: {}, Available: {}", currentProductState.getId(), quantity, currentProductState.getStockQuantity());
@@ -100,21 +82,18 @@ public class OrderService {
 
             newOrderItems.add(orderItem);
 
-            BigDecimal itemTotal = currentProductState.getPrice().multiply(new BigDecimal(quantity)); // Use BigDecimal constructor for quantity
+            BigDecimal itemTotal = currentProductState.getPrice().multiply(new BigDecimal(quantity));
             totalAmount = totalAmount.add(itemTotal);
             logger.debug("Added item: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity, orderItem.getPriceAtPurchase(), itemTotal);
         }
 
-        // 5. Set total amount and add items to the order
         order.setTotalAmount(totalAmount);
         newOrderItems.forEach(order::addOrderItem);
         logger.info("Order calculated. Total Amount: {}, Item Count: {}", totalAmount, newOrderItems.size());
 
-        // 6. Save Order
         Order savedOrder = orderRepository.save(order);
         logger.info("Order created successfully with ID: {}", savedOrder.getId());
 
-        // 7. Decrease Stock
         logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
         for (OrderItem savedItem : savedOrder.getOrderItems()) {
              try {
@@ -125,7 +104,6 @@ public class OrderService {
              }
         }
 
-        // 8. Clear the user's shopping cart
         logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
         try {
             cartService.clearCartForCurrentUser();
@@ -134,10 +112,92 @@ public class OrderService {
                           customer.getId(), savedOrder.getId(), e.getMessage(), e);
         }
 
-        // 9. Convert to DTO and return
         logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
         return convertToDto(savedOrder);
     }
+
+    // ===> YENİ METOT: Sipariş İptali <===
+    @Transactional
+    public OrderDto cancelOrder(Long orderId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentAuthenticatedUserEntity(authentication); // Get user from authentication
+        Set<String> currentUserRoles = getUserRoles(authentication); // Get user roles
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        OrderStatus currentStatus = order.getStatus();
+        logger.info("Attempting to cancel order ID: {} by user: {}. Current status: {}",
+                     orderId, currentUser.getUsername(), currentStatus);
+
+        // Check if already cancelled
+        if (currentStatus == OrderStatus.CANCELLED) {
+            logger.warn("Order ID: {} is already cancelled.", orderId);
+            throw new IllegalStateException("Order is already cancelled.");
+        }
+
+        boolean canCancel = false;
+        boolean isOwner = order.getCustomer().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
+        boolean isSeller = currentUserRoles.contains("ROLE_SELLER");
+
+        if (isAdmin) {
+            // Admin can cancel anytime
+            canCancel = true;
+            logger.info("Admin {} cancelling order ID: {}", currentUser.getUsername(), orderId);
+        } else if (isSeller) {
+            // Seller can cancel anytime IF the order contains their product
+            boolean orderContainsSellersProduct = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
+            if (orderContainsSellersProduct) {
+                canCancel = true;
+                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(), orderId);
+            } else {
+                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.", currentUser.getUsername(), orderId);
+                throw new AccessDeniedException("Seller is not authorized to cancel this order as it does not contain their products.");
+            }
+        } else if (isOwner) {
+            // User can cancel only if status is PENDING or PREPARING
+            if (currentStatus == OrderStatus.PENDING || currentStatus == OrderStatus.PREPARING) {
+                canCancel = true;
+                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId, currentStatus);
+            } else {
+                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(), orderId, currentStatus);
+                throw new IllegalStateException("Order cannot be cancelled by the owner at its current status: " + currentStatus);
+            }
+        }
+
+        // If none of the above conditions met
+        if (!canCancel) {
+            logger.warn("User {} is not authorized to cancel order ID: {}", currentUser.getUsername(), orderId);
+            throw new AccessDeniedException("User not authorized to cancel this order.");
+        }
+
+        // --- Perform Cancellation ---
+        // 1. Increase stock
+        logger.debug("Increasing stock for cancelled order ID: {}", orderId);
+        for (OrderItem item : order.getOrderItems()) {
+            try {
+                productService.increaseStock(item.getProduct().getId(), item.getQuantity());
+            } catch (Exception e) {
+                logger.error("CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
+                             item.getProduct().getId(), orderId, e.getMessage(), e);
+                // Consider how to handle this - maybe don't cancel if stock increase fails?
+                // For now, we log and continue cancellation.
+            }
+        }
+
+        // 2. Update order status
+        order.setStatus(OrderStatus.CANCELLED);
+
+        // 3. Save the order
+        Order cancelledOrder = orderRepository.save(order);
+        logger.info("Order ID: {} successfully cancelled.", orderId);
+
+        // 4. Return updated DTO
+        return convertToDto(cancelledOrder);
+    }
+    // ===> YENİ METOT SONU <===
 
 
     // --- Diğer OrderService Metotları ---
@@ -154,9 +214,10 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get roles
 
-        if (!order.getCustomer().getUsername().equals(currentUser.getUsername()) && !isAdmin) {
+        // Allow owner OR admin to view
+        if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
             throw new AccessDeniedException("You are not authorized to view this order.");
         }
         return convertToDto(order);
@@ -165,40 +226,46 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForSeller() {
         User seller = getCurrentAuthenticatedUserEntity();
-        boolean isSeller = seller.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SELLER"));
-        if (!isSeller) {
-             throw new AccessDeniedException("Access denied: User is not a seller.");
-        }
+        // No need to check role again if controller already does, but can be added for safety
+        // boolean isSeller = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_SELLER");
+        // if (!isSeller) { throw new AccessDeniedException("Access denied: User is not a seller."); }
         List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(seller.getId());
         return orders.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
     @Transactional
     public OrderDto updateOrderStatus(Long orderId, UpdateOrderStatusRequestDto requestDto) {
-        User currentUser = getCurrentAuthenticatedUserEntity();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentAuthenticatedUserEntity(authentication);
+        Set<String> currentUserRoles = getUserRoles(authentication);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
         OrderStatus newStatus = requestDto.getNewStatus();
-        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        boolean isSeller = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SELLER"));
+        // Prevent setting CANCELLED via this method, use cancelOrder instead
+        if (newStatus == OrderStatus.CANCELLED) {
+             throw new IllegalArgumentException("Please use the /cancel endpoint to cancel orders.");
+        }
 
-        // ... (Authorization logic remains the same) ...
+        boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
+        boolean isSeller = currentUserRoles.contains("ROLE_SELLER");
+
         if (isAdmin) {
-             if (newStatus == OrderStatus.CANCELLED) { System.out.println("Admin cancelling order: " + orderId); }
-             order.setStatus(newStatus);
+            order.setStatus(newStatus);
         } else if (isSeller) {
             boolean orderContainsSellersProduct = order.getOrderItems().stream()
                     .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
             if (!orderContainsSellersProduct) {
                  throw new AccessDeniedException("Seller is not authorized to update status for this order.");
             }
+            // Allow seller to set these statuses
             if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
                 order.setStatus(newStatus);
-            } else {
+            } else { // PENDING or other potentially invalid statuses for seller action
                 throw new AccessDeniedException("Seller cannot set status to " + newStatus);
             }
-        } else {
+        } else { // User is not ADMIN or relevant SELLER
             throw new AccessDeniedException("User is not authorized to update order status.");
         }
 
@@ -207,19 +274,37 @@ public class OrderService {
     }
 
     // --- Helper Methods ---
+    // Overload or modify getCurrentAuthenticatedUserEntity to accept Authentication
     private User getCurrentAuthenticatedUserEntity() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return getCurrentAuthenticatedUserEntity(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    private User getCurrentAuthenticatedUserEntity(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+             throw new IllegalStateException("Cannot get user details from unauthenticated context.");
+        }
+        Object principal = authentication.getPrincipal();
         String username;
         if (principal instanceof UserDetails) {
             username = ((UserDetails) principal).getUsername();
         } else if (principal != null) {
             username = principal.toString();
         } else {
-           throw new IllegalStateException("Cannot get username from principal: Authentication is null.");
+           throw new IllegalStateException("Cannot get username from principal: Principal is null.");
         }
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user '" + username + "' not found in database"));
     }
+
+    // Helper to get roles/authorities as Strings from Authentication
+     private Set<String> getUserRoles(Authentication authentication) {
+         if (authentication == null || !authentication.isAuthenticated()) {
+             return Set.of(); // Return empty set if not authenticated
+         }
+         return authentication.getAuthorities().stream()
+                 .map(GrantedAuthority::getAuthority)
+                 .collect(Collectors.toSet());
+     }
 
     private OrderDto convertToDto(Order order) {
          List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
