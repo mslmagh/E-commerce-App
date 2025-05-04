@@ -68,10 +68,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/orders/**").authenticated()
                 // Addresses
                 .requestMatchers("/api/my-addresses/**").authenticated()
-                // ===> YENİ SEPET KURALI <===
-                .requestMatchers("/api/cart/**").authenticated() // Require auth for all cart operations
-                // ===> YENİ SEPET KURALI SONU <===
-                // Default fallback
+                .requestMatchers("/api/cart/**").authenticated()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
