@@ -66,9 +66,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 // Orders
                 .requestMatchers("/api/orders/**").authenticated()
-                // ===> YENİ ADRES KURALI <===
-                .requestMatchers("/api/my-addresses/**").authenticated() // Require auth for address management
-                // ===> YENİ ADRES KURALI SONU <===
+                // Addresses
+                .requestMatchers("/api/my-addresses/**").authenticated()
+                // ===> YENİ SEPET KURALI <===
+                .requestMatchers("/api/cart/**").authenticated() // Require auth for all cart operations
+                // ===> YENİ SEPET KURALI SONU <===
                 // Default fallback
                 .anyRequest().authenticated()
             )
