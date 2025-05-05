@@ -8,6 +8,10 @@ import com.example.ecommerce.repository.CartRepository;
 import com.example.ecommerce.repository.OrderRepository;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.UserRepository;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -315,9 +319,49 @@ public class OrderService {
                                          : null;
         return new OrderDto(
                 order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(),
-                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto);
+                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto, order.getStripePaymentIntentId()
+        );
     }
+ @Transactional // Modifies order by saving paymentIntentId
+    public PaymentIntentDto createPaymentIntent(Long orderId) throws StripeException {
+        User currentUser = getCurrentAuthenticatedUserEntity();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
+        // Authorization check: Only the order owner (or admin) can create payment intent
+        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN");
+        if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
+            throw new AccessDeniedException("You are not authorized to process payment for this order.");
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("Payment cannot be initiated for order with status: " + order.getStatus());
+        }
+
+        long amountInKurus = order.getTotalAmount().multiply(new BigDecimal("100")).longValueExact();
+        String currency = "try"; // Or get from config/order details
+
+        // --- Create Stripe Payment Intent ---
+        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                .setAmount(amountInKurus)
+                .setCurrency(currency)
+                // Enable automatic payment methods (recommended by Stripe)
+                .setAutomaticPaymentMethods(PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build())
+                // Add metadata (optional but useful)
+                .putMetadata("order_id", order.getId().toString())
+                .putMetadata("customer_username", order.getCustomer().getUsername())
+                .build();
+
+        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        logger.info("Created PaymentIntent ID: {} for Order ID: {}", paymentIntent.getId(), orderId);
+
+        // Save the PaymentIntent ID to the order (important for tracking/webhooks)
+        order.setStripePaymentIntentId(paymentIntent.getId());
+        orderRepository.save(order);
+
+        // Return only the client secret to the frontend
+        return new PaymentIntentDto(paymentIntent.getClientSecret());
+    }
      private OrderItemDto convertItemToDto(OrderItem item) {
          Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
          String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;

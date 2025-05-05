@@ -36,6 +36,9 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @Column(name = "stripe_payment_intent_id", length = 255)
+    private String stripePaymentIntentId;
+
     // Constructors
     public Order() {
         this.orderDate = LocalDateTime.now();
@@ -55,6 +58,8 @@ public class Order {
     public void setCustomer(User customer) { this.customer = customer; }
     public Address getShippingAddress() { return shippingAddress; }
     public void setShippingAddress(Address shippingAddress) { this.shippingAddress = shippingAddress; }
+    public String getStripePaymentIntentId() { return stripePaymentIntentId; } 
+    public void setStripePaymentIntentId(String stripePaymentIntentId) { this.stripePaymentIntentId = stripePaymentIntentId; } 
     public List<OrderItem> getOrderItems() { return orderItems; }
     public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
 
