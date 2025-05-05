@@ -1,1 +1,31 @@
-<p>favorites works!</p>
+<div class="favorites-page-container">
+  <h2 class="favorites-title">Favorilerim</h2>
+
+  <ng-container *ngIf="(favorites$ | async) as favs; else loadingFavorites">
+
+    <div *ngIf="favs.length === 0" class="empty-favorites-message">
+      <p>Favori listeniz boş.</p>
+      <a routerLink="/" class="btn btn-primary">Alışverişe Devam Et</a>
+    </div>
+
+    <div *ngIf="favs.length > 0" class="favorites-grid product-grid">
+      <div *ngFor="let product of favs" class="favorite-item-container">
+        <app-product-card
+            [product]="product"
+            (addToCartClick)="addToCart($event)">
+            </app-product-card>
+
+        <button mat-stroked-button color="warn" class="btn-remove-fav" (click)="removeFromFavorites(product)">
+          <mat-icon>delete_outline</mat-icon>
+          Favorilerden Çıkar
+        </button>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <ng-template #loadingFavorites>
+    <p>Favoriler yükleniyor...</p>
+    </ng-template>
+
+</div>

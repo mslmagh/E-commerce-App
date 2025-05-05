@@ -31,10 +31,8 @@
               <i class="fa-solid fa-cart-shopping"></i> Sepete Ekle
             </button>
             <button class="btn btn-favorite"
-                    (click)="toggleFavorite(product)"
-                    [class.is-favorite]="isFavorite" title="Favorilere Ekle/Çıkar">
-               <i [class]="isFavorite ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
-            </button>
+            (click)="toggleFavorite(product)" [class.is-favorite]="isFavorite" title="Favorilere Ekle/Çıkar">
+       <i [class]="isFavorite ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i> </button>
           </div>
 
         <div class="delivery-estimation">
