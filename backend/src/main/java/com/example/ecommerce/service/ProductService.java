@@ -15,12 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -91,49 +88,56 @@ public class ProductService {
         logger.info("Product deleted with ID: {}", id);
     }
 
-    // ===> NEW STOCK METHODS <===
-    @Transactional // Default propagation should be fine here usually
-    public void decreaseStock(Long productId, int quantity) {
-         if (quantity <= 0) {
-             logger.warn("Attempted to decrease stock for product ID {} with non-positive quantity {}", productId, quantity);
-             throw new IllegalArgumentException("Quantity to decrease must be positive.");
-         }
+    @Transactional(readOnly = true) // Read-only check
+    public void checkStockAvailability(Long productId, int quantityNeeded) {
+        logger.debug("Checking stock for Product ID: {}, Quantity Needed: {}", productId, quantityNeeded);
+        Product product = productRepository.findById(productId)
+             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + " during stock check."));
 
-         // Find product - use pessimistic lock if high concurrency is expected
-         Product product = productRepository.findById(productId)
-                // .withLock(LockModeType.PESSIMISTIC_WRITE) // Consider locking for concurrency
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + " while trying to decrease stock."));
-
-         int currentStock = product.getStockQuantity();
-         logger.debug("Decreasing stock for product ID {}. Current: {}, Requested: {}", productId, currentStock, quantity);
-         if (currentStock < quantity) {
-             throw new IllegalArgumentException("Insufficient stock for product: " + product.getName() +
-                                                ". Requested: " + quantity + ", Available: " + currentStock);
-         }
-
-         product.setStockQuantity(currentStock - quantity);
-         productRepository.save(product);
-         logger.info("Stock decreased for product ID {}. New stock: {}", productId, product.getStockQuantity());
+        if (product.getStockQuantity() < quantityNeeded) {
+            logger.warn("Insufficient stock for Product ID: {}. Requested: {}, Available: {}", productId, quantityNeeded, product.getStockQuantity());
+            throw new IllegalArgumentException("Insufficient stock for product: " + product.getName() +
+                                               ". Requested: " + quantityNeeded +
+                                               ", Available: " + product.getStockQuantity());
+        }
+         logger.debug("Stock check passed for Product ID: {}", productId);
     }
 
-    @Transactional
-     public void increaseStock(Long productId, int quantity) {
-         if (quantity <= 0) {
-             logger.warn("Attempted to increase stock for product ID {} with non-positive quantity {}", productId, quantity);
-             throw new IllegalArgumentException("Quantity to increase must be positive.");
-         }
-         Product product = productRepository.findById(productId)
-                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + " while trying to increase stock."));
+    public void decreaseStock(Long productId, int quantityToDecrease) {
+        if (quantityToDecrease <= 0) {
+            return; // Do nothing if quantity is zero or negative
+        }
+        logger.info("Decreasing stock for Product ID: {} by Quantity: {}", productId, quantityToDecrease);
+        Product product = productRepository.findById(productId)
+             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + " while decreasing stock."));
 
-         int currentStock = product.getStockQuantity();
-         logger.debug("Increasing stock for product ID {}. Current: {}, Amount: {}", productId, currentStock, quantity);
-         product.setStockQuantity(currentStock + quantity);
-         productRepository.save(product);
-         logger.info("Stock increased for product ID {}. New stock: {}", productId, product.getStockQuantity());
-     }
-    // ===> END NEW STOCK METHODS <===
+        int newStock = product.getStockQuantity() - quantityToDecrease;
+        if (newStock < 0) {
+             logger.error("Attempted to decrease stock below zero for Product ID: {}. Current: {}, Decrease: {}",
+                     productId, product.getStockQuantity(), quantityToDecrease);
+            // This ideally shouldn't happen if checkStockAvailability was called first,
+            // but check again for safety / concurrency issues.
+            throw new IllegalArgumentException("Stock cannot go below zero for product: " + product.getName());
+        }
+        product.setStockQuantity(newStock);
+        productRepository.save(product);
+         logger.info("Stock updated for Product ID: {}. New Stock: {}", productId, newStock);
+    }
 
-    // --- Helper Methods ---
+    @Transactional // This modifies data
+    public void increaseStock(Long productId, int quantityToIncrease) {
+        if (quantityToIncrease <= 0) {
+            return; // Do nothing if quantity is zero or negative
+        }
+        logger.info("Increasing stock for Product ID: {} by Quantity: {}", productId, quantityToIncrease);
+        Product product = productRepository.findById(productId)
+             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + " while increasing stock."));
+
+        int newStock = product.getStockQuantity() + quantityToIncrease;
+        product.setStockQuantity(newStock);
+        productRepository.save(product);
+         logger.info("Stock updated for Product ID: {}. New Stock: {}", productId, newStock);
+    }
 
     private User getCurrentAuthenticatedUserEntity() {
          Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

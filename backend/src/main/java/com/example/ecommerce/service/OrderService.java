@@ -45,91 +45,100 @@ public class OrderService {
     @Autowired
     private ProductService productService;
 
-    @Transactional
-    public OrderDto createOrder(CreateOrderRequestDto requestDto) {
-        User customer = getCurrentAuthenticatedUserEntity();
-        Cart cart = cartService.findOrCreateCartForCurrentUser();
+    @Transactional // Ensures all operations succeed or fail together
+public OrderDto createOrder(CreateOrderRequestDto requestDto) { // Now takes DTO with addressId only
+    // 1. Get Authenticated User
+    User customer = getCurrentAuthenticatedUserEntity();
+    logger.info("Initiating order creation for user: {}", customer.getUsername());
 
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            logger.warn("Attempt to create order from empty cart for user {}.", customer.getUsername());
-            throw new IllegalArgumentException("Cannot create order from an empty cart.");
-        }
-        logger.info("Creating order for user {} from cart ID {}", customer.getUsername(), cart.getId());
-
-        Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Shipping address not found with id: " + requestDto.getShippingAddressId()));
-        if (!shippingAddress.getUser().getId().equals(customer.getId())) {
-            logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(),
-                    shippingAddress.getId());
-            throw new AccessDeniedException("Shipping address does not belong to the current user.");
-        }
-
-        Order order = new Order();
-        order.setCustomer(customer);
-        order.setShippingAddress(shippingAddress);
-
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> newOrderItems = new ArrayList<>();
-        List<CartItem> itemsToProcess = new ArrayList<>(cart.getItems());
-
-        for (CartItem cartItem : itemsToProcess) {
-            Product product = cartItem.getProduct();
-            int quantity = cartItem.getQuantity();
-            Product currentProductState = productRepository.findById(product.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Product with id: " + product.getId() + " not found during order creation."));
-
-            logger.debug("Checking stock for product ID {}. Requested: {}, Available: {}", currentProductState.getId(),
-                    quantity, currentProductState.getStockQuantity());
-            if (currentProductState.getStockQuantity() < quantity) {
-                throw new IllegalArgumentException("Insufficient stock during checkout for product: "
-                        + currentProductState.getName() + ". Requested: " + quantity + ", Available: "
-                        + currentProductState.getStockQuantity());
-            }
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(currentProductState);
-            orderItem.setQuantity(quantity);
-            orderItem.setPriceAtPurchase(currentProductState.getPrice());
-
-            newOrderItems.add(orderItem);
-
-            BigDecimal itemTotal = currentProductState.getPrice().multiply(new BigDecimal(quantity));
-            totalAmount = totalAmount.add(itemTotal);
-            logger.debug("Added item: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity,
-                    orderItem.getPriceAtPurchase(), itemTotal);
-        }
-
-        order.setTotalAmount(totalAmount);
-        newOrderItems.forEach(order::addOrderItem);
-        logger.info("Order calculated. Total Amount: {}, Item Count: {}", totalAmount, newOrderItems.size());
-
-        Order savedOrder = orderRepository.save(order);
-        logger.info("Order created successfully with ID: {}", savedOrder.getId());
-
-        logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
-        for (OrderItem savedItem : savedOrder.getOrderItems()) {
-            try {
-                productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
-            } catch (Exception e) {
-                logger.error(
-                        "CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
-                        savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
-            }
-        }
-
-        logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
-        try {
-            cartService.clearCartForCurrentUser();
-        } catch (Exception e) {
-            logger.error("ERROR: Failed to clear cart for user ID {} after creating order ID {}. Error: {}",
-                    customer.getId(), savedOrder.getId(), e.getMessage(), e);
-        }
-
-        logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
-        return convertToDto(savedOrder);
+    // 2. Get User's Cart (Using CartService's internal method)
+    Cart cart = cartService.findCartForCurrentUserInternal();
+    if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+        logger.warn("Attempt to create order from empty or non-existent cart for user {}.", customer.getUsername());
+        throw new IllegalArgumentException("Cannot create order from an empty cart.");
     }
+    logger.debug("Found cart ID: {} with {} items for user {}", cart.getId(), cart.getItems().size(), customer.getUsername());
+
+    // 3. Validate Shipping Address
+    Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
+            .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found with id: " + requestDto.getShippingAddressId()));
+    // Check if the address belongs to the current user
+    if (!shippingAddress.getUser().getId().equals(customer.getId())) {
+        logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(), shippingAddress.getId());
+        throw new AccessDeniedException("Shipping address does not belong to the current user.");
+    }
+    logger.debug("Shipping address validated for order. Address ID: {}", shippingAddress.getId());
+
+    // 4. Create Order and OrderItems (Check stock before adding)
+    Order order = new Order();
+    order.setCustomer(customer);
+    order.setShippingAddress(shippingAddress);
+    // orderDate and PENDING status are set in Order's default constructor
+
+    BigDecimal totalAmount = BigDecimal.ZERO;
+    List<CartItem> itemsInCart = new ArrayList<>(cart.getItems()); // Copy to avoid issues while iterating if cart is modified elsewhere
+
+    for (CartItem cartItem : itemsInCart) {
+        Product product = cartItem.getProduct();
+        int quantity = cartItem.getQuantity();
+
+        // Check stock availability (using ProductService helper)
+        productService.checkStockAvailability(product.getId(), quantity);
+
+        // Create OrderItem
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setQuantity(quantity);
+        orderItem.setPriceAtPurchase(product.getPrice()); // Use current price from Product entity
+
+        // Add item to order (sets bidirectional relationship)
+        order.addOrderItem(orderItem);
+
+        // Calculate item total and add to order total
+        BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(quantity));
+        totalAmount = totalAmount.add(itemTotal);
+        logger.debug("Processing item for order: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity, orderItem.getPriceAtPurchase(), itemTotal);
+    }
+
+    order.setTotalAmount(totalAmount);
+    logger.info("Order calculated. Total Amount: {}, Item Count: {}", totalAmount, order.getOrderItems().size());
+
+    // 5. Save the Order (Cascade should save OrderItems)
+    Order savedOrder = orderRepository.save(order);
+    logger.info("Order entity saved successfully with ID: {}", savedOrder.getId());
+
+    // 6. Decrease Stock for each product in the order
+    // This happens *after* order is saved successfully.
+    logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
+    for (OrderItem savedItem : savedOrder.getOrderItems()) {
+        try {
+            productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
+        } catch (Exception e) {
+            // Log critical error if stock decrease fails after order is saved
+            logger.error("CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
+                         savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
+            // Depending on requirements, you might want to:
+            // - Attempt rollback (complex)
+            // - Mark the order for review
+            // - For now, we just log the error.
+        }
+    }
+
+    // 7. Clear the user's shopping cart
+    logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
+    try {
+        // Use cartId to be certain, although findCartForCurrentUserInternal could be called again
+         cartService.clearCartForCurrentUser();
+    } catch (Exception e) {
+        logger.error("ERROR: Failed to clear cart ID {} for user ID {} after creating order ID {}. Error: {}",
+                     cart.getId(), customer.getId(), savedOrder.getId(), e.getMessage(), e);
+        // Log error but proceed, order is already created.
+    }
+
+    // 8. Convert the saved Order to DTO and return
+    logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
+    return convertToDto(savedOrder); // Make sure convertToDto is up-to-date
+}
 
     // ===> YENİ METOT: Sipariş İptali <===
     @Transactional
