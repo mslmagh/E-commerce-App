@@ -48,7 +48,7 @@ public class CategoryController {
         @ApiResponse(responseCode = "404", description = "Category not found", content = @Content)
     })
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryDto> getCategoryById(@Parameter(description = "ID of category to retrieve") @PathVariable Long id) {
+    public ResponseEntity<CategoryDto> getCategoryById(@PathVariable Long id) {
         CategoryDto category = categoryService.getCategoryById(id);
         return ResponseEntity.ok(category);
     }
@@ -75,7 +75,6 @@ public class CategoryController {
 
     // UPDATE Category
     @Operation(summary = "Update Existing Category")
-    @Parameter(description = "ID of category to update", required = true)
     @RequestBody( // Use fully qualified name
         description = "Updated category data", required = true,
         content = @Content(schema = @Schema(implementation = CategoryRequestDto.class)) // Use correct DTO name
@@ -93,7 +92,6 @@ public class CategoryController {
 
     // DELETE Category
     @Operation(summary = "Delete Category by ID")
-    @Parameter(description = "ID of category to delete", required = true)
     @ApiResponses(value = { /* ... responses ... */ })
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")

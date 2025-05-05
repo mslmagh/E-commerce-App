@@ -80,7 +80,6 @@ public class OrderController {
 
     // GET /api/orders/{id}
     @Operation(summary = "Get Order by ID", description = "Retrieves a specific order by its ID. Accessible only by the owner or an admin.") // Corrected
-    @Parameter(description = "ID of the order to retrieve", required = true) // @Parameter on parameter is fine
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved the order", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))), // Corrected
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
@@ -95,7 +94,6 @@ public class OrderController {
 
     // PATCH /api/orders/{id}/status
     @Operation(summary = "Update Order Status (Admin/Seller)", description = "Updates the status of a specific order (excludes cancellation). Requires ADMIN or SELLER role (seller must own a product in the order). Use /cancel endpoint for cancellations.") // Corrected
-    @Parameter(description = "ID of the order to update", required = true)
     @RequestBody(description = "New status for the order", required = true, content = @Content(schema = @Schema(implementation = UpdateOrderStatusRequestDto.class)))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Order status updated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))), // Corrected
@@ -114,7 +112,6 @@ public class OrderController {
 
      // POST /api/orders/{id}/cancel
      @Operation(summary = "Cancel an Order", description = "Cancels a specific order. Users can cancel their own PENDING/PREPARING orders. Sellers can cancel orders with their products anytime. Admins can cancel any order anytime. Stock will be replenished.") // Corrected
-     @Parameter(description = "ID of the order to cancel", required = true)
      @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Order successfully cancelled", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))), // Corrected
             @ApiResponse(responseCode = "400", description = "Bad Request (e.g., order already cancelled, cannot be cancelled by user due to status)", content = @Content),
