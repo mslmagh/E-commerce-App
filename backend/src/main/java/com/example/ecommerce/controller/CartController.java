@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/cart") // Base path for cart operations
 @Tag(name = "Shopping Cart API", description = "API endpoints for managing the user's shopping cart")
 @SecurityRequirement(name = "bearerAuth") // All endpoints require authentication
-@PreAuthorize("isAuthenticated()") // All endpoints require an authenticated user
+@PreAuthorize("hasRole('USER')")
 public class CartController {
 
     @Autowired

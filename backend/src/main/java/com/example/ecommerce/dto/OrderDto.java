@@ -27,7 +27,7 @@ public class OrderDto {
     // Updated Constructor
     public OrderDto(Long id, LocalDateTime orderDate, OrderStatus status, BigDecimal totalAmount,
                     Long customerId, String customerUsername, List<OrderItemDto> items,
-                    AddressDto shippingAddress // Accept AddressDto
+                    AddressDto shippingAddress
                    ) {
         this.id = id;
         this.orderDate = orderDate;

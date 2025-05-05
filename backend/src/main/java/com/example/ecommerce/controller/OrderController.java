@@ -3,7 +3,6 @@ package com.example.ecommerce.controller;
 import com.example.ecommerce.dto.*;
 import com.example.ecommerce.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,20 +31,21 @@ public class OrderController {
     private OrderService orderService;
 
     // POST /api/orders
-    @Operation(summary = "Create a new order from cart",
-               description = "Creates an order based on items in the user's cart, using the specified shipping address ID. Requires USER role.")
-    @RequestBody(description = "Request containing the ID of the shipping address to use", required = true,
-                 content = @Content(schema = @Schema(implementation = CreateOrderRequestDto.class)))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Order created successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid input (e.g., empty cart, invalid address ID, insufficient stock)", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden (User is not ROLE_USER or address doesn't belong to user)", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Shipping address or Product not found", content = @Content) })
+    @Operation(summary = "Create a new order from cart", description = "Creates an order using items from the user's current cart and the selected shipping address. Requires USER role.")
+    // Update RequestBody description in Swagger
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Request containing the ID of the selected shipping address", required = true,
+                        content = @Content(schema = @Schema(implementation = CreateOrderRequestDto.class))) // DTO only has addressId now
+                        @ApiResponses(value = {
+                                @ApiResponse(responseCode = "201", description = "Order created successfully", // Açıklama eklendi
+                                             content = @Content(mediaType = "application/json",
+                                                     schema = @Schema(implementation = OrderDto.class))), // İçerik tanımı eklendi
+                                @ApiResponse(responseCode = "400", description = "Invalid input data, empty cart, insufficient stock, or address not found/owned", content = @Content), // 400 için @Content yeterli
+                                @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content), // 401 için @Content yeterli
+                                @ApiResponse(responseCode = "403", description = "Forbidden (User does not have ROLE_USER)", content = @Content) // 403 için @Content yeterli
+                        })
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<OrderDto> createOrder(
-            @Valid @org.springframework.web.bind.annotation.RequestBody CreateOrderRequestDto requestDto) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OrderDto> createOrder(@Valid @org.springframework.web.bind.annotation.RequestBody CreateOrderRequestDto requestDto) { // DTO now only contains addressId
         OrderDto createdOrder = orderService.createOrder(requestDto);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest().path("/{id}")

@@ -18,7 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Ensure this is imported
-
+import java.util.Optional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,91 +30,115 @@ public class OrderService {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private AddressRepository addressRepository;
-    @Autowired private CartRepository cartRepository;
-    @Autowired private CartService cartService;
-    @Autowired private ProductService productService;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private AddressRepository addressRepository;
+    @Autowired
+    private CartRepository cartRepository;
+    @Autowired
+    private CartService cartService;
+    @Autowired
+    private ProductService productService;
 
-    @Transactional
-    public OrderDto createOrder(CreateOrderRequestDto requestDto) {
-        User customer = getCurrentAuthenticatedUserEntity();
-        Cart cart = cartService.findOrCreateCartForCurrentUser();
+    @Transactional // Ensures all operations succeed or fail together
+public OrderDto createOrder(CreateOrderRequestDto requestDto) { // Now takes DTO with addressId only
+    // 1. Get Authenticated User
+    User customer = getCurrentAuthenticatedUserEntity();
+    logger.info("Initiating order creation for user: {}", customer.getUsername());
 
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            logger.warn("Attempt to create order from empty cart for user {}.", customer.getUsername());
-            throw new IllegalArgumentException("Cannot create order from an empty cart.");
-        }
-        logger.info("Creating order for user {} from cart ID {}", customer.getUsername(), cart.getId());
-
-        Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
-                 .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found with id: " + requestDto.getShippingAddressId()));
-        if (!shippingAddress.getUser().getId().equals(customer.getId())) {
-            logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(), shippingAddress.getId());
-            throw new AccessDeniedException("Shipping address does not belong to the current user.");
-        }
-
-        Order order = new Order();
-        order.setCustomer(customer);
-        order.setShippingAddress(shippingAddress);
-
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> newOrderItems = new ArrayList<>();
-        List<CartItem> itemsToProcess = new ArrayList<>(cart.getItems());
-
-        for (CartItem cartItem : itemsToProcess) {
-            Product product = cartItem.getProduct();
-            int quantity = cartItem.getQuantity();
-            Product currentProductState = productRepository.findById(product.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product with id: " + product.getId() + " not found during order creation."));
-
-            logger.debug("Checking stock for product ID {}. Requested: {}, Available: {}", currentProductState.getId(), quantity, currentProductState.getStockQuantity());
-            if (currentProductState.getStockQuantity() < quantity) {
-                 throw new IllegalArgumentException("Insufficient stock during checkout for product: " + currentProductState.getName() + ". Requested: " + quantity + ", Available: " + currentProductState.getStockQuantity());
-            }
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(currentProductState);
-            orderItem.setQuantity(quantity);
-            orderItem.setPriceAtPurchase(currentProductState.getPrice());
-
-            newOrderItems.add(orderItem);
-
-            BigDecimal itemTotal = currentProductState.getPrice().multiply(new BigDecimal(quantity));
-            totalAmount = totalAmount.add(itemTotal);
-            logger.debug("Added item: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity, orderItem.getPriceAtPurchase(), itemTotal);
-        }
-
-        order.setTotalAmount(totalAmount);
-        newOrderItems.forEach(order::addOrderItem);
-        logger.info("Order calculated. Total Amount: {}, Item Count: {}", totalAmount, newOrderItems.size());
-
-        Order savedOrder = orderRepository.save(order);
-        logger.info("Order created successfully with ID: {}", savedOrder.getId());
-
-        logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
-        for (OrderItem savedItem : savedOrder.getOrderItems()) {
-             try {
-                 productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
-             } catch (Exception e) {
-                 logger.error("CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
-                              savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
-             }
-        }
-
-        logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
-        try {
-            cartService.clearCartForCurrentUser();
-        } catch (Exception e) {
-             logger.error("ERROR: Failed to clear cart for user ID {} after creating order ID {}. Error: {}",
-                          customer.getId(), savedOrder.getId(), e.getMessage(), e);
-        }
-
-        logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
-        return convertToDto(savedOrder);
+    // 2. Get User's Cart (Using CartService's internal method)
+    Cart cart = cartService.findCartForCurrentUserInternal();
+    if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+        logger.warn("Attempt to create order from empty or non-existent cart for user {}.", customer.getUsername());
+        throw new IllegalArgumentException("Cannot create order from an empty cart.");
     }
+    logger.debug("Found cart ID: {} with {} items for user {}", cart.getId(), cart.getItems().size(), customer.getUsername());
+
+    // 3. Validate Shipping Address
+    Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
+            .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found with id: " + requestDto.getShippingAddressId()));
+    // Check if the address belongs to the current user
+    if (!shippingAddress.getUser().getId().equals(customer.getId())) {
+        logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(), shippingAddress.getId());
+        throw new AccessDeniedException("Shipping address does not belong to the current user.");
+    }
+    logger.debug("Shipping address validated for order. Address ID: {}", shippingAddress.getId());
+
+    // 4. Create Order and OrderItems (Check stock before adding)
+    Order order = new Order();
+    order.setCustomer(customer);
+    order.setShippingAddress(shippingAddress);
+    // orderDate and PENDING status are set in Order's default constructor
+
+    BigDecimal totalAmount = BigDecimal.ZERO;
+    List<CartItem> itemsInCart = new ArrayList<>(cart.getItems()); // Copy to avoid issues while iterating if cart is modified elsewhere
+
+    for (CartItem cartItem : itemsInCart) {
+        Product product = cartItem.getProduct();
+        int quantity = cartItem.getQuantity();
+
+        // Check stock availability (using ProductService helper)
+        productService.checkStockAvailability(product.getId(), quantity);
+
+        // Create OrderItem
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setQuantity(quantity);
+        orderItem.setPriceAtPurchase(product.getPrice()); // Use current price from Product entity
+
+        // Add item to order (sets bidirectional relationship)
+        order.addOrderItem(orderItem);
+
+        // Calculate item total and add to order total
+        BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(quantity));
+        totalAmount = totalAmount.add(itemTotal);
+        logger.debug("Processing item for order: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity, orderItem.getPriceAtPurchase(), itemTotal);
+    }
+
+    order.setTotalAmount(totalAmount);
+    logger.info("Order calculated. Total Amount: {}, Item Count: {}", totalAmount, order.getOrderItems().size());
+
+    // 5. Save the Order (Cascade should save OrderItems)
+    Order savedOrder = orderRepository.save(order);
+    logger.info("Order entity saved successfully with ID: {}", savedOrder.getId());
+
+    // 6. Decrease Stock for each product in the order
+    // This happens *after* order is saved successfully.
+    logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
+    for (OrderItem savedItem : savedOrder.getOrderItems()) {
+        try {
+            productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
+        } catch (Exception e) {
+            // Log critical error if stock decrease fails after order is saved
+            logger.error("CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
+                         savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
+            // Depending on requirements, you might want to:
+            // - Attempt rollback (complex)
+            // - Mark the order for review
+            // - For now, we just log the error.
+        }
+    }
+
+    // 7. Clear the user's shopping cart
+    logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
+    try {
+        // Use cartId to be certain, although findCartForCurrentUserInternal could be called again
+         cartService.clearCartForCurrentUser();
+    } catch (Exception e) {
+        logger.error("ERROR: Failed to clear cart ID {} for user ID {} after creating order ID {}. Error: {}",
+                     cart.getId(), customer.getId(), savedOrder.getId(), e.getMessage(), e);
+        // Log error but proceed, order is already created.
+    }
+
+    // 8. Convert the saved Order to DTO and return
+    logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
+    return convertToDto(savedOrder); // Make sure convertToDto is up-to-date
+}
 
     // ===> YENİ METOT: Sipariş İptali <===
     @Transactional
@@ -128,7 +152,7 @@ public class OrderService {
 
         OrderStatus currentStatus = order.getStatus();
         logger.info("Attempting to cancel order ID: {} by user: {}. Current status: {}",
-                     orderId, currentUser.getUsername(), currentStatus);
+                orderId, currentUser.getUsername(), currentStatus);
 
         // Check if already cancelled
         if (currentStatus == OrderStatus.CANCELLED) {
@@ -151,19 +175,25 @@ public class OrderService {
                     .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
             if (orderContainsSellersProduct) {
                 canCancel = true;
-                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(), orderId);
+                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(),
+                        orderId);
             } else {
-                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.", currentUser.getUsername(), orderId);
-                throw new AccessDeniedException("Seller is not authorized to cancel this order as it does not contain their products.");
+                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.",
+                        currentUser.getUsername(), orderId);
+                throw new AccessDeniedException(
+                        "Seller is not authorized to cancel this order as it does not contain their products.");
             }
         } else if (isOwner) {
             // User can cancel only if status is PENDING or PREPARING
             if (currentStatus == OrderStatus.PENDING || currentStatus == OrderStatus.PREPARING) {
                 canCancel = true;
-                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId, currentStatus);
+                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId,
+                        currentStatus);
             } else {
-                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(), orderId, currentStatus);
-                throw new IllegalStateException("Order cannot be cancelled by the owner at its current status: " + currentStatus);
+                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(),
+                        orderId, currentStatus);
+                throw new IllegalStateException(
+                        "Order cannot be cancelled by the owner at its current status: " + currentStatus);
             }
         }
 
@@ -180,8 +210,9 @@ public class OrderService {
             try {
                 productService.increaseStock(item.getProduct().getId(), item.getQuantity());
             } catch (Exception e) {
-                logger.error("CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
-                             item.getProduct().getId(), orderId, e.getMessage(), e);
+                logger.error(
+                        "CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
+                        item.getProduct().getId(), orderId, e.getMessage(), e);
                 // Consider how to handle this - maybe don't cancel if stock increase fails?
                 // For now, we log and continue cancellation.
             }
@@ -197,8 +228,6 @@ public class OrderService {
         // 4. Return updated DTO
         return convertToDto(cancelledOrder);
     }
-    // ===> YENİ METOT SONU <===
-
 
     // --- Diğer OrderService Metotları ---
     @Transactional(readOnly = true)
@@ -214,7 +243,8 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get roles
+        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get
+                                                                                                                       // roles
 
         // Allow owner OR admin to view
         if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
@@ -226,11 +256,52 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForSeller() {
         User seller = getCurrentAuthenticatedUserEntity();
-        // No need to check role again if controller already does, but can be added for safety
-        // boolean isSeller = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_SELLER");
-        // if (!isSeller) { throw new AccessDeniedException("Access denied: User is not a seller."); }
-        List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(seller.getId());
-        return orders.stream().map(this::convertToDto).collect(Collectors.toList());
+        // Rol kontrolü (Controller'daki @PreAuthorize yeterliyse kaldırılabilir)
+        boolean isSeller = seller.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SELLER"));
+        if (!isSeller) {
+            throw new AccessDeniedException("Access denied: User is not a seller.");
+        }
+        Long sellerId = seller.getId();
+
+        // 1. Satıcının ürününü içeren siparişleri bul
+        List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(sellerId);
+
+        // 2. Her siparişi DTO'ya çevirirken item'ları filtrele ve toplamı yeniden
+        // hesapla
+        return orders.stream().map(order -> { // <<<--- Lambda ifadesini geri getirdik
+
+            // 2a. Bu siparişteki item'ları SADECE bu satıcıya ait olanlarla filtrele
+            List<OrderItemDto> sellerItemDtos = order.getOrderItems().stream()
+                    .filter(item -> item.getProduct() != null &&
+                            item.getProduct().getSeller() != null &&
+                            item.getProduct().getSeller().getId().equals(sellerId)) // Seller ID ile filtrele
+                    .map(this::convertItemToDto) // Filtrelenmiş item'ları DTO'ya çevir
+                    .collect(Collectors.toList());
+
+            // 2b. Toplam tutarı SADECE filtrelenmiş item'lar üzerinden yeniden hesapla
+            BigDecimal sellerTotalAmount = sellerItemDtos.stream()
+                    .map(itemDto -> {
+                        BigDecimal price = Optional.ofNullable(itemDto.getPriceAtPurchase()).orElse(BigDecimal.ZERO);
+                        Integer quantity = Optional.ofNullable(itemDto.getQuantity()).orElse(0);
+                        return price.multiply(new BigDecimal(quantity));
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 2c. OrderDto'yu filtrelenmiş item listesi ve hesaplanmış tutarla oluştur (8
+            // parametre)
+            // convertToDto(order.getShippingAddress()) adres çevrimini yapar.
+            return new OrderDto(
+                    order.getId(),
+                    order.getOrderDate(),
+                    order.getStatus(),
+                    sellerTotalAmount, // Satıcıya özel toplam tutar
+                    order.getCustomer().getId(),
+                    order.getCustomer().getUsername(),
+                    sellerItemDtos, // Filtrelenmiş item listesi
+                    convertAddressToDto(order.getShippingAddress()) // Adres DTO'su
+            );
+        }).collect(Collectors.toList()); // Sonuçları List<OrderDto> olarak topla
     }
 
     @Transactional
@@ -245,7 +316,7 @@ public class OrderService {
         OrderStatus newStatus = requestDto.getNewStatus();
         // Prevent setting CANCELLED via this method, use cancelOrder instead
         if (newStatus == OrderStatus.CANCELLED) {
-             throw new IllegalArgumentException("Please use the /cancel endpoint to cancel orders.");
+            throw new IllegalArgumentException("Please use the /cancel endpoint to cancel orders.");
         }
 
         boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
@@ -257,10 +328,11 @@ public class OrderService {
             boolean orderContainsSellersProduct = order.getOrderItems().stream()
                     .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
             if (!orderContainsSellersProduct) {
-                 throw new AccessDeniedException("Seller is not authorized to update status for this order.");
+                throw new AccessDeniedException("Seller is not authorized to update status for this order.");
             }
             // Allow seller to set these statuses
-            if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
+            if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED
+                    || newStatus == OrderStatus.DELIVERED) {
                 order.setStatus(newStatus);
             } else { // PENDING or other potentially invalid statuses for seller action
                 throw new AccessDeniedException("Seller cannot set status to " + newStatus);
@@ -281,7 +353,7 @@ public class OrderService {
 
     private User getCurrentAuthenticatedUserEntity(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-             throw new IllegalStateException("Cannot get user details from unauthenticated context.");
+            throw new IllegalStateException("Cannot get user details from unauthenticated context.");
         }
         Object principal = authentication.getPrincipal();
         String username;
@@ -290,46 +362,74 @@ public class OrderService {
         } else if (principal != null) {
             username = principal.toString();
         } else {
-           throw new IllegalStateException("Cannot get username from principal: Principal is null.");
+            throw new IllegalStateException("Cannot get username from principal: Principal is null.");
         }
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user '" + username + "' not found in database"));
     }
 
     // Helper to get roles/authorities as Strings from Authentication
-     private Set<String> getUserRoles(Authentication authentication) {
-         if (authentication == null || !authentication.isAuthenticated()) {
-             return Set.of(); // Return empty set if not authenticated
-         }
-         return authentication.getAuthorities().stream()
-                 .map(GrantedAuthority::getAuthority)
-                 .collect(Collectors.toSet());
-     }
-
-    private OrderDto convertToDto(Order order) {
-         List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
-                                         ? order.getOrderItems().stream().map(this::convertItemToDto).collect(Collectors.toList())
-                                         : new ArrayList<>();
-         AddressDto shippingAddressDto = (order.getShippingAddress() != null)
-                                         ? convertAddressToDto(order.getShippingAddress())
-                                         : null;
-        return new OrderDto(
-                order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(),
-                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto);
+    private Set<String> getUserRoles(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Set.of(); // Return empty set if not authenticated
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
     }
 
-     private OrderItemDto convertItemToDto(OrderItem item) {
-         Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
-         String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
-         BigDecimal price = item.getPriceAtPurchase();
-         return new OrderItemDto(productId, productName, item.getQuantity(), price);
-     }
+    // Helper to convert Address Entity to AddressDto (Ensure AddressDto import
+    // exists)
+    private AddressDto convertAddressToDto(Address address) {
+        if (address == null)
+            return null;
+        Long userId = (address.getUser() != null) ? address.getUser().getId() : null;
+        return new AddressDto(
+                address.getId(), address.getPhoneNumber(), address.getCountry(),
+                address.getCity(), address.getPostalCode(), address.getAddressText(),
+                userId);
+    }
 
-     private AddressDto convertAddressToDto(Address address) {
-         if (address == null) return null;
-         return new AddressDto(
-                 address.getId(), address.getPhoneNumber(), address.getCountry(), address.getCity(),
-                 address.getPostalCode(), address.getAddressText(),
-                 (address.getUser() != null) ? address.getUser().getId() : null);
-     }
+    // Helper to convert OrderItem Entity to OrderItemDto (Ensure OrderItemDto
+    // import exists)
+    private OrderItemDto convertItemToDto(OrderItem item) {
+        Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
+        String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
+        BigDecimal price = Optional.ofNullable(item.getPriceAtPurchase()).orElse(BigDecimal.ZERO); // Use Optional for
+                                                                                                   // safety
+        Integer quantity = Optional.ofNullable(item.getQuantity()).orElse(0); // Use Optional for safety
+        return new OrderItemDto(productId, productName, quantity, price);
+    }
+
+    // ===> BU METODU KONTROL EDİN/DEĞİŞTİRİN <===
+    // Helper to convert Order Entity to OrderDto (Handles 8-arg constructor)
+    private OrderDto convertToDto(Order order) {
+        if (order == null)
+            return null; // Handle null order case
+
+        // Handle potential null list
+        List<OrderItemDto> itemDtos = (order.getOrderItems() == null) ? new ArrayList<>()
+                : order.getOrderItems().stream()
+                        .map(this::convertItemToDto)
+                        .collect(Collectors.toList());
+
+        // Convert Address Entity to Address DTO using helper
+        AddressDto shippingAddressDto = convertAddressToDto(order.getShippingAddress());
+
+        // Handle potential null customer
+        Long customerId = (order.getCustomer() != null) ? order.getCustomer().getId() : null;
+        String customerUsername = (order.getCustomer() != null) ? order.getCustomer().getUsername() : null;
+
+        // Call the correct 8-argument constructor from your OrderDto.java
+        return new OrderDto(
+                order.getId(),
+                order.getOrderDate(),
+                order.getStatus(),
+                order.getTotalAmount(), // Use the totalAmount stored in the Order entity
+                customerId,
+                customerUsername,
+                itemDtos,
+                shippingAddressDto // Pass the converted AddressDto
+        );
+    }
 }
