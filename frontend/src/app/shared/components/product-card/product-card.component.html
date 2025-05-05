@@ -1,0 +1,14 @@
+<mat-card class="product-mat-card">
+  <a [routerLink]="['/products', product.id]" class="product-card-link">
+    <img mat-card-image [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name">
+    <mat-card-content>
+      <mat-card-title class="product-name">{{ product.name }}</mat-card-title>
+      <mat-card-subtitle class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</mat-card-subtitle>
+    </mat-card-content>
+  </a>
+  <mat-card-actions>
+    <button mat-flat-button (click)="addToCart(); $event.stopPropagation()">
+      Sepete Ekle
+    </button>
+  </mat-card-actions>
+</mat-card>

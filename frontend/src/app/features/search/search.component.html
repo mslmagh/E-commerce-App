@@ -1,0 +1,38 @@
+<div class="search-results-container">
+
+  <h2 class="search-title">
+    <ng-container *ngIf="searchTerm; else defaultSearchTitle">
+      Arama Sonuçları: <span class="search-term">"{{ searchTerm }}"</span>
+    </ng-container>
+    <ng-template #defaultSearchTitle>Arama Sonuçları</ng-template>
+  </h2>
+
+  <ng-container *ngIf="(products$ | async) as products; else loading">
+
+    <div *ngIf="products.length > 0; else noResults" class="product-grid">
+      <div class="product-card" *ngFor="let product of products">
+        <a [routerLink]="['/products', product.id]" class="product-link">
+          <img [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name" class="product-image">
+          <div class="product-info">
+            <h4 class="product-name">{{ product.name }}</h4>
+            <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
+          </div>
+        </a>
+        <button class="add-to-cart-btn" (click)="addToCart(product)">Sepete Ekle</button>
+      </div>
+    </div>
+
+    <ng-template #noResults>
+      <div class="no-results">
+        <p *ngIf="searchTerm">Aradığınız "<span class="search-term">{{ searchTerm }}</span>" kriterine uygun ürün bulunamadı.</p>
+        <p *ngIf="!searchTerm">Lütfen arama yapmak için yukarıdaki kutuyu kullanın.</p>
+        </div>
+    </ng-template>
+
+  </ng-container>
+
+  <ng-template #loading>
+    <p class="loading-message">Arama sonuçları yükleniyor...</p>
+    </ng-template>
+
+</div>

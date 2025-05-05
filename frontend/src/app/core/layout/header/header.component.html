@@ -1,42 +1,64 @@
-<header class="app-header">
-  <div class="container"> <div class="logo">
-      <a routerLink="/">E-Ticaret Sitem</a>
-    </div>
+<mat-toolbar color="primary">
+  <div class="header-container">
 
-    <form class="search-bar" (ngSubmit)="performSearch()">
-      <input type="text" class="search-input"
-             placeholder="Ürün, kategori veya marka ara..."
-             name="searchInput" [(ngModel)]="searchTerm">
-      <button type="submit" class="search-button">Ara</button>
+    <a mat-button routerLink="/" class="logo-button">
+      <span>E-Ticaret Sitem</span>
+    </a>
+
+    <span class="spacer"></span>
+
+    <form class="search-form" (ngSubmit)="performSearch()">
+      <input type="text" class="search-input-mat" placeholder="Arama..."
+             name="searchInput" [(ngModel)]="searchTerm" aria-label="Arama kutusu">
+      <button mat-icon-button type="submit" aria-label="Arama yap">
+        <mat-icon>search</mat-icon>
+      </button>
     </form>
 
-    <div class="user-actions">
+    <div class="user-actions-mat">
 
-      <div class="account-menu action-item">
-        <div class="account-trigger" tabindex="0">
-          <i class="fa-regular fa-user"></i>
-          <span>{{ isUserLoggedIn ? 'Hesabım' : 'Giriş Yap' }}</span>
-        </div>
-        <div class="dropdown-content">
-          <ng-container *ngIf="!isUserLoggedIn">
-            <a routerLink="/auth/login">Giriş Yap</a>
-            <a routerLink="/auth/register">Kayıt Ol</a>
-          </ng-container>
-          <ng-container *ngIf="isUserLoggedIn">
-            <a routerLink="/profile">Profilim</a> <a (click)="logout()" style="cursor: pointer;">Çıkış Yap</a>
-          </ng-container>
-        </div>
-      </div>
+      <button mat-button [matMenuTriggerFor]="accountMenu" class="action-button">
+        <mat-icon>account_circle</mat-icon>
+        <span>{{ (isLoggedIn$ | async) ? 'Hesabım' : 'Giriş Yap' }}</span>
+      </button>
+      <mat-menu #accountMenu="matMenu">
+        <ng-container *ngIf="!(isLoggedIn$ | async)">
+          <button mat-menu-item routerLink="/auth/login">
+            <mat-icon>login</mat-icon>
+            <span>Giriş Yap</span>
+          </button>
+          <button mat-menu-item routerLink="/auth/register">
+            <mat-icon>person_add</mat-icon>
+            <span>Kayıt Ol</span>
+          </button>
+        </ng-container>
+        <ng-container *ngIf="isLoggedIn$ | async">
+          <button mat-menu-item routerLink="/profile">
+            <mat-icon>person</mat-icon>
+            <span>Profilim</span>
+          </button>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Çıkış Yap</span>
+          </button>
+        </ng-container>
+      </mat-menu>
 
-      <a *ngIf="isUserLoggedIn" routerLink="/favorites" class="action-item favorites-link">
-        <i class="fa-regular fa-heart"></i>
-        <span>Favorilerim</span>
-      </a>
+      <button mat-icon-button routerLink="/favorites" *ngIf="isLoggedIn$ | async"
+              aria-label="Favorilerim" title="Favorilerim" class="action-button">
+        <mat-icon>favorite_border</mat-icon>
+      </button>
 
-      <a routerLink="/cart" class="action-item cart-link">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span>Sepetim</span>
-        <span *ngIf="cartItemCount > 0" class="cart-count">{{ cartItemCount }}</span>
-      </a>
+      <button mat-icon-button routerLink="/cart"
+              [matBadge]="(cartItemCount$ | async) || null"
+              [matBadgeHidden]="(cartItemCount$ | async) === 0"
+              matBadgeColor="warn"
+              matBadgeOverlap="true"
+              aria-label="Alışveriş Sepeti" title="Sepetim" class="action-button">
+        <mat-icon>shopping_cart</mat-icon>
+      </button>
 
-    </div> </div> </header>
+    </div>
+
+  </div>
+</mat-toolbar>

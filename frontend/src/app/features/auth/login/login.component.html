@@ -1,24 +1,36 @@
-<div class="login-container"> <h2>Giriş Yap</h2>
+<div class="login-form-container"> <h2 style="text-align: center; margin-bottom: 25px;">Giriş Yap</h2>
+
+  <div *ngIf="infoMessage" class="info-message" style="padding: 10px; margin-bottom: 15px; border: 1px solid orange; background: lightyellow; text-align: center; border-radius: 4px;">
+    {{ infoMessage }}
+  </div>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
 
-    <div class="form-group">
-      <label for="email">E-posta:</label>
-      <input type="email" id="email" placeholder="E-posta adresinizi girin"
-             formControlName="email">
-      </div>
+    <mat-form-field appearance="outline">
+      <mat-label>E-posta</mat-label>
+      <input matInput placeholder="ornek@mail.com" formControlName="email" required type="email">
+      <mat-error *ngIf="email?.invalid && (email?.dirty || email?.touched)">
+        <span *ngIf="email?.errors?.['required']">E-posta alanı zorunludur.</span>
+        <span *ngIf="email?.errors?.['email']">Lütfen geçerli bir e-posta adresi girin.</span>
+      </mat-error>
+    </mat-form-field>
 
-    <div class="form-group">
-      <label for="password">Şifre:</label>
-      <input type="password" id="password" placeholder="Şifrenizi girin"
-             formControlName="password">
-      </div>
+    <mat-form-field appearance="outline">
+      <mat-label>Şifre</mat-label>
+      <input matInput placeholder="Şifreniz" formControlName="password" required type="password">
+       <mat-error *ngIf="password?.invalid && (password?.dirty || password?.touched)">
+        <span *ngIf="password?.errors?.['required']">Şifre alanı zorunludur.</span>
+      </mat-error>
+    </mat-form-field>
 
-    <button type="submit" [disabled]="loginForm.invalid">Giriş Yap</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid">
+      Giriş Yap
+    </button>
 
   </form>
 
-  <div class="register-link"> <p>Hesabın yok mu? <a routerLink="../register">Kayıt Ol</a></p>
-                       </div>
+  <div class="register-link-container">
+    Hesabın yok mu? <a routerLink="../register">Kayıt Ol</a>
+  </div>
 
 </div>

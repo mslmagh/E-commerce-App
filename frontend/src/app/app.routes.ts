@@ -51,6 +51,11 @@ export const routes: Routes = [
   {
     path: 'social-responsibility',
     loadChildren: () => import('./pages/social-responsibility/social-responsibility.routes').then(r => r.SOCIAL_RESPONSIBILITY_ROUTES)
+  },
+  {
+    path: 'search',
+    loadChildren: () => import('./features/search/search.routes').then(r => r.SEARCH_ROUTES)
   }
+
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];
