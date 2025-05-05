@@ -1,8 +1,8 @@
 <div class="homepage-container">
 
   <section class="hero-section mb-4">
-    <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=350&fit=crop&q=80" alt="Ana Banner" class="hero-image"> </section>
-
+    <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=350&fit=crop&q=80" alt="Ana Banner" class="hero-image">
+  </section>
   <section class="category-navbar-section mb-4">
     <nav class="category-nav">
       <ul class="category-nav-list">
@@ -22,17 +22,12 @@
   <section class="product-grid-section mb-4">
     <h3 class="section-title">Öne Çıkanlar</h3>
     <div class="product-grid">
-      <div class="product-card" *ngFor="let product of featuredProducts">
-        <a [routerLink]="['/products', product.id]" class="product-link">
-          <img [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name" class="product-image">
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name }}</h4>
-            <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
-          </div>
-        </a>
-        <button class="add-to-cart-btn" (click)="addToCart(product)">Sepete Ekle</button>
-      </div>
+      <app-product-card
+        *ngFor="let product of featuredProducts"
+        [product]="product"
+        (addToCartClick)="addToCart($event)">
+        </app-product-card>
     </div>
   </section>
 
-  </div>
+</div>
