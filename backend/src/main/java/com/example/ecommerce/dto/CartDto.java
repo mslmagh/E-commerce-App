@@ -4,25 +4,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Schema(description = "DTO representing the user's shopping cart")
 public class CartDto {
-    @Schema(description = "ID of the cart", example = "1")
-    private Long cartId;
-    @Schema(description = "ID of the user owning the cart", example = "10")
-    private Long userId;
-    @Schema(description = "List of items currently in the cart")
+    @Schema(example = "1") private Long cartId;
+    @Schema(example = "10") private Long userId;
     private List<CartItemDto> items;
-    @Schema(description = "Total price of all items in the cart", example = "31851.50")
-    private BigDecimal grandTotal; // Calculated field
+    @Schema(example = "31851.50") private BigDecimal grandTotal;
 
-    // Constructor
     public CartDto(Long cartId, Long userId, List<CartItemDto> items) {
-        this.cartId = cartId;
-        this.userId = userId;
-        this.items = items;
-        this.grandTotal = items.stream()
-                               .map(CartItemDto::getTotalPrice)
-                               .reduce(BigDecimal.ZERO, BigDecimal::add); // Sum up total prices
+        this.cartId = cartId; this.userId = userId; this.items = items;
+        this.grandTotal = items.stream().map(CartItemDto::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
     public CartDto() {}
 
