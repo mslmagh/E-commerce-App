@@ -1,1 +1,36 @@
-<p>saved-cards works!</p>
+<div class="saved-cards-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>Kayıtlı Kartlarım</h2>
+    <button mat-raised-button color="primary" (click)="addNewCard()">
+      <mat-icon>add_card</mat-icon> Yeni Kart Ekle
+    </button>
+  </div>
+
+  <mat-list *ngIf="savedCards.length > 0; else noCards">
+    <mat-list-item *ngFor="let card of savedCards; let last = last">
+      <i matListItemIcon [class]="getCardIcon(card.cardType)" class="card-icon fa-fw"></i><div matListItemTitle class="card-details">
+        <span class="card-number">**** **** **** {{card.last4Digits}}</span>
+        <span *ngIf="card.isDefault" class="default-card-badge">Varsayılan</span>
+      </div>
+      <div matListItemLine class="card-expiry">
+        Son Kullanma Tarihi: {{card.expiryDate}}
+      </div>
+
+      <div matListItemMeta class="card-actions">
+        <button mat-stroked-button *ngIf="!card.isDefault" (click)="makeDefault(card.id)" style="margin-right: 8px;">Varsayılan Yap</button>
+        <button mat-icon-button color="warn" (click)="deleteCard(card.id)" matTooltip="Kartı Sil">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </div>
+
+      <mat-divider *ngIf="!last"></mat-divider>
+    </mat-list-item>
+  </mat-list>
+
+  <ng-template #noCards>
+    <div class="empty-cards-message">
+      <p>Kayıtlı kartınız bulunmamaktadır.</p>
+      </div>
+  </ng-template>
+
+</div>

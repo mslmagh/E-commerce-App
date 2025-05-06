@@ -1,1 +1,39 @@
-<p>address-list works!</p>
+<div class="address-list-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>Adres Bilgilerim</h2>
+    <button mat-raised-button color="primary" (click)="addNewAddress()">
+      <mat-icon>add_location_alt</mat-icon> Yeni Adres Ekle
+    </button>
+  </div>
+
+  <div *ngIf="addresses.length > 0; else noAddresses" class="address-cards-container">
+    <mat-card *ngFor="let address of addresses" class="address-card">
+      <mat-card-header>
+        <mat-card-title>
+          {{ address.title }}
+          <span *ngIf="address.isDefault" class="default-badge">Varsayılan</span>
+        </mat-card-title>
+        <mat-card-subtitle>{{ address.recipientName }} | {{ address.phone }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>{{ address.addressLine }}</p>
+        <p>{{ address.city }} / {{ address.country }}</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-icon-button color="primary" (click)="editAddress(address)" title="Adresi Düzenle">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" (click)="deleteAddress(address)" title="Adresi Sil">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <ng-template #noAddresses>
+    <div class="empty-message">
+      <p>Kayıtlı adresiniz bulunmamaktadır.</p>
+      </div>
+  </ng-template>
+
+</div>
