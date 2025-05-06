@@ -1,5 +1,6 @@
 
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard'; // Bu satır olmalı
 
 import { HomepageComponent } from './features/homepage/homepage.component';
 
@@ -55,7 +56,13 @@ export const routes: Routes = [
   {
     path: 'search',
     loadChildren: () => import('./features/search/search.routes').then(r => r.SEARCH_ROUTES)
+  },
+  {
+    path: 'profile', // Adres /profile olacak
+    // Oluşturduğumuz profile.routes.ts dosyasını yükle
+    loadChildren: () => import('./features/profile/profile.routes').then(r => r.PROFILE_ROUTES),
+    // Bu rotaya erişimden önce authGuard çalışsın
+    canActivate: [authGuard]
   }
-
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];
