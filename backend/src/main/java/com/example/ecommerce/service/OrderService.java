@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional; // Ensure this 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Set; // Import Set for roles/authorities
 
@@ -361,6 +362,51 @@ public class OrderService {
 
         // Return only the client secret to the frontend
         return new PaymentIntentDto(paymentIntent.getClientSecret());
+    }
+    @Transactional
+    public void handlePaymentSucceeded(String paymentIntentId) {
+        logger.info("Webhook received: Payment Succeeded for PI ID: {}", paymentIntentId);
+        // Bu metot OrderRepository'de olmalı: findByStripePaymentIntentId
+        Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId);
+
+        if (orderOpt.isEmpty()) {
+            logger.error("Webhook error: No order found for successful PaymentIntent ID: {}", paymentIntentId);
+            return;
+        }
+        Order order = orderOpt.get();
+        if (order.getStatus() == OrderStatus.PENDING) {
+            order.setStatus(OrderStatus.PROCESSING); // Veya PAID
+            orderRepository.save(order);
+            logger.info("Order ID: {} status updated to {} due to successful payment.", order.getId(), order.getStatus());
+        } else {
+            logger.warn("Webhook warning: Received payment_intent.succeeded for Order ID: {} which is already in status: {}.",
+                        order.getId(), order.getStatus());
+        }
+    }
+
+    @Transactional
+    public void handlePaymentFailed(String paymentIntentId) {
+         logger.warn("Webhook received: Payment Failed for PI ID: {}", paymentIntentId);
+         Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId); // Bu metot OrderRepository'de olmalı
+
+         if (orderOpt.isEmpty()) {
+             logger.error("Webhook error: No order found for failed PaymentIntent ID: {}", paymentIntentId);
+             return;
+         }
+         Order order = orderOpt.get();
+         // OrderStatus enum'ında PAYMENT_FAILED olduğundan emin olun
+         if (order.getStatus() == OrderStatus.PENDING) {
+              order.setStatus(OrderStatus.PAYMENT_FAILED);
+              // İsteğe bağlı: Stokları burada geri artırabilirsiniz.
+              // for (OrderItem item : order.getOrderItems()) {
+              //     productService.increaseStock(item.getProduct().getId(), item.getQuantity());
+              // }
+              orderRepository.save(order);
+              logger.info("Order ID: {} status updated to {} due to failed payment.", order.getId(), order.getStatus());
+         } else {
+              logger.warn("Webhook warning: Received payment_intent.payment_failed for Order ID: {} which is in status: {}.",
+                        order.getId(), order.getStatus());
+         }
     }
      private OrderItemDto convertItemToDto(OrderItem item) {
          Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;

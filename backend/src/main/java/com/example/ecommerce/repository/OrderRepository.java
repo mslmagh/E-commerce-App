@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     // Find orders by customer's username
@@ -13,4 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Find orders containing products from a specific seller
     @Query("SELECT DISTINCT o FROM Order o JOIN o.orderItems oi JOIN oi.product p WHERE p.seller.id = :sellerId ORDER BY o.orderDate DESC")
     List<Order> findOrdersContainingProductFromSeller(@Param("sellerId") Long sellerId);
+
+    // OrderRepository.java içinde olmalı:
+    Optional<Order> findByStripePaymentIntentId(String paymentIntentId);
 }
