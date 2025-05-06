@@ -2,7 +2,7 @@ package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.CreateReviewRequestDto;
 import com.example.ecommerce.dto.ReviewDto;
-import com.example.ecommerce.entity.User; // UserDetails için
+// import com.example.ecommerce.entity.User; // UserDetails için
 import com.example.ecommerce.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +15,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest; // EKLENDİ
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort; // EKLENDİ
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +27,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects; // EKLENDİ
+
 @RestController
 @Tag(name = "Product Review API", description = "API endpoints for managing product reviews and ratings")
-// Base path'i /api/reviews olarak da düşünebilirsiniz veya ürün bazlı /api/products/{productId}/reviews
-// Ben şimdilik ürün bazlı endpoint'leri tercih ediyorum, daha RESTful olabilir.
-// Silme ve güncelleme için ise /api/reviews/{reviewId} daha mantıklı.
 public class ReviewController {
 
     private final ReviewService reviewService;
@@ -39,6 +40,7 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
+    // createReview, updateReview, deleteReview metotları aynı kalabilir...
     @Operation(summary = "Create a new review for a product",
                description = "Allows authenticated users (with ROLE_USER) to submit a rating and comment for a product. " +
                              "A user can typically review a product only once.")
@@ -63,17 +65,40 @@ public class ReviewController {
     }
 
     @Operation(summary = "Get all reviews for a product",
-               description = "Retrieves a paginated list of reviews for a specific product. Publicly accessible.")
+               description = "Retrieves a paginated list of reviews for a specific product. Publicly accessible. Sorted by review date descending by default.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved reviews",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))), // Page<ReviewDto>
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))), // Schema Page<ReviewDto> olmalı
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
     @GetMapping("/api/products/{productId}/reviews")
     public ResponseEntity<Page<ReviewDto>> getReviewsForProduct(
             @Parameter(description = "ID of the product whose reviews are to be retrieved", required = true) @PathVariable Long productId,
-            @PageableDefault(size = 5, sort = "reviewDate,desc") Pageable pageable) {
-        Page<ReviewDto> reviewsPage = reviewService.getReviewsForProduct(productId, pageable);
+            // Varsayılan sıralamayı doğrudan @PageableDefault içinde belirtebiliriz.
+            // Bu, Swagger UI'dan gelen geçersiz "string" sıralamasını da bir nebze engelleyebilir
+            // veya en azından varsayılanın daha güçlü olmasını sağlar.
+            @PageableDefault(size = 5, sort = "reviewDate", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Sort effectiveSort;
+        Sort requestedSort = pageable.getSort();
+
+        // Gelen sıralama isteğini kontrol et
+        if (requestedSort.isSorted() &&
+            requestedSort.stream().anyMatch(order -> order.getProperty().equalsIgnoreCase("string"))) {
+            // Eğer sıralama "string" içeriyorsa, bunu varsayılan sıralama ile değiştir
+            effectiveSort = Sort.by(Sort.Direction.DESC, "reviewDate");
+        } else if (requestedSort.isUnsorted()) {
+            // Eğer hiç sıralama belirtilmemişse (ve @PageableDefault'taki sort da uygulanmadıysa), varsayılanı kullan
+            effectiveSort = Sort.by(Sort.Direction.DESC, "reviewDate");
+        } else {
+            // Geçerli bir sıralama isteği var, onu kullan
+            effectiveSort = requestedSort;
+        }
+
+        // Her zaman geçerli bir 'Sort' nesnesi ile yeni bir Pageable oluştur
+        Pageable effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), effectiveSort);
+
+        Page<ReviewDto> reviewsPage = reviewService.getReviewsForProduct(productId, effectivePageable);
         return ResponseEntity.ok(reviewsPage);
     }
 
@@ -99,7 +124,6 @@ public class ReviewController {
         return ResponseEntity.ok(updatedReview);
     }
 
-
     @Operation(summary = "Delete a review",
                description = "Allows the original author of the review or an ADMIN to delete a review.")
     @ApiResponses(value = {
@@ -109,7 +133,7 @@ public class ReviewController {
             @ApiResponse(responseCode = "404", description = "Review not found")
     })
     @DeleteMapping("/api/reviews/{reviewId}")
-    @PreAuthorize("isAuthenticated()") // Yetki kontrolü serviste yapılıyor (hasRole('USER') veya hasRole('ADMIN'))
+    @PreAuthorize("isAuthenticated()")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Void> deleteReview(
             @Parameter(description = "ID of the review to delete", required = true) @PathVariable Long reviewId) {

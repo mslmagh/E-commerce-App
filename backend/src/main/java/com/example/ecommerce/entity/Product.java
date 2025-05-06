@@ -20,8 +20,8 @@ public class Product {
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price; // Use BigDecimal for price
-    @Column(name = "average_rating", precision = 3, scale = 2) // Örn: 4.50
-    private Double averageRating = 0.0; // Varsayılan olarak 0.0
+    @Column(name = "average_rating", precision = 3, scale = 2) // DECIMAL(3,2) için
+    private BigDecimal averageRating = BigDecimal.valueOf(0.0); // BigDecimal kullan
 
     @Column(name = "review_count")
     private Integer reviewCount = 0; // Varsayılan olarak 0
@@ -100,11 +100,11 @@ public class Product {
         this.category = category;
     }
 
-    public Double getAverageRating() {
+    public BigDecimal getAverageRating() {
         return averageRating;
     }
 
-    public void setAverageRating(Double averageRating) {
+    public void setAverageRating(BigDecimal averageRating) {
         this.averageRating = averageRating;
     }
 
