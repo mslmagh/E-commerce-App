@@ -1,0 +1,96 @@
+<div class="user-info-container">
+  <mat-card class="info-card">
+    <mat-card-header>
+      <mat-card-title>Üyelik Bilgilerim</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="userInfoForm" (ngSubmit)="updateUserInfo()">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Ad</mat-label>
+            <input matInput formControlName="firstName" required>
+            <mat-error *ngIf="firstName?.errors?.['required']">Ad zorunludur</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Soyad</mat-label>
+            <input matInput formControlName="lastName" required>
+             <mat-error *ngIf="lastName?.errors?.['required']">Soyad zorunludur</mat-error>
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>E-posta</mat-label>
+          <input matInput formControlName="email" required type="email">
+          </mat-form-field>
+        <mat-form-field appearance="outline">
+            <mat-label>Cep Telefonu</mat-label>
+            <input matInput formControlName="phone" required type="tel" placeholder="5xxxxxxxxx">
+             <mat-error *ngIf="phone?.errors?.['required']">Telefon zorunludur</mat-error>
+             <mat-error *ngIf="phone?.errors?.['pattern']">Geçersiz telefon formatı</mat-error>
+          </mat-form-field>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Doğum Tarihi (Gün)</mat-label>
+            <mat-select formControlName="dobDay" required>
+              <mat-option *ngFor="let day of days" [value]="day">{{ day }}</mat-option>
+            </mat-select>
+             <mat-error *ngIf="dobDay?.errors?.['required']">Gün zorunludur</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Ay</mat-label>
+            <mat-select formControlName="dobMonth" required>
+               <mat-option *ngFor="let month of months" [value]="month.value">{{ month.viewValue }}</mat-option>
+            </mat-select>
+             <mat-error *ngIf="dobMonth?.errors?.['required']">Ay zorunludur</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Yıl</mat-label>
+            <mat-select formControlName="dobYear" required>
+              <mat-option *ngFor="let year of years" [value]="year">{{ year }}</mat-option>
+            </mat-select>
+             <mat-error *ngIf="dobYear?.errors?.['required']">Yıl zorunludur</mat-error>
+          </mat-form-field>
+        </div>
+        <button mat-flat-button color="primary" type="submit" [disabled]="userInfoForm.invalid || !userInfoForm.dirty">
+          Bilgileri Güncelle
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-divider></mat-divider>
+
+  <mat-card class="info-card">
+    <mat-card-header>
+      <mat-card-title>Şifre Güncelleme</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="passwordChangeForm" (ngSubmit)="updatePassword()">
+        <mat-form-field appearance="outline">
+          <mat-label>Şu Anki Şifre</mat-label>
+          <input matInput formControlName="currentPassword" required type="password">
+           <mat-error *ngIf="currentPassword?.errors?.['required']">Mevcut şifre zorunludur</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Yeni Şifre</mat-label>
+          <input matInput formControlName="newPassword" required type="password">
+           <mat-error *ngIf="newPassword?.invalid && (newPassword?.dirty || newPassword?.touched)">
+              <span *ngIf="newPassword?.errors?.['required']">Yeni şifre zorunludur.</span>
+              </mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Yeni Şifre (Tekrar)</mat-label>
+          <input matInput formControlName="confirmNewPassword" required type="password">
+           <mat-error *ngIf="confirmNewPassword?.invalid && (confirmNewPassword?.dirty || confirmNewPassword?.touched)">
+             <span *ngIf="confirmNewPassword?.errors?.['required']">Yeni şifre tekrarı zorunludur.</span>
+           </mat-error>
+            <mat-error *ngIf="!confirmNewPassword?.errors?.['required'] && passwordChangeForm.errors?.['passwordsDontMatch'] && (confirmNewPassword?.dirty || confirmNewPassword?.touched)">
+              Yeni şifreler eşleşmiyor.
+           </mat-error>
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="passwordChangeForm.invalid || !passwordChangeForm.dirty">
+          Şifreyi Güncelle
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
