@@ -20,7 +20,11 @@ public class Product {
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price; // Use BigDecimal for price
+    @Column(name = "average_rating", precision = 3, scale = 2) // DECIMAL(3,2) için
+    private BigDecimal averageRating = BigDecimal.valueOf(0.0); // BigDecimal kullan
 
+    @Column(name = "review_count")
+    private Integer reviewCount = 0; // Varsayılan olarak 0
     // ===> YENİ STOK ALANI <===
     @Min(0) // Stock cannot be negative
     @Column(name = "stock_quantity", nullable = false, columnDefinition = "INT DEFAULT 0")
@@ -35,23 +39,80 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-
     // Constructors
-    public Product() {}
+    public Product() {
+    }
 
     // Getters and Setters (Including new stockQuantity)
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public BigDecimal getPrice() { return price; } // Return BigDecimal
-    public void setPrice(BigDecimal price) { this.price = price; } // Accept BigDecimal
-    public Integer getStockQuantity() { return stockQuantity; } // Getter for stock
-    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; } // Setter for stock
-    public User getSeller() { return seller; }
-    public void setSeller(User seller) { this.seller = seller; }
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    } // Return BigDecimal
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    } // Accept BigDecimal
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    } // Getter for stock
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    } // Setter for stock
+
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public BigDecimal getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(BigDecimal averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
+    }
 }
