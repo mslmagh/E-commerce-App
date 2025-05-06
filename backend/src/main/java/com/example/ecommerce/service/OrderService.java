@@ -15,6 +15,9 @@ import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication; // Import Authentication
 import org.springframework.security.core.GrantedAuthority; // Import GrantedAuthority
@@ -22,8 +25,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Ensure this is imported
-
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,13 +41,20 @@ public class OrderService {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private AddressRepository addressRepository;
-    @Autowired private CartRepository cartRepository;
-    @Autowired private CartService cartService;
-    @Autowired private ProductService productService;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private AddressRepository addressRepository;
+    @Autowired
+    private CartRepository cartRepository;
+    @Autowired
+    private CartService cartService;
+    @Autowired
+    private ProductService productService;
 
     @Transactional
     public OrderDto createOrder(CreateOrderRequestDto requestDto) {
@@ -55,9 +68,11 @@ public class OrderService {
         logger.info("Creating order for user {} from cart ID {}", customer.getUsername(), cart.getId());
 
         Address shippingAddress = addressRepository.findById(requestDto.getShippingAddressId())
-                 .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found with id: " + requestDto.getShippingAddressId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Shipping address not found with id: " + requestDto.getShippingAddressId()));
         if (!shippingAddress.getUser().getId().equals(customer.getId())) {
-            logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(), shippingAddress.getId());
+            logger.warn("User {} attempted to use address ID {} which belongs to another user.", customer.getUsername(),
+                    shippingAddress.getId());
             throw new AccessDeniedException("Shipping address does not belong to the current user.");
         }
 
@@ -73,11 +88,15 @@ public class OrderService {
             Product product = cartItem.getProduct();
             int quantity = cartItem.getQuantity();
             Product currentProductState = productRepository.findById(product.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product with id: " + product.getId() + " not found during order creation."));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Product with id: " + product.getId() + " not found during order creation."));
 
-            logger.debug("Checking stock for product ID {}. Requested: {}, Available: {}", currentProductState.getId(), quantity, currentProductState.getStockQuantity());
+            logger.debug("Checking stock for product ID {}. Requested: {}, Available: {}", currentProductState.getId(),
+                    quantity, currentProductState.getStockQuantity());
             if (currentProductState.getStockQuantity() < quantity) {
-                 throw new IllegalArgumentException("Insufficient stock during checkout for product: " + currentProductState.getName() + ". Requested: " + quantity + ", Available: " + currentProductState.getStockQuantity());
+                throw new IllegalArgumentException("Insufficient stock during checkout for product: "
+                        + currentProductState.getName() + ". Requested: " + quantity + ", Available: "
+                        + currentProductState.getStockQuantity());
             }
 
             OrderItem orderItem = new OrderItem();
@@ -89,7 +108,8 @@ public class OrderService {
 
             BigDecimal itemTotal = currentProductState.getPrice().multiply(new BigDecimal(quantity));
             totalAmount = totalAmount.add(itemTotal);
-            logger.debug("Added item: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity, orderItem.getPriceAtPurchase(), itemTotal);
+            logger.debug("Added item: Product ID {}, Qty: {}, Price: {}, ItemTotal: {}", product.getId(), quantity,
+                    orderItem.getPriceAtPurchase(), itemTotal);
         }
 
         order.setTotalAmount(totalAmount);
@@ -101,24 +121,115 @@ public class OrderService {
 
         logger.debug("Decreasing stock for order ID: {}", savedOrder.getId());
         for (OrderItem savedItem : savedOrder.getOrderItems()) {
-             try {
-                 productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
-             } catch (Exception e) {
-                 logger.error("CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
-                              savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
-             }
+            try {
+                productService.decreaseStock(savedItem.getProduct().getId(), savedItem.getQuantity());
+            } catch (Exception e) {
+                logger.error(
+                        "CRITICAL: Failed to decrease stock for product ID {} for order ID {}. Manual correction needed! Error: {}",
+                        savedItem.getProduct().getId(), savedOrder.getId(), e.getMessage(), e);
+            }
         }
 
         logger.debug("Clearing cart ID: {} for user ID: {}", cart.getId(), customer.getId());
         try {
             cartService.clearCartForCurrentUser();
         } catch (Exception e) {
-             logger.error("ERROR: Failed to clear cart for user ID {} after creating order ID {}. Error: {}",
-                          customer.getId(), savedOrder.getId(), e.getMessage(), e);
+            logger.error("ERROR: Failed to clear cart for user ID {} after creating order ID {}. Error: {}",
+                    customer.getId(), savedOrder.getId(), e.getMessage(), e);
         }
 
         logger.debug("Converting saved order ID: {} to DTO", savedOrder.getId());
         return convertToDto(savedOrder);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderDto> getAllOrdersForAdmin(Pageable pageable, String customerUsername,
+            OrderStatus status, LocalDate startDate, LocalDate endDate) {
+        logger.debug(
+                "Fetching all orders for admin with filters - Username: {}, Status: {}, StartDate: {}, EndDate: {}, Page: {}",
+                customerUsername, status, startDate, endDate, pageable);
+
+        Specification<Order> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (customerUsername != null && !customerUsername.isEmpty()) {
+                // Join User entity and filter by username
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("customer").get("username")),
+                        "%" + customerUsername.toLowerCase() + "%"));
+            }
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+            if (startDate != null) {
+                LocalDateTime startDateTime = startDate.atStartOfDay();
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), startDateTime));
+            }
+            if (endDate != null) {
+                LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX); // Günün sonuna kadar
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), endDateTime));
+            }
+            // Siparişleri en yeniden eskiye doğru sırala (default)
+            query.orderBy(criteriaBuilder.desc(root.get("orderDate")));
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+        return orderPage.map(this::convertToDto); // Mevcut convertToDto'yu kullan
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDto getOrderDetailsForAdmin(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+        // Admin olduğu için ekstra yetki kontrolüne gerek yok, direkt tüm detayları
+        // dönebiliriz.
+        // convertToDto zaten gerekli bilgileri içeriyor. İstenirse daha fazla detay
+        // eklenebilir.
+        logger.debug("Fetching details for order ID {} for admin", orderId);
+        return convertToDto(order);
+    }
+
+    @Transactional
+    public OrderDto updateOrderStatusByAdmin(Long orderId, UpdateOrderStatusRequestDto requestDto) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        OrderStatus newStatus = requestDto.getNewStatus();
+        logger.info("Admin attempting to update order ID {} from status {} to {}", orderId, order.getStatus(),
+                newStatus);
+
+        // Adminin hangi durumlara geçiş yapabileceğine dair kurallar eklenebilir.
+        // Örneğin, DELIVERED olan bir siparişi tekrar PENDING yapmasına izin
+        // verilmeyebilir.
+        // Şimdilik adminin her duruma geçebileceğini varsayalım, CANCELLED hariç (onun
+        // için /cancel endpointi var).
+        if (newStatus == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException(
+                    "Admin should use the /cancel endpoint to cancel orders, not status update.");
+        }
+
+        // Sipariş durumu CANCELLED ise ve yeni status CANCELLED değilse, stok iadesi
+        // yapılmış olabilir.
+        // Bu durumu yönetmek karmaşıklaşabilir. Şimdilik CANCELLED bir siparişin
+        // durumunun değiştirilemeyeceğini varsayalım.
+        if (order.getStatus() == OrderStatus.CANCELLED && newStatus != OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot change status of an already CANCELED order via this method.");
+        }
+
+        // Eğer yeni durum DELIVERED ise ve ödeme yapılmamışsa (örn:
+        // StripePaymentIntentId boş veya ödeme başarısız)
+        // bu bir sorun olabilir. Ödeme kontrolü eklenebilir.
+        // if (newStatus == OrderStatus.DELIVERED && (order.getStripePaymentIntentId()
+        // == null || order.getStatus() == OrderStatus.PAYMENT_FAILED)) {
+        // throw new IllegalStateException("Cannot mark order as DELIVERED if payment
+        // was not successful or initiated.");
+        // }
+
+        order.setStatus(newStatus);
+        Order updatedOrder = orderRepository.save(order);
+        logger.info("Order ID {} status updated to {} by admin.", orderId, newStatus);
+        return convertToDto(updatedOrder);
     }
 
     // ===> YENİ METOT: Sipariş İptali <===
@@ -133,7 +244,7 @@ public class OrderService {
 
         OrderStatus currentStatus = order.getStatus();
         logger.info("Attempting to cancel order ID: {} by user: {}. Current status: {}",
-                     orderId, currentUser.getUsername(), currentStatus);
+                orderId, currentUser.getUsername(), currentStatus);
 
         // Check if already cancelled
         if (currentStatus == OrderStatus.CANCELLED) {
@@ -156,19 +267,25 @@ public class OrderService {
                     .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
             if (orderContainsSellersProduct) {
                 canCancel = true;
-                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(), orderId);
+                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(),
+                        orderId);
             } else {
-                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.", currentUser.getUsername(), orderId);
-                throw new AccessDeniedException("Seller is not authorized to cancel this order as it does not contain their products.");
+                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.",
+                        currentUser.getUsername(), orderId);
+                throw new AccessDeniedException(
+                        "Seller is not authorized to cancel this order as it does not contain their products.");
             }
         } else if (isOwner) {
             // User can cancel only if status is PENDING or PREPARING
             if (currentStatus == OrderStatus.PENDING || currentStatus == OrderStatus.PREPARING) {
                 canCancel = true;
-                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId, currentStatus);
+                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId,
+                        currentStatus);
             } else {
-                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(), orderId, currentStatus);
-                throw new IllegalStateException("Order cannot be cancelled by the owner at its current status: " + currentStatus);
+                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(),
+                        orderId, currentStatus);
+                throw new IllegalStateException(
+                        "Order cannot be cancelled by the owner at its current status: " + currentStatus);
             }
         }
 
@@ -185,8 +302,9 @@ public class OrderService {
             try {
                 productService.increaseStock(item.getProduct().getId(), item.getQuantity());
             } catch (Exception e) {
-                logger.error("CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
-                             item.getProduct().getId(), orderId, e.getMessage(), e);
+                logger.error(
+                        "CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
+                        item.getProduct().getId(), orderId, e.getMessage(), e);
                 // Consider how to handle this - maybe don't cancel if stock increase fails?
                 // For now, we log and continue cancellation.
             }
@@ -204,7 +322,6 @@ public class OrderService {
     }
     // ===> YENİ METOT SONU <===
 
-
     // --- Diğer OrderService Metotları ---
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForCurrentUser() {
@@ -219,7 +336,8 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get roles
+        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get
+                                                                                                                       // roles
 
         // Allow owner OR admin to view
         if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
@@ -231,9 +349,12 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForSeller() {
         User seller = getCurrentAuthenticatedUserEntity();
-        // No need to check role again if controller already does, but can be added for safety
-        // boolean isSeller = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_SELLER");
-        // if (!isSeller) { throw new AccessDeniedException("Access denied: User is not a seller."); }
+        // No need to check role again if controller already does, but can be added for
+        // safety
+        // boolean isSeller =
+        // getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_SELLER");
+        // if (!isSeller) { throw new AccessDeniedException("Access denied: User is not
+        // a seller."); }
         List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(seller.getId());
         return orders.stream().map(this::convertToDto).collect(Collectors.toList());
     }
@@ -250,7 +371,7 @@ public class OrderService {
         OrderStatus newStatus = requestDto.getNewStatus();
         // Prevent setting CANCELLED via this method, use cancelOrder instead
         if (newStatus == OrderStatus.CANCELLED) {
-             throw new IllegalArgumentException("Please use the /cancel endpoint to cancel orders.");
+            throw new IllegalArgumentException("Please use the /cancel endpoint to cancel orders.");
         }
 
         boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
@@ -262,10 +383,11 @@ public class OrderService {
             boolean orderContainsSellersProduct = order.getOrderItems().stream()
                     .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
             if (!orderContainsSellersProduct) {
-                 throw new AccessDeniedException("Seller is not authorized to update status for this order.");
+                throw new AccessDeniedException("Seller is not authorized to update status for this order.");
             }
             // Allow seller to set these statuses
-            if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
+            if (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.SHIPPED
+                    || newStatus == OrderStatus.DELIVERED) {
                 order.setStatus(newStatus);
             } else { // PENDING or other potentially invalid statuses for seller action
                 throw new AccessDeniedException("Seller cannot set status to " + newStatus);
@@ -286,7 +408,7 @@ public class OrderService {
 
     private User getCurrentAuthenticatedUserEntity(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-             throw new IllegalStateException("Cannot get user details from unauthenticated context.");
+            throw new IllegalStateException("Cannot get user details from unauthenticated context.");
         }
         Object principal = authentication.getPrincipal();
         String username;
@@ -295,41 +417,43 @@ public class OrderService {
         } else if (principal != null) {
             username = principal.toString();
         } else {
-           throw new IllegalStateException("Cannot get username from principal: Principal is null.");
+            throw new IllegalStateException("Cannot get username from principal: Principal is null.");
         }
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user '" + username + "' not found in database"));
     }
 
     // Helper to get roles/authorities as Strings from Authentication
-     private Set<String> getUserRoles(Authentication authentication) {
-         if (authentication == null || !authentication.isAuthenticated()) {
-             return Set.of(); // Return empty set if not authenticated
-         }
-         return authentication.getAuthorities().stream()
-                 .map(GrantedAuthority::getAuthority)
-                 .collect(Collectors.toSet());
-     }
+    private Set<String> getUserRoles(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Set.of(); // Return empty set if not authenticated
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+    }
 
     private OrderDto convertToDto(Order order) {
-         List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
-                                         ? order.getOrderItems().stream().map(this::convertItemToDto).collect(Collectors.toList())
-                                         : new ArrayList<>();
-         AddressDto shippingAddressDto = (order.getShippingAddress() != null)
-                                         ? convertAddressToDto(order.getShippingAddress())
-                                         : null;
+        List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
+                ? order.getOrderItems().stream().map(this::convertItemToDto).collect(Collectors.toList())
+                : new ArrayList<>();
+        AddressDto shippingAddressDto = (order.getShippingAddress() != null)
+                ? convertAddressToDto(order.getShippingAddress())
+                : null;
         return new OrderDto(
                 order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(),
-                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto, order.getStripePaymentIntentId()
-        );
+                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto,
+                order.getStripePaymentIntentId());
     }
- @Transactional // Modifies order by saving paymentIntentId
+
+    @Transactional // Modifies order by saving paymentIntentId
     public PaymentIntentDto createPaymentIntent(Long orderId) throws StripeException {
         User currentUser = getCurrentAuthenticatedUserEntity();
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        // Authorization check: Only the order owner (or admin) can create payment intent
+        // Authorization check: Only the order owner (or admin) can create payment
+        // intent
         boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN");
         if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
             throw new AccessDeniedException("You are not authorized to process payment for this order.");
@@ -347,7 +471,8 @@ public class OrderService {
                 .setAmount(amountInKurus)
                 .setCurrency(currency)
                 // Enable automatic payment methods (recommended by Stripe)
-                .setAutomaticPaymentMethods(PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build())
+                .setAutomaticPaymentMethods(
+                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build())
                 // Add metadata (optional but useful)
                 .putMetadata("order_id", order.getId().toString())
                 .putMetadata("customer_username", order.getCustomer().getUsername())
@@ -363,6 +488,7 @@ public class OrderService {
         // Return only the client secret to the frontend
         return new PaymentIntentDto(paymentIntent.getClientSecret());
     }
+
     @Transactional
     public void handlePaymentSucceeded(String paymentIntentId) {
         logger.info("Webhook received: Payment Succeeded for PI ID: {}", paymentIntentId);
@@ -377,49 +503,56 @@ public class OrderService {
         if (order.getStatus() == OrderStatus.PENDING) {
             order.setStatus(OrderStatus.PROCESSING); // Veya PAID
             orderRepository.save(order);
-            logger.info("Order ID: {} status updated to {} due to successful payment.", order.getId(), order.getStatus());
+            logger.info("Order ID: {} status updated to {} due to successful payment.", order.getId(),
+                    order.getStatus());
         } else {
-            logger.warn("Webhook warning: Received payment_intent.succeeded for Order ID: {} which is already in status: {}.",
-                        order.getId(), order.getStatus());
+            logger.warn(
+                    "Webhook warning: Received payment_intent.succeeded for Order ID: {} which is already in status: {}.",
+                    order.getId(), order.getStatus());
         }
     }
 
     @Transactional
     public void handlePaymentFailed(String paymentIntentId) {
-         logger.warn("Webhook received: Payment Failed for PI ID: {}", paymentIntentId);
-         Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId); // Bu metot OrderRepository'de olmalı
+        logger.warn("Webhook received: Payment Failed for PI ID: {}", paymentIntentId);
+        Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId); // Bu metot
+                                                                                                 // OrderRepository'de
+                                                                                                 // olmalı
 
-         if (orderOpt.isEmpty()) {
-             logger.error("Webhook error: No order found for failed PaymentIntent ID: {}", paymentIntentId);
-             return;
-         }
-         Order order = orderOpt.get();
-         // OrderStatus enum'ında PAYMENT_FAILED olduğundan emin olun
-         if (order.getStatus() == OrderStatus.PENDING) {
-              order.setStatus(OrderStatus.PAYMENT_FAILED);
-              // İsteğe bağlı: Stokları burada geri artırabilirsiniz.
-              // for (OrderItem item : order.getOrderItems()) {
-              //     productService.increaseStock(item.getProduct().getId(), item.getQuantity());
-              // }
-              orderRepository.save(order);
-              logger.info("Order ID: {} status updated to {} due to failed payment.", order.getId(), order.getStatus());
-         } else {
-              logger.warn("Webhook warning: Received payment_intent.payment_failed for Order ID: {} which is in status: {}.",
-                        order.getId(), order.getStatus());
-         }
+        if (orderOpt.isEmpty()) {
+            logger.error("Webhook error: No order found for failed PaymentIntent ID: {}", paymentIntentId);
+            return;
+        }
+        Order order = orderOpt.get();
+        // OrderStatus enum'ında PAYMENT_FAILED olduğundan emin olun
+        if (order.getStatus() == OrderStatus.PENDING) {
+            order.setStatus(OrderStatus.PAYMENT_FAILED);
+            // İsteğe bağlı: Stokları burada geri artırabilirsiniz.
+            // for (OrderItem item : order.getOrderItems()) {
+            // productService.increaseStock(item.getProduct().getId(), item.getQuantity());
+            // }
+            orderRepository.save(order);
+            logger.info("Order ID: {} status updated to {} due to failed payment.", order.getId(), order.getStatus());
+        } else {
+            logger.warn(
+                    "Webhook warning: Received payment_intent.payment_failed for Order ID: {} which is in status: {}.",
+                    order.getId(), order.getStatus());
+        }
     }
-     private OrderItemDto convertItemToDto(OrderItem item) {
-         Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
-         String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
-         BigDecimal price = item.getPriceAtPurchase();
-         return new OrderItemDto(productId, productName, item.getQuantity(), price);
-     }
 
-     private AddressDto convertAddressToDto(Address address) {
-         if (address == null) return null;
-         return new AddressDto(
-                 address.getId(), address.getPhoneNumber(), address.getCountry(), address.getCity(),
-                 address.getPostalCode(), address.getAddressText(),
-                 (address.getUser() != null) ? address.getUser().getId() : null);
-     }
+    private OrderItemDto convertItemToDto(OrderItem item) {
+        Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
+        String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
+        BigDecimal price = item.getPriceAtPurchase();
+        return new OrderItemDto(productId, productName, item.getQuantity(), price);
+    }
+
+    private AddressDto convertAddressToDto(Address address) {
+        if (address == null)
+            return null;
+        return new AddressDto(
+                address.getId(), address.getPhoneNumber(), address.getCountry(), address.getCity(),
+                address.getPostalCode(), address.getAddressText(),
+                (address.getUser() != null) ? address.getUser().getId() : null);
+    }
 }
