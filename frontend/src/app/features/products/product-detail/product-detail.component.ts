@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon'; // Kalp ikonu için (HTM
       MatSnackBarModule, // Eklendi
       MatButtonModule,   // Eklendi
       MatIconModule      // Eklendi (mat-icon kullandığımız için)
+
     ],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.css']
@@ -39,6 +40,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private favoritesService: FavoritesService, // Enjekte edildi
     private snackBar: MatSnackBar // Enjekte edildi
+
   ) { }
 
   ngOnInit(): void {
@@ -81,15 +83,24 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  addToCart(product: Product | undefined | null): void {
+  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
     if (product) {
-       this.cartService.addToCart(product);
-       // Sepete ekleme sonrası Snackbar ile bildirim verelim
-       this.snackBar.open(`'${product.name}' sepete eklendi`, 'Kapat', { duration: 2500 });
-       // this.router.navigate(['/cart']); // Yönlendirmeyi kaldırdık (isteğe bağlı)
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
+      this.cartService.addToCart(product);
+
+
+      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+        duration: 2500,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
     } else {
-       console.error("ProductDetail: Cannot add null/undefined product to cart.");
-       this.snackBar.open("Ürün sepete eklenemedi.", "Kapat", { duration: 3000 });
+      console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
+
+      this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
+         duration: 3000,
+         panelClass: ['error-snackbar']
+        });
     }
   }
 
