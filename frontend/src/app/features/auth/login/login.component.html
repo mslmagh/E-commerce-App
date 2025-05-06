@@ -1,36 +1,39 @@
-<div class="login-form-container"> <h2 style="text-align: center; margin-bottom: 25px;">Giriş Yap</h2>
+<div class="login-form-container">
+  <h2>Giriş Yap</h2>
 
-  <div *ngIf="infoMessage" class="info-message" style="padding: 10px; margin-bottom: 15px; border: 1px solid orange; background: lightyellow; text-align: center; border-radius: 4px;">
+  <div *ngIf="infoMessage" class="info-message">
     {{ infoMessage }}
   </div>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-
     <mat-form-field appearance="outline">
-      <mat-label>E-posta</mat-label>
-      <input matInput placeholder="ornek@mail.com" formControlName="email" required type="email">
-      <mat-error *ngIf="email?.invalid && (email?.dirty || email?.touched)">
-        <span *ngIf="email?.errors?.['required']">E-posta alanı zorunludur.</span>
-        <span *ngIf="email?.errors?.['email']">Lütfen geçerli bir e-posta adresi girin.</span>
+      <mat-label>E-posta Adresi</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="ornek@mail.com" required>
+      <mat-icon matSuffix>email</mat-icon>
+      <mat-error *ngIf="email?.hasError('required')">
+        E-posta adresi zorunludur.
+      </mat-error>
+      <mat-error *ngIf="email?.hasError('email')">
+        Lütfen geçerli bir e-posta adresi girin.
       </mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Şifre</mat-label>
-      <input matInput placeholder="Şifreniz" formControlName="password" required type="password">
-       <mat-error *ngIf="password?.invalid && (password?.dirty || password?.touched)">
-        <span *ngIf="password?.errors?.['required']">Şifre alanı zorunludur.</span>
+      <input matInput type="password" formControlName="password" required>
+      <mat-icon matSuffix>lock</mat-icon>
+      <mat-error *ngIf="password?.hasError('required')">
+        Şifre zorunludur.
       </mat-error>
     </mat-form-field>
 
-    <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid">
-      Giriş Yap
+    <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || loginForm.invalid">
+      <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+      {{ isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap' }}
     </button>
-
   </form>
 
-  <div class="register-link-container">
-    Hesabın yok mu? <a routerLink="../register">Kayıt Ol</a>
+  <div class="register-link-container"> Hesabınız yok mu? <a routerLink="/auth/register">Üye Olun</a>
   </div>
 
-</div>
+  </div>

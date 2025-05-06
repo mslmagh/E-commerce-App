@@ -1,52 +1,86 @@
-<div class="register-form-container"> <h2 style="text-align: center; margin-bottom: 25px;">Kayıt Ol</h2>
+<div class="register-card"> <div *ngIf="!registrationSuccessful">
+  <div style="text-align: center; margin-bottom: 24px;">
+    <h2 style="margin: 0;">Yeni Üyelik Oluştur</h2>
+  </div>
+
+  <div class="switch-to-seller-container">
+    <p>Bir mağaza açıp platformumuzda satış yapmak mı istiyorsunuz?</p>
+    <button mat-stroked-button color="accent" (click)="navigateToSellerRegistrationPage()">
+      <mat-icon>storefront</mat-icon> Satıcı Olarak Kayıt Olmaya Geç
+    </button>
+    <mat-divider class="divider-spacing" style="margin-top: 20px; margin-bottom: 10px;"></mat-divider>
+    <p class="form-intro-text">Veya bireysel üyelik için aşağıdaki formu doldurun:</p>
+  </div>
 
   <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+    <div class="name-fields-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Adınız</mat-label>
+        <input matInput formControlName="firstName" required>
+        <mat-error *ngIf="firstName?.touched && firstName?.hasError('required')">Adınız zorunludur.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Soyadınız</mat-label>
+        <input matInput formControlName="lastName" required>
+        <mat-error *ngIf="lastName?.touched && lastName?.hasError('required')">Soyadınız zorunludur.</mat-error>
+      </mat-form-field>
+    </div>
 
     <mat-form-field appearance="outline">
-      <mat-label>İsim Soyisim</mat-label>
-      <input matInput placeholder="Adınız ve Soyadınız" formControlName="name" required>
-      <mat-error *ngIf="name?.invalid && (name?.dirty || name?.touched)">
-        <span *ngIf="name?.errors?.['required']">İsim Soyisim zorunludur.</span>
-      </mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>E-posta</mat-label>
-      <input matInput placeholder="ornek@mail.com" formControlName="email" required type="email">
-      <mat-error *ngIf="email?.invalid && (email?.dirty || email?.touched)">
-        <span *ngIf="email?.errors?.['required']">E-posta zorunludur.</span>
-        <span *ngIf="email?.errors?.['email']">Geçerli e-posta girin.</span>
-      </mat-error>
+      <mat-label>E-posta Adresiniz</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="ornek@mail.com" required>
+      <mat-icon matSuffix>email</mat-icon>
+      <mat-error *ngIf="email?.touched && email?.hasError('required')">E-posta zorunludur.</mat-error>
+      <mat-error *ngIf="email?.touched && email?.hasError('email')">Geçerli bir e-posta adresi girin.</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Şifre</mat-label>
-      <input matInput placeholder="Şifreniz" formControlName="password" required type="password">
-      <mat-error *ngIf="password?.invalid && (password?.dirty || password?.touched)">
-        <span *ngIf="password?.errors?.['required']">Şifre zorunludur.</span>
-        </mat-error>
+      <input matInput type="password" formControlName="password" required>
+      <mat-icon matSuffix>lock</mat-icon>
+      <mat-error *ngIf="password?.touched && password?.hasError('required')">Şifre zorunludur.</mat-error>
+      <mat-error *ngIf="password?.touched && password?.hasError('minlength')">Şifre en az 6 karakter olmalıdır.</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Şifre Tekrar</mat-label>
-      <input matInput placeholder="Şifrenizi Tekrar Girin" formControlName="confirmPassword" required type="password">
-      <mat-error *ngIf="confirmPassword?.invalid && (confirmPassword?.dirty || confirmPassword?.touched) && confirmPassword?.errors?.['required']">
-         Şifre Tekrar alanı zorunludur.
-      </mat-error>
+      <input matInput type="password" formControlName="confirmPassword" required>
+      <mat-error *ngIf="confirmPassword?.touched && confirmPassword?.hasError('required')">Şifre tekrarı zorunludur.</mat-error>
+      <mat-error *ngIf="confirmPassword?.touched && registerForm.hasError('mismatch') && !confirmPassword?.hasError('required')">Şifreler eşleşmiyor.</mat-error>
     </mat-form-field>
 
-    <div *ngIf="registerForm.errors?.['passwordsMismatch'] && (confirmPassword?.dirty || confirmPassword?.touched)" class="form-error-message">
-       Şifreler birbiriyle eşleşmiyor.
+    <div class="terms-field">
+      <mat-checkbox formControlName="termsAccepted" color="primary">
+        <a (click)="$event.stopPropagation()" href="/sayfa/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı ve <a (click)="$event.stopPropagation()" href="/sayfa/gizlilik-politikasi" target="_blank">Gizlilik Politikası</a>'nı okudum, kabul ediyorum.
+      </mat-checkbox>
+      <mat-error *ngIf="termsAccepted?.touched && termsAccepted?.hasError('requiredTrue')">
+        Devam etmek için koşulları kabul etmelisiniz.
+      </mat-error>
     </div>
 
-    <button mat-raised-button color="primary" type="submit" [disabled]="registerForm.invalid">
-      Kayıt Ol
-    </button>
-
+    <div class="submit-button-container">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || registerForm.invalid">
+        <mat-spinner *ngIf="isLoading" diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+        {{ isLoading ? 'Kaydediliyor...' : 'Bireysel Üye Olarak Kayıt Ol' }}
+      </button>
+    </div>
   </form>
 
   <div class="login-link-container">
-     Zaten hesabın var mı? <a routerLink="../login">Giriş Yap</a>
+    Zaten bir hesabınız var mı? <a routerLink="/auth/login">Giriş Yapın</a>
   </div>
+</div>
 
+<div *ngIf="registrationSuccessful" class="registration-success-message">
+  <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: green; margin-bottom: 16px;">check_circle</mat-icon>
+  <h3>Kaydınız Başarıyla Alındı!</h3>
+  <p>Platformumuza hoş geldiniz. Şimdi hesabınıza <a routerLink="/login">giriş yapabilirsiniz</a>.</p>
+  <mat-divider style="margin: 20px 0;"></mat-divider>
+  <h4>Platformumuzda Satış Yapmak İster Misiniz?</h4>
+  <p>Kendi mağazanızı oluşturarak ürünlerinizi binlerce kullanıcıya ulaştırabilirsiniz.</p>
+  <button mat-stroked-button color="accent" (click)="navigateToSellerRegistrationPage()">
+    <mat-icon>storefront</mat-icon> Satıcı Olarak Başvur
+  </button>
+</div>
 </div>
