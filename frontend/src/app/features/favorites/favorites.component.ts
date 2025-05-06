@@ -11,6 +11,7 @@ import { Router, RouterLink } from '@angular/router'; // Router eklendi
 import { CartService } from '../../core/services/cart.service'; // CartService eklendi (YOLU KONTROL ET!)
 import { MatButtonModule } from '@angular/material/button'; // Material Buton Modülü
 import { MatIconModule } from '@angular/material/icon';   // Material İkon Modülü
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-favorites',
@@ -18,12 +19,13 @@ import { MatIconModule } from '@angular/material/icon';   // Material İkon Mod�
   imports: [
     CommonModule,
     RouterLink,
-    ProductCardComponent, // Ürün kartı
-    MatButtonModule,      // Kaldır butonu ve Sepete Ekle butonu (kartın içindeki) için
-    MatIconModule       // Butonlardaki ikonlar için
+    ProductCardComponent,
+    MatButtonModule,
+    MatIconModule
+    , MatSnackBarModule,  MatButtonModule
   ],
   templateUrl: './favorites.component.html',
-  // styleUrls: ['./favorites.component.css'] // Kaldırıp inline eklemiştik
+
   styles: [`
     /* :host { display: block; } */
     .favorites-page-container { max-width: 1200px; margin: 30px auto; padding: 0 15px; }
@@ -46,7 +48,8 @@ export class FavoritesComponent implements OnInit {
   constructor(
     private favoritesService: FavoritesService,
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) {
     this.favorites$ = this.favoritesService.favorites$;
   }
@@ -63,14 +66,24 @@ export class FavoritesComponent implements OnInit {
     }
   }
 
-  // YENİ EKLENEN METOD (ProductCard'dan gelen eventi yakalar)
-  addToCart(product: Product): void {
-    if(product) {
-      console.log('FavoritesPage: addToCart event received for:', product.name);
-      // CartService'i çağır
+  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+    if (product) {
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
       this.cartService.addToCart(product);
-      // Sepet sayfasına yönlendir
-      this.router.navigate(['/cart']);
+
+
+      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+        duration: 2500,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+    } else {
+      console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
+
+      this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
+         duration: 3000,
+         panelClass: ['error-snackbar']
+        });
     }
   }
 }

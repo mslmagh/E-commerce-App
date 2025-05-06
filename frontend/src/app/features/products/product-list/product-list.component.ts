@@ -5,11 +5,13 @@ import { Observable, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Product, ProductService } from '../../../core/services/product.service'; // Yolu Kontrol Et!
 import { CartService } from '../../../core/services/cart.service'; // Yolu Kontrol Et!
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [CommonModule, RouterLink], // RouterLink ürün detayına gitmek için gerekli
+  imports: [CommonModule, RouterLink, MatSnackBarModule, MatButtonModule], // RouterLink ürün detayına gitmek için gerekli
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css']
 })
@@ -22,8 +24,9 @@ export class ProductListComponent implements OnInit {
     private route: ActivatedRoute, // URL parametrelerini okumak için
     private productService: ProductService, // Ürünleri çekmek için
     private cartService: CartService, // Sepete eklemek için
-    private router: Router // Sepete ekledikten sonra yönlendirme için
-  ) { }
+    private router: Router ,// Sepete ekledikten sonra yönlendirme için
+    private snackBar: MatSnackBar
+       ) { }
 
   ngOnInit(): void {
     console.log('ProductListComponent ngOnInit');
@@ -50,9 +53,24 @@ export class ProductListComponent implements OnInit {
   }
 
   // Sepete Ekle mantığı (Homepage'den kopyalandı)
-  addToCart(product: Product): void {
-    console.log('ProductList: Adding to cart:', product.name);
-    this.cartService.addToCart(product);
-    this.router.navigate(['/cart']);
+  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+    if (product) {
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
+      this.cartService.addToCart(product);
+
+
+      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+        duration: 2500,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+    } else {
+      console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
+
+      this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
+         duration: 3000,
+         panelClass: ['error-snackbar']
+        });
+    }
   }
 }

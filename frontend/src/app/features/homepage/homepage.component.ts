@@ -6,12 +6,14 @@ import { CartService } from '../../core/services/cart.service';
 import { ProductCardComponent } from '../../shared/components/product-card/product-card.component';
 // Product interface'ini import et (YOLU KONTROL ET!)
 import { Product } from '../../core/services/product.service';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-homepage',
   standalone: true,
   // CommonModule, RouterLink ve ProductCardComponent'i import et
-  imports: [CommonModule, RouterLink, ProductCardComponent],
+  imports: [CommonModule, RouterLink, ProductCardComponent, MatSnackBarModule, MatButtonModule],
   templateUrl: './homepage.component.html',
   styleUrls: ['./homepage.component.css'] // CSS dosyasını kullanıyoruz
 })
@@ -30,7 +32,8 @@ export class HomepageComponent implements OnInit {
 
   constructor(
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit(): void {
@@ -38,9 +41,24 @@ export class HomepageComponent implements OnInit {
   }
 
   // ProductCardComponent'ten gelen (addToCartClick) olayını yakalar
-  addToCart(product: Product): void { // Parametre tipi Product
-    console.log('Homepage: addToCart event received for:', product.name);
-    this.cartService.addToCart(product);
-    this.router.navigate(['/cart']);
+  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+    if (product) {
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
+      this.cartService.addToCart(product);
+
+
+      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+        duration: 2500,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+    } else {
+      console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
+
+      this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
+         duration: 3000,
+         panelClass: ['error-snackbar']
+        });
+    }
   }
 }

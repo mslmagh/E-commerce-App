@@ -8,16 +8,17 @@ import { Observable, of } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
 import { Product, ProductService } from '../../core/services/product.service'; // Yolu Kontrol Et!
 import { CartService } from '../../core/services/cart.service'; // Yolu Kontrol Et!
-// İleride Material Card vb. kullanırsak importlar buraya gelecek
-// import { MatCardModule } from '@angular/material/card';
-// import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
+
 
 @Component({
   selector: 'app-search',
   standalone: true,
   imports: [
       CommonModule,
-      RouterLink,
+      RouterLink
+      , MatSnackBarModule, MatButtonModule
       // İleride Material modülleri eklenecek
       // MatCardModule,
       // MatButtonModule
@@ -25,7 +26,7 @@ import { CartService } from '../../core/services/cart.service'; // Yolu Kontrol 
   templateUrl: './search.component.html',
   // styleUrls: ['./search.component.css'] // ---> KALDIRILDI
   styles: [`
-    /* :host { display: block; } */ /* Genellikle gerekli değil ama emin olmak için kalabilir */
+
     .search-results-container {
       max-width: 1200px; /* Anasayfa/Liste ile aynı genişlik */
       margin: 30px auto; /* Üst/alt ve yanlardan ortala */
@@ -76,7 +77,8 @@ export class SearchComponent implements OnInit {
     private route: ActivatedRoute,
     private productService: ProductService,
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit(): void {
@@ -96,9 +98,24 @@ export class SearchComponent implements OnInit {
     );
   }
 
-  addToCart(product: Product): void {
-    console.log('Search: Adding to cart:', product.name);
-    this.cartService.addToCart(product);
-    this.router.navigate(['/cart']);
+  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+    if (product) {
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
+      this.cartService.addToCart(product);
+
+
+      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+        duration: 2500,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+    } else {
+      console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
+
+      this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
+         duration: 3000,
+         panelClass: ['error-snackbar']
+        });
+    }
   }
 }
