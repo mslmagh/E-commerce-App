@@ -1,0 +1,10 @@
+{
+    "type": "payment_intent.succeeded",
+    "data": {
+      "object": {
+        "id": "pi_3RLjNhQQxJ0jyreu1BkSsiNl",
+        "object": "payment_intent"
+      }
+    }
+  }
+  
