@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory; // Import LoggerFactory
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException; // Import AccessDeniedException
+import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException; // Import validation exception
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -109,5 +110,18 @@ public class GlobalExceptionHandler {
                 "An unexpected error occurred. Please contact support.", // Generic message for client
                 path);
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+     @ExceptionHandler(AccountStatusException.class) // DisabledException, LockedException vb. yakalar
+    public ResponseEntity<ErrorResponseDto> handleAccountStatusException(AccountStatusException ex,
+            WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        logger.warn("AccountStatusException: {} at path {}", ex.getMessage(), path); // Örn: "User is disabled"
+        ErrorResponseDto errorResponse = new ErrorResponseDto(
+                HttpStatus.UNAUTHORIZED.value(), // veya 403 Forbidden da düşünülebilir, ama 401 daha yaygın
+                "Account Access Denied",         // "Hesap Erişimi Reddedildi"
+                ex.getMessage(),                 // Direkt Spring Security'nin mesajını kullanır (örn: "User is disabled")
+                path);
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 }
