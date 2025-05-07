@@ -1,0 +1,122 @@
+<div class="product-form-container">
+  <mat-card>
+    <mat-card-title>
+      {{ isEditMode ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle' }}
+    </mat-card-title>
+    <mat-card-content>
+      <div *ngIf="isLoading && isEditMode" class="loading-spinner-container">
+        <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+        <p style="margin-top: 10px;">Ürün bilgileri yükleniyor...</p>
+      </div>
+
+      <form [formGroup]="productForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading || !isEditMode">
+        <h3 matSubheader>Temel Bilgiler</h3>
+        <mat-form-field appearance="outline">
+          <mat-label>Ürün Adı</mat-label>
+          <input matInput formControlName="name" required>
+          <mat-error *ngIf="productForm.get('name')?.touched && productForm.get('name')?.hasError('required')">
+            Ürün adı zorunludur.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Açıklama</mat-label>
+          <textarea matInput formControlName="description" rows="5" required placeholder="Ürününüzü detaylı bir şekilde anlatın..."></textarea>
+          <mat-error *ngIf="productForm.get('description')?.touched && productForm.get('description')?.hasError('required')">
+            Açıklama zorunludur.
+          </mat-error>
+        </mat-form-field>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>SKU (Stok Kodu)</mat-label>
+            <input matInput formControlName="sku" placeholder="Örn: TSHIRT-BLK-XL">
+            <mat-icon matSuffix matTooltipPosition="above"
+                      matTooltip="Stok Takip Birimi. Benzersiz bir kod girin veya sistemin otomatik oluşturmasını bekleyin (opsiyonel).">info_outline</mat-icon>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Marka</mat-label>
+            <input matInput formControlName="brand" placeholder="Marka adı (opsiyonel)">
+          </mat-form-field>
+        </div>
+
+        <h3 matSubheader>Fiyatlandırma ve Stok</h3>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Fiyat</mat-label>
+            <input matInput type="number" formControlName="price" required min="0.01" step="0.01">
+            <span matTextSuffix>TRY</span>
+            <mat-error *ngIf="productForm.get('price')?.touched && productForm.get('price')?.hasError('required')">Fiyat zorunludur.</mat-error>
+            <mat-error *ngIf="productForm.get('price')?.touched && productForm.get('price')?.hasError('min')">Fiyat pozitif olmalıdır.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>İndirimli Fiyat</mat-label>
+            <input matInput type="number" formControlName="discountedPrice" min="0" step="0.01" placeholder="Opsiyonel">
+            <span matTextSuffix>TRY</span>
+             <mat-error *ngIf="productForm.get('discountedPrice')?.hasError('min')">İndirimli fiyat negatif olamaz.</mat-error>
+             <mat-error *ngIf="productForm.get('discountedPrice')?.hasError('discountedPriceTooHigh') && !productForm.get('discountedPrice')?.hasError('min')">
+              İndirimli fiyat, normal fiyattan düşük olmalıdır.
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Stok Adedi</mat-label>
+          <input matInput type="number" formControlName="stockQuantity" required min="0" step="1">
+          <mat-error *ngIf="productForm.get('stockQuantity')?.touched && productForm.get('stockQuantity')?.hasError('required')">Stok adedi zorunludur.</mat-error>
+          <mat-error *ngIf="productForm.get('stockQuantity')?.touched && productForm.get('stockQuantity')?.hasError('min')">Stok negatif olamaz.</mat-error>
+        </mat-form-field>
+
+        <h3 matSubheader>Kategori ve Yayın</h3>
+        <mat-form-field appearance="outline">
+          <mat-label>Kategori</mat-label>
+          <mat-select formControlName="categoryId" required>
+            <mat-option *ngIf="!(categories$ | async)?.length && !isLoading">Kategori bulunamadı veya yüklenemedi.</mat-option>
+            <mat-option *ngIf="(categories$ | async)?.length === 0 && isLoading">Kategoriler yükleniyor...</mat-option>
+            <mat-option *ngFor="let category of (categories$ | async)" [value]="category.id">
+              {{category.name}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="productForm.get('categoryId')?.touched && productForm.get('categoryId')?.hasError('required')">
+            Kategori seçimi zorunludur.
+          </mat-error>
+        </mat-form-field>
+
+        <div class="image-upload-section">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Ürün Görseli:</label>
+          <button type="button" mat-stroked-button color="primary" (click)="fileInput.click()">
+            <mat-icon>attach_file</mat-icon> Görsel Seç
+          </button>
+          <input hidden #fileInput type="file" id="productImage" (change)="onFileSelected($event)" accept="image/png, image/jpeg, image/webp">
+          <div *ngIf="selectedFile" style="font-size: 0.9em; margin-top: 8px; color: grey;">
+            Seçilen dosya: {{ selectedFile.name }}
+          </div>
+          <div *ngIf="imagePreviewUrl" style="margin-top: 10px;">
+            <p style="font-size: 0.9em; margin-bottom: 5px;">Görsel Önizleme:</p>
+            <img [src]="imagePreviewUrl" alt="Ürün Görsel Önizlemesi" class="image-preview">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <mat-slide-toggle formControlName="isActive" color="primary">
+            {{ productForm.get('isActive')?.value ? 'Ürün Yayında (Satışa Açık)' : 'Ürün Taslak (Yayında Değil)' }}
+          </mat-slide-toggle>
+          <mat-icon matSuffix matTooltipPosition="above"
+                    matTooltip="Eğer kapalıysa ürün müşterilere gösterilmez ve satın alınamaz."
+                    style="font-size: 18px; color: grey; vertical-align: middle; margin-left: 8px; cursor: default;">help_outline</mat-icon>
+        </div>
+
+        <div class="actions-container">
+          <button mat-stroked-button type="button" routerLink="/seller/products" [disabled]="isLoading">
+            <mat-icon>cancel</mat-icon> İptal Et
+          </button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || productForm.invalid">
+            <mat-progress-spinner *ngIf="isLoading" diameter="20" mode="indeterminate" style="display: inline-block; margin-right: 8px;"></mat-progress-spinner>
+            {{ isLoading ? (isEditMode ? 'Güncelleniyor...' : 'Ekleniyor...') : (isEditMode ? 'Ürünü Güncelle' : 'Ürünü Ekle') }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
