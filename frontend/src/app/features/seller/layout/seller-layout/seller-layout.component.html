@@ -1,0 +1,44 @@
+<div class="seller-container">
+  <mat-toolbar color="primary" class="seller-toolbar">
+    <a routerLink="/seller/dashboard" class="toolbar-logo-title">
+      <mat-icon>storefront</mat-icon>
+      <span>Satıcı Paneli</span>
+    </a>
+    <span class="spacer"></span>
+    <div class="user-actions">
+      <button mat-button routerLink="/" matTooltip="Site Ana Sayfası">
+        <mat-icon>home</mat-icon>
+        Siteye Dön
+      </button>
+      <button mat-button (click)="logout()" matTooltip="Güvenli Çıkış">
+        <mat-icon>logout</mat-icon>
+        Çıkış Yap
+      </button>
+    </div>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="seller-sidenav-container">
+    <mat-sidenav mode="side" opened disableClose="true" class="seller-sidenav">
+      <mat-nav-list>
+        <h3 matSubheader style="margin-left:16px; margin-top:16px; font-weight: 500;">Yönetim</h3>
+        <a mat-list-item routerLink="dashboard" routerLinkActive="active-seller-link" [routerLinkActiveOptions]="{exact: true}">
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <span matListItemTitle>Ana Panel</span>
+        </a>
+        <a mat-list-item routerLink="products" routerLinkActive="active-seller-link">
+          <mat-icon matListItemIcon>inventory_2</mat-icon>
+          <span matListItemTitle>Ürünlerim</span>
+        </a>
+        <a mat-list-item routerLink="orders" routerLinkActive="active-seller-link">
+          <mat-icon matListItemIcon>receipt_long</mat-icon>
+          <span matListItemTitle>Siparişlerim</span>
+        </a>
+        </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <div class="main-content-area">
+        <router-outlet></router-outlet> </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

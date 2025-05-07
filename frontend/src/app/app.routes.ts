@@ -63,6 +63,11 @@ export const routes: Routes = [
     loadChildren: () => import('./features/profile/profile.routes').then(r => r.PROFILE_ROUTES),
     // Bu rotaya erişimden önce authGuard çalışsın
     canActivate: [authGuard]
-  }
+  },
+  {
+    path: 'seller', // /seller ile başlayan tüm yollar
+    loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES), // Yeni oluşturduğumuz dosyayı yükle
+    canActivate: [authGuard] // Satıcı paneline giriş için genel bir guard (Rol kontrolü de eklenecek)
+  },
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];
