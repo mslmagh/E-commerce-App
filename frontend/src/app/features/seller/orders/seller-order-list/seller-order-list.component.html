@@ -1,1 +1,88 @@
-<p>seller-order-list works!</p>
+<div class="order-list-container">
+  <div class="list-header">
+    <h2>Siparişlerim</h2>
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Siparişlerde Ara</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Müşteri adı, sipariş no..." #input autocomplete="off">
+      <button *ngIf="input.value" matSuffix mat-icon-button aria-label="Clear" (click)="input.value=''; applyFilter($event)">
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-icon matSuffix *ngIf="!input.value">search</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-spinner-container">
+    <mat-progress-spinner mode="indeterminate" diameter="60"></mat-progress-spinner>
+    <p style="margin-top: 10px;">Siparişler Yükleniyor...</p>
+  </div>
+
+  <div *ngIf="!isLoading && dataSourceMat.data.length === 0" class="no-orders-message">
+    <mat-icon>receipt_long</mat-icon>
+    <p>Henüz hiç siparişiniz bulunmuyor.</p>
+  </div>
+
+  <div *ngIf="!isLoading && dataSourceMat.data.length > 0" class="mat-elevation-z2 order-table-container">
+    <table mat-table [dataSource]="dataSourceMat" matSort class="order-table">
+
+      <ng-container matColumnDef="orderId">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Sip. No </th>
+        <td mat-cell *matCellDef="let order"> {{order.orderId}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="orderDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Tarihe göre sırala"> Tarih </th>
+        <td mat-cell *matCellDef="let order"> {{order.orderDate | date:'dd.MM.yyyy HH:mm'}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="customerName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Müşteri </th>
+        <td mat-cell *matCellDef="let order"> {{order.customerName}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="itemCount">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Ürün Say. </th>
+        <td mat-cell *matCellDef="let order" style="text-align: center;"> {{order.itemCount}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalAmount">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: right;"> Toplam Tutar </th>
+        <td mat-cell *matCellDef="let order" style="text-align: right;">
+          {{order.totalAmount | currency:'TRY':'symbol':'1.2-2'}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Durum </th>
+        <td mat-cell *matCellDef="let order" style="text-align: center;">
+          <mat-chip-listbox aria-label="Sipariş durumu">
+            <mat-chip-option [ngClass]="getStatusClass(order.status)" selected disabled
+                             matTooltip="{{order.status}}"> {{order.status}}
+            </mat-chip-option>
+          </mat-chip-listbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef> Detay </th>
+        <td mat-cell *matCellDef="let order" class="actions-cell">
+          <button mat-icon-button color="primary" (click)="viewOrderDetail(order)" matTooltip="Sipariş Detayını Gör">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="text-align: center; padding: 20px;">
+          Aradığınız kriterlere uygun sipariş bulunamadı. Filtre: "{{input.value}}"
+        </td>
+      </tr>
+    </table>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons
+                   aria-label="Sayfa seçimi">
+     </mat-paginator>
+  </div>
+</div>
