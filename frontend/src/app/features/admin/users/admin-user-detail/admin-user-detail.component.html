@@ -1,0 +1,66 @@
+<div class="user-detail-page">
+  <button mat-stroked-button routerLink="/admin/users" style="margin-bottom: 20px;">
+   <mat-icon>arrow_back</mat-icon> Kullanıcı Listesine Dön
+ </button>
+
+ <div *ngIf="isLoading" class="loading-container">
+   <mat-progress-spinner mode="indeterminate" diameter="60"></mat-progress-spinner>
+   <p style="margin-top: 10px;">Kullanıcı Bilgileri Yükleniyor...</p>
+ </div>
+
+  <div *ngIf="!isLoading && !user" class="loading-container">
+     <mat-icon style="font-size: 48px; color: red;">error_outline</mat-icon>
+     <p style="margin-top: 10px;">Kullanıcı bilgileri yüklenemedi veya bu kullanıcı bulunamadı.</p>
+  </div>
+
+
+ <mat-card class="info-card" *ngIf="user">
+   <mat-card-header>
+     <mat-card-title>{{ user.firstName }} {{ user.lastName }}</mat-card-title>
+      <mat-card-subtitle>
+        ID: {{ user.id }} | Rol: <span class="status-chip" [ngClass]="getRoleClass(user.role)">{{ user.role }}</span>
+         | Kayıt Tarihi: {{ user.registrationDate | date:'dd.MM.yyyy' }}
+         <span *ngIf="user.lastLogin"> | Son Giriş: {{ user.lastLogin | date:'dd.MM.yyyy HH:mm' }}</span>
+      </mat-card-subtitle>
+   </mat-card-header>
+   <mat-card-content>
+     <p><strong>E-posta:</strong> {{ user.email }}</p>
+     <p><strong>Telefon:</strong> {{ user.phone || '-' }}</p>
+      <p *ngIf="user.addressCount !== undefined"><strong>Kayıtlı Adres Sayısı:</strong> {{ user.addressCount }}</p>
+      <p *ngIf="user.totalOrders !== undefined"><strong>Toplam Sipariş Sayısı:</strong> {{ user.totalOrders }}</p>
+   </mat-card-content>
+ </mat-card>
+
+ <mat-card class="actions-card" *ngIf="user">
+   <mat-card-header>
+     <mat-card-title>Yönetim İşlemleri</mat-card-title>
+   </mat-card-header>
+   <mat-card-content>
+      <div class="status-toggle-container">
+        <span class="status-label">Durum:</span>
+        <mat-slide-toggle
+            [checked]="user.isActive"
+            (change)="toggleUserStatus(user, $event)" color="primary"
+            matTooltip="{{ user.isActive ? 'Hesabı Yasakla' : 'Hesabı Aktifleştir' }}"
+            aria-label="Kullanıcı aktiflik durumu">
+            {{ user.isActive ? 'Aktif' : 'Pasif / Yasaklı' }}
+        </mat-slide-toggle>
+      </div>
+
+     <button mat-stroked-button color="accent" (click)="changePassword()" [disabled]="isLoading">
+       <mat-icon>key</mat-icon> Şifre Değiştir
+     </button>
+
+      <button mat-stroked-button [disabled]="isLoading">
+         <mat-icon>edit</mat-icon> Bilgileri Düzenle (Form)
+      </button>
+      <button mat-stroked-button [disabled]="isLoading">
+         <mat-icon>receipt_long</mat-icon> Siparişlerini Gör
+      </button>
+       <button mat-stroked-button [disabled]="isLoading">
+         <mat-icon>payment</mat-icon> İşlemlerini Gör
+      </button>
+   </mat-card-content>
+ </mat-card>
+
+   </div>

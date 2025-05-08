@@ -1,0 +1,125 @@
+<div class="order-detail-page">
+  <button mat-stroked-button routerLink="/admin/orders" style="margin-bottom: 20px;">
+    <mat-icon>arrow_back</mat-icon> Sipariş Listesine Dön
+  </button>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-progress-spinner mode="indeterminate" diameter="60"></mat-progress-spinner>
+    <p style="margin-top: 10px;">Sipariş Detayları Yükleniyor...</p>
+  </div>
+
+   <div *ngIf="!isLoading && !order" class="loading-container">
+      <mat-icon style="font-size: 48px; color: red;">error_outline</mat-icon>
+      <p style="margin-top: 10px;">Sipariş detayları yüklenemedi veya bu sipariş bulunamadı.</p>
+   </div>
+
+  <div *ngIf="!isLoading && order" class="order-detail-container">
+
+    <div class="left-column">
+      <mat-card class="info-card">
+        <mat-card-header style="padding-bottom: 8px;">
+           <mat-card-title>Sipariş Özeti</mat-card-title>
+           <mat-card-subtitle>Sipariş No: <strong>{{ order.orderId }}</strong></mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="info-row">
+            <span>Sipariş Tarihi:</span>
+            <strong>{{ order.orderDate | date:'dd.MM.yyyy HH:mm' }}</strong>
+          </div>
+          <div class="info-row">
+            <span>Sipariş Durumu:</span>
+            <strong>
+              <span class="status-chip" [ngClass]="getStatusClass(order.status)">
+                 {{ order.status }}
+               </span>
+            </strong>
+          </div>
+          <div class="info-row">
+            <span>Toplam Tutar:</span>
+            <strong>{{ order.totalAmount | currency:'TRY':'symbol':'1.2-2' }}</strong>
+          </div>
+          <div class="info-row">
+            <span>Ödeme Yöntemi:</span>
+            <strong>{{ order.paymentMethod || 'Belirtilmemiş' }}</strong>
+          </div>
+          <div class="info-row" *ngIf="order.trackingNumber">
+            <span>Kargo Takip No:</span>
+            <strong>{{ order.trackingNumber }}</strong>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="customer-info-card">
+        <mat-card-header>
+          <mat-card-title>Müşteri ve Teslimat Bilgileri</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+           <p><strong>Müşteri Adı:</strong> {{ order.customer.name }}</p>
+          <p *ngIf="order.customer.email"><strong>E-posta:</strong> {{ order.customer.email }}</p>
+          <p *ngIf="order.shippingAddress.phone"><strong>Telefon:</strong> {{ order.shippingAddress.phone }}</p>
+
+          <mat-divider style="margin: 12px 0;"></mat-divider>
+
+          <p><strong>Teslimat Adresi:</strong></p>
+          <address style="font-style: normal;">
+            <p>{{ order.shippingAddress.recipientName }}</p>
+            <p>{{ order.shippingAddress.addressLine }}</p>
+            <p>{{ order.shippingAddress.city }}<span *ngIf="order.shippingAddress.postalCode">, {{ order.shippingAddress.postalCode }}</span></p>
+            <p>{{ order.shippingAddress.country }}</p>
+          </address>
+
+           <ng-container *ngIf="order.billingAddress && order.billingAddress !== order.shippingAddress">
+               <mat-divider style="margin: 12px 0;"></mat-divider>
+               <p><strong>Fatura Adresi:</strong></p>
+               <address style="font-style: normal;">
+                   <p>{{ order.billingAddress.recipientName }}</p>
+                   <p>{{ order.billingAddress.addressLine }}</p>
+                   <p>{{ order.billingAddress.city }}<span *ngIf="order.billingAddress.postalCode">, {{ order.billingAddress.postalCode }}</span></p>
+                   <p>{{ order.billingAddress.country }}</p>
+                </address>
+           </ng-container>
+        </mat-card-content>
+      </mat-card>
+
+       <mat-card class="actions-card">
+           <mat-card-header><mat-card-title>Sipariş İşlemleri</mat-card-title></mat-card-header>
+           <mat-card-content>
+              <p>TODO: Sipariş durumunu güncelleme, iptal etme, vb. aksiyonlar buraya gelecek.</p>
+               </mat-card-content>
+       </mat-card>
+
+    </div>
+
+    <div class="right-column">
+      <mat-card class="product-list-card">
+        <mat-card-header>
+          <mat-card-title>Siparişteki Ürünler ({{ order.items.length }})</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list dense>
+            <mat-list-item *ngFor="let item of order.items" class="product-list-item">
+              <img matListItemAvatar [src]="item.imageUrl || 'https://via.placeholder.com/60x60/EEEEEE/999999?text=Yok'" alt="{{item.productName}}" class="product-image">
+              <div matListItemTitle class="product-details">
+                <span class="product-name">{{ item.productName }}</span>
+                <span class="product-price-qty">
+                  {{ item.quantity }} adet x {{ item.unitPrice | currency:'TRY':'symbol':'1.2-2' }}
+                  <span *ngIf="item.sku"> | SKU: {{ item.sku }}</span>
+                  <span *ngIf="item.sellerName"> | Satıcı: {{ item.sellerName }}</span> </span>
+              </div>
+              <div matListItemMeta style="font-weight: bold; margin-left: 16px;">
+                {{ item.totalPrice | currency:'TRY':'symbol':'1.2-2' }}
+              </div>
+            </mat-list-item>
+          </mat-list>
+          <mat-divider style="margin: 16px 0;"></mat-divider>
+          <div class="totals-section">
+            <div class="info-row"><span>Ara Toplam:</span> <strong>{{order.subTotal | currency:'TRY':'symbol':'1.2-2'}}</strong></div>
+            <div class="info-row"><span>Kargo Ücreti:</span> <strong>{{order.shippingCost | currency:'TRY':'symbol':'1.2-2'}}</strong></div>
+            <div class="info-row" style="font-size: 1.2em; font-weight: bold; border-bottom: none; padding-bottom: 0;"><span>Genel Toplam:</span> <strong>{{order.totalAmount | currency:'TRY':'symbol':'1.2-2'}}</strong></div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+  </div>
+</div>
