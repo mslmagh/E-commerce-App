@@ -71,7 +71,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         Category category = findCategoryById(requestDto.getCategoryId());
 
-        mapDtoToEntity(requestDto, existingProduct, existingProduct.getSeller(), category); // Use helper method
+        mapDtoToEntity(requestDto, existingProduct, existingProduct.getSeller(), category);
 
         Product updatedProduct = productRepository.save(existingProduct);
         logger.info("Product updated with ID: {}", updatedProduct.getId());
@@ -167,6 +167,7 @@ public class ProductService {
         product.setPrice(dto.getPrice());
         product.setStockQuantity(dto.getStockQuantity());
         product.setCategory(category);
+        product.setImageUrl(dto.getImageUrl());
         if (product.getId() == null) { // Only set seller on creation
             product.setSeller(seller);
         }
@@ -183,7 +184,8 @@ public class ProductService {
                 product.getPrice(),
                 product.getStockQuantity(), // Include stock
                 categoryId,
-                categoryName
+                categoryName,
+                product.getImageUrl()
         );
     }
 }

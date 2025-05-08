@@ -3,6 +3,8 @@ package com.example.ecommerce.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min; // For @Min
 import java.math.BigDecimal; // Import BigDecimal
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -15,7 +17,7 @@ public class Product {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description", length = 500) // Set max length for description
+    @Column(name = "description", length = 500)
     private String description;
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
@@ -24,22 +26,23 @@ public class Product {
     private BigDecimal averageRating = BigDecimal.valueOf(0.0); // BigDecimal kullan
 
     @Column(name = "review_count")
-    private Integer reviewCount = 0; // Varsayılan olarak 0
-    // ===> YENİ STOK ALANI <===
+    private Integer reviewCount = 0;
+
     @Min(0) // Stock cannot be negative
     @Column(name = "stock_quantity", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer stockQuantity = 0; // Default stock to 0
-    // ===> YENİ STOK ALANI SONU <===
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_user_id", referencedColumnName = "id", nullable = false)
     private User seller;
 
+    @Column(name = "image_url", length = 512) // URL'ler uzun olabilir
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
-    // Constructors
     public Product() {
     }
 
@@ -70,19 +73,19 @@ public class Product {
 
     public BigDecimal getPrice() {
         return price;
-    } // Return BigDecimal
+    }
 
     public void setPrice(BigDecimal price) {
         this.price = price;
-    } // Accept BigDecimal
+    }
 
     public Integer getStockQuantity() {
         return stockQuantity;
-    } // Getter for stock
+    }
 
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
-    } // Setter for stock
+    }
 
     public User getSeller() {
         return seller;
@@ -114,5 +117,13 @@ public class Product {
 
     public void setReviewCount(Integer reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

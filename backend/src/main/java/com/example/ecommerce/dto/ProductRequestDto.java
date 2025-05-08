@@ -19,7 +19,7 @@ public class ProductRequestDto {
     @Schema(description = "Price of the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "1999.99")
     @NotNull(message = "Product price cannot be null")
     @DecimalMin(value = "0.0", inclusive = true, message = "Price must be zero or positive")
-    private BigDecimal price; // Use BigDecimal
+    private BigDecimal price;
 
     @Schema(description = "Stock quantity", requiredMode = Schema.RequiredMode.REQUIRED, example = "50")
     @NotNull(message = "Stock quantity cannot be null")
@@ -29,6 +29,11 @@ public class ProductRequestDto {
     @Schema(description = "ID of the category for the product", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "Category ID cannot be null")
     private Long categoryId;
+
+    @Schema(description = "URL of the product image (must be a valid URL)", example = "https://i.imgur.com/5yfRfJ2.jpeg")
+    @Size(max = 512, message = "Image URL cannot exceed 512 characters")
+    private String imageUrl; 
+
 
     // Getters & Setters
     public String getName() { return name; }
@@ -41,4 +46,6 @@ public class ProductRequestDto {
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
