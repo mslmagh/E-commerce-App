@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard'; // Bu satır olmalı
 
 import { HomepageComponent } from './features/homepage/homepage.component';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
 
@@ -19,6 +20,12 @@ export const routes: Routes = [
     loadChildren: () => import('./features/favorites/favorites.routes').then(r => r.FAVORITES_ROUTES)
 
   },
+  {
+    path: 'admin',
+    loadChildren: () => import('./features/admin/admin.routes').then(r => r.ADMIN_ROUTES),
+    canActivate: [authGuard , adminGuard ] // Hem giriş kontrolü hem de admin rolü kontrolü
+  },
+
   {
     path: 'cart',
     // './features/cart/cart.routes' dosyasını ve içindeki CART_ROUTES'u yükle
@@ -69,5 +76,6 @@ export const routes: Routes = [
     loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES), // Yeni oluşturduğumuz dosyayı yükle
     canActivate: [authGuard] // Satıcı paneline giriş için genel bir guard (Rol kontrolü de eklenecek)
   },
+
   // Diğer rotalar veya '**' rotası buraya eklenebilir...
 ];
