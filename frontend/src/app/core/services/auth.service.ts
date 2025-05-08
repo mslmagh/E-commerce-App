@@ -66,13 +66,13 @@ export class AuthService {
      };
 
     // Örnek: Başarılı bir "ADMIN" girişi simülasyonu
-    // const mockAdminResponse: LoginResponse = {
-    //   token: 'mock-jwt-admin-token-abcde',
-    //   role: 'ADMIN'
-    // };
+    const mockAdminResponse: LoginResponse = {
+     token: 'mock-jwt-admin-token-abcde',
+      role: 'ADMIN'
+     };
 
     // Hangi kullanıcı tipini simüle etmek istiyorsanız onu seçin:
-    const simulatedResponse = mockSellerResponse; // ŞİMDİLİK SELLER OLARAK GİRİŞ YAPALIM
+    const simulatedResponse = mockAdminResponse; // ŞİMDİLİK SELLER OLARAK GİRİŞ YAPALIM
 
     return of(simulatedResponse).pipe(
       delay(500), // Sanki bir ağ isteği yapılıyormuş gibi küçük bir gecikme
