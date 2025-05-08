@@ -16,10 +16,10 @@ public class ProductDto {
     private String description;
 
     @Schema(description = "Price of the product", example = "2499.99")
-    private BigDecimal price; // Use BigDecimal
+    private BigDecimal price;
 
     @Schema(description = "Available stock quantity", example = "50")
-    private Integer stockQuantity; // <<<--- YENİ ALAN
+    private Integer stockQuantity;
 
     @Schema(description = "ID of the product's category", example = "3")
     private Long categoryId;
@@ -27,8 +27,11 @@ public class ProductDto {
     @Schema(description = "Name of the product's category", example = "Electronics")
     private String categoryName;
 
-    // Update Constructor
-    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName) {
+    @Schema(description = "URL of the product image", example = "https://i.imgur.com/5yfRfJ2.jpeg")
+    private String imageUrl;
+
+    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl) {
+        this.imageUrl = imageUrl;
         this.id = id;
         this.name = name;
         this.description = description;
@@ -54,4 +57,6 @@ public class ProductDto {
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public String getCategoryName() { return categoryName; }
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

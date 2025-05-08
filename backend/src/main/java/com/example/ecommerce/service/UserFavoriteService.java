@@ -122,7 +122,8 @@ public class UserFavoriteService { // Sınıf adı güncellendi
             product.getPrice(),
             product.getStockQuantity(),
             categoryId,
-            categoryName
+            categoryName,
+            product.getImageUrl()
             // Örneğin, product.getSeller() != null ? product.getSeller().getUsername() : null gibi
         );
     }
