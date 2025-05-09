@@ -1,0 +1,121 @@
+<div class="payment-container" *ngIf="(cartItems$ | async) as cartItems; else emptyCartLoading">
+  <ng-container *ngIf="cartItems.length > 0">
+    <mat-card>
+      <mat-card-title>Ödeme Adımı</mat-card-title>
+      <mat-card-content>
+
+        <div class="order-summary">
+          <h3>Sipariş Özeti</h3>
+          <div class="summary-item" *ngFor="let item of cartItems">
+            <span>{{ item.name }} (x{{ item.quantity }})</span>
+            <span>{{ (item.price * item.quantity) | currency:'TRY':'symbol':'1.0-0' }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="summary-total">
+            <strong>Genel Toplam:</strong>
+            <strong>{{ (cartTotal$ | async) | currency:'TRY':'symbol':'1.0-0' }}</strong>
+          </div>
+        </div>
+        <mat-divider style="margin: 25px 0;"></mat-divider>
+
+        <p class="info-text">Lütfen ödeme yönteminizi seçin:</p>
+
+        <mat-radio-group [(ngModel)]="selectedPaymentMethod" class="payment-method-group" aria-label="Ödeme yöntemi seçin">
+          <mat-radio-button value="creditCard">Kredi Kartı / Banka Kartı</mat-radio-button>
+          <mat-radio-button value="paypal">PayPal</mat-radio-button>
+          <mat-radio-button value="cod">Kapıda Ödeme</mat-radio-button>
+        </mat-radio-group>
+
+        <mat-accordion class="payment-details-accordion" multi="false">
+          <mat-expansion-panel [expanded]="selectedPaymentMethod === 'creditCard'">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>credit_card</mat-icon> Kredi Kartı Bilgileri
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <p class="payment-info">Lütfen kart bilgilerinizi girin. Ödemeleriniz Stripe ile güvenli bir şekilde işlenecektir.</p>
+            <div class="credit-card-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Kart Numarası</mat-label>
+                <input matInput [(ngModel)]="creditCardForm.cardNumber" name="cc-number" placeholder="---- ---- ---- ----" required minlength="16" maxlength="19" pattern="[0-9 ]+">
+                <mat-error *ngIf="creditCardForm.cardNumber && creditCardForm.cardNumber.length < 16">Kart numarası eksik.</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Kart Üzerindeki İsim</mat-label>
+                <input matInput [(ngModel)]="creditCardForm.cardHolderName" name="cc-name" required>
+              </mat-form-field>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="expiry-field">
+                  <mat-label>Son Kul. Ay</mat-label>
+                  <input matInput [(ngModel)]="creditCardForm.expiryMonth" name="cc-exp-month" placeholder="AA" maxlength="2" required pattern="0[1-9]|1[0-2]">
+                  <mat-error>Geçerli bir ay girin (01-12).</mat-error>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="expiry-field">
+                  <mat-label>Son Kul. Yıl</mat-label>
+                  <input matInput [(ngModel)]="creditCardForm.expiryYear" name="cc-exp-year" placeholder="YY" maxlength="2" required pattern="[2-9][0-9]">
+                  <mat-error>Geçerli bir yıl girin (örn: 25).</mat-error>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="cvc-field">
+                  <mat-label>CVC</mat-label>
+                  <input matInput [(ngModel)]="creditCardForm.cvc" name="cc-cvc" placeholder="---" maxlength="4" required pattern="[0-9]{3,4}">
+                  <mat-error>Geçerli bir CVC girin (3-4 rakam).</mat-error>
+                </mat-form-field>
+              </div>
+              <p class="secure-payment-info">
+                <mat-icon>lock</mat-icon> Bu bir test arayüzüdür. Gerçek kart bilgilerinizi girmeyiniz.
+              </p>
+              <p style="font-size: 0.8em; color: #777; margin-top: 5px;">Test için Stripe tarafından sağlanan kart numaralarını kullanabilirsiniz (örn: 4242...)</p>
+            </div>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel [expanded]="selectedPaymentMethod === 'paypal'">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>paypal</mat-icon> PayPal ile Öde </mat-panel-title>
+            </mat-expansion-panel-header>
+            <p class="payment-info">PayPal hesabınızla devam etmek için aşağıdaki butona tıklayın.</p>
+            <div style="text-align: center; padding: 20px;">
+              <button mat-raised-button color="accent" class="paypal-button" (click)="proceedToPayment()">
+                  PayPal ile Öde (Simülasyon)
+              </button>
+              <p style="font-size: 0.8em; color: #777; margin-top: 10px;">Gerçek PayPal entegrasyonunda PayPal'ın kendi arayüzü açılacaktır.</p>
+            </div>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel [expanded]="selectedPaymentMethod === 'cod'">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>local_shipping</mat-icon> Kapıda Ödeme
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <p class="payment-info">Siparişinizi teslimat sırasında nakit veya kredi kartı ile ödeyebilirsiniz.</p>
+            <p class="cod-warning"><strong>Not:</strong> Kapıda ödeme seçeneğinde <strong>+15 TL</strong> ek hizmet bedeli siparişinize yansıtılacaktır.</p>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+        <div class="form-actions">
+          <button mat-stroked-button routerLink="/checkout">
+            <mat-icon>arrow_back</mat-icon> Adres Bilgilerine Dön
+          </button>
+          <button mat-raised-button color="primary" (click)="proceedToPayment()" [disabled]="!selectedPaymentMethod || isLoading">
+            <mat-icon *ngIf="isLoading" class="spinner-icon"><mat-spinner diameter="20"></mat-spinner></mat-icon>
+            <mat-icon *ngIf="!isLoading">payment</mat-icon>
+            {{ isLoading ? 'İşleniyor...' : 'Ödemeyi Onayla ve Siparişi Tamamla' }}
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </ng-container> </div>
+
+<ng-template #emptyCartLoading>
+  <div class="payment-container">
+    <mat-card style="text-align: center; padding: 40px;">
+      <mat-card-title>Sepetiniz Boş veya Yükleniyor</mat-card-title>
+      <mat-card-content>
+        <p *ngIf="!(cartItems$ | async)">Sepet bilgileri yükleniyor...</p>
+        <p *ngIf="(cartItems$ | async)?.length === 0">Ödeme yapabilmek için sepetinizde ürün bulunmalıdır.</p>
+        <button mat-stroked-button color="primary" routerLink="/cart">Sepete Git</button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</ng-template>
