@@ -32,16 +32,29 @@
 .search-form {
   display: flex;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.15); /* Tema rengine göre ayarlanabilir */
-  border-radius: 4px;
-  padding: 0 5px 0 10px;
-  margin: 0 15px; /* Sağdan soldan boşluk */
-  flex-grow: 0.5; /* Orantılı büyüme, çok büyümesin */
-  max-width: 450px; /* Maksimum genişlik */
+  /* Arka planı biraz daha opak veya farklı bir renk yapabiliriz */
+  background-color: rgba(255, 255, 255, 0.2); /* Biraz daha belirgin bir arka plan */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Hafif bir kenarlık eklendi */
+  border-radius: 8px; /* Köşeleri biraz daha yuvarlak yapalım */
+  padding: 2px 8px 2px 12px; /* İç boşlukları biraz artıralım: üst/alt sağ sol */
+  margin: 0 15px;
+  flex-grow: 0.6; /* Orantılı büyüme, biraz daha fazla yer kaplasın */
+  max-width: 500px; /* Maksimum genişliği biraz artıralım */
+  transition: all 0.3s ease-in-out; /* Geçiş efekti */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Hafif bir gölge */
 }
 
 .search-form:hover {
-    background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.3); /* Üzerine gelince arka planı daha da belirginleştir */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+.search-form:focus-within {
+  background-color: rgba(255, 255, 255, 0.9); /* Odaklanınca daha açık renk */
+  border-color: #ffffff; /* Odaklanınca kenarlık rengi */
+  box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.5); /* Tema primary rengine uygun bir dış çizgi */
+}
+.search-form:focus-within .search-input-mat::placeholder {
+  color: #6c757d; /* Odaklanınca placeholder rengi */
 }
 
 .search-input-mat {
