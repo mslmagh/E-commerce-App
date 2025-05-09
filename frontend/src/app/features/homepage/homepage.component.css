@@ -1,17 +1,133 @@
-
 /* frontend/src/app/features/homepage/homepage.component.css */
-/* SON HAL (Eski Ürün Kartı Stilleri Silinmiş) */
 
+/* Ana Container: İçeriği ortalar ve yan boşlukları ayarlar */
 .homepage-container {
   padding: 20px 0;
+  max-width: 1200px; /* Ana içerikle aynı genişlik */
+  margin: 0 auto; /* Ortala */
+  padding: 0 15px; /* Yan boşluklar */
 }
 
+
+/* Hero ve Kategori Navbar bölümlerinin altındaki boşluk */
 .hero-section,
-.category-navbar-section,
-.product-grid-section {
-  margin-bottom: 45px;
+.category-navbar-section {
+  margin-bottom: 45px; /* Diğer bölümlerle arasına boşluk */
 }
 
+/* === YENİ EKLENEN STİL: İKİ SÜTUNLU ÜRÜN GÖSTERİM ALANI === */
+/* Ana alan: Sol sidebar ve sağ ürün gridi */
+.main-product-area {
+    display: grid;
+    /* Sol sütun (sidebar) sabit genişlikte (250px), sağ sütun (grid) kalan alanı kaplar (1fr) */
+    grid-template-columns: 250px 1fr;
+    gap: 30px; /* Sütunlar arası boşluk */
+    margin-bottom: 45px;
+}
+
+/* Sol Sidebar Container */
+.sidebar-filter {
+  align-self: start;
+  /* Arka plan rengi veya hafif bir gölge eklenebilir */
+   background-color: #ffffff;
+  border-radius: 8px;
+   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Sıralama/Filtre Kartı (Material Card) */
+.filter-card {
+  /* Card'ın kendi border/shadow stili yeterli olabilir, ek stil gerekirse buraya */
+   border: none; /* Varsayılan Material border'ı kaldırabiliriz */
+   box-shadow: none; /* Varsayılan Material shadow'u kaldırabiliriz */
+   /* Veya tam tersine, özel bir shadow ekleyebiliriz */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Kart Başlıkları (Sırala, Filtrele) */
+.filter-card mat-card-title {
+  font-size: 1.2em;
+  font-weight: 600; /* Başlıkları biraz kalınlaştır */
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ddd; /* Daha belirgin bir çizgi */
+  padding-bottom: 10px;
+  color: #333;
+}
+/* Kart İçeriği Paddingi (Material card content'in varsayılan paddingini ezeriz) */
+.filter-card mat-card-content {
+  padding: 15px !important; /* İçeriğe eşit boşluk ver */
+}
+/* Card içeriği içindeki mat-card-content'in ilk mat-card-content paddingini ezeriz */
+.filter-card > mat-card-content:first-of-type {
+   padding-top: 0 !important;
+}
+
+
+/* Material Form Field (Sıralama Select ve Fiyat Inputları için) */
+.filter-card mat-form-field {
+  width: 100%; /* Select veya Inputlar tam genişlik */
+  margin-bottom: 10px; /* Form alanı alt boşluk */
+}
+
+/* === YENİ EKLENEN FİLTRE KATEGORİ BÖLÜMLERİ === */
+/* Her bir filtre kategorisi için genel bölüm */
+.filter-section {
+  margin-bottom: 20px; /* Filtre kategorileri arasına boşluk */
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee; /* Altına çizgi */
+}
+.filter-section:last-child { /* Son filtre kategorisinin altında çizgi olmasın */
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Filtre Kategorisi Başlığı (H4) */
+.filter-section h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 15px; /* Başlıkla içerik arasına boşluk */
+  color: #333;
+  display: flex; /* İkon ve yazıyı hizalamak için */
+  align-items: center;
+}
+.filter-section h4 mat-icon { /* Başlık yanındaki ikon */
+  margin-right: 8px;
+  font-size: 1.2em;
+  color: #555;
+}
+
+/* Fiyat Aralığı Inputları Container */
+.price-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Inputlar arasına boşluk */
+}
+
+/* Fiyat Inputlarının Kendisi (Material Form Field) */
+.price-range-inputs .price-input {
+  flex: 1;
+   margin-bottom: 0; /* Material form field'ın varsayılan alt boşluğunu sıfırla */
+}
+
+/* Fiyat Aralığı Ayırıcı "-" */
+.price-range-separator {
+  font-weight: bold;
+  color: #555;
+}
+
+/* PlaceHolder Filtre Alanları Metin Stili */
+.filter-section p {
+  font-size: 0.9em;
+  color: #777;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* === FİLTRE BÖLÜMLERİ SONU === */
+
+
+/* Section Başlıkları (Öne Çıkanlar vb.) */
 .section-title {
   font-size: 1.75rem;
   font-weight: 600;
@@ -21,14 +137,29 @@
   padding-bottom: 10px;
 }
 
-.hero-image {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 8px;
-  max-height: 400px;
-  object-fit: cover;
+/* Ürün Yok Mesajı */
+.no-products-message {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+    font-size: 1.1rem;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    margin-top: 20px;
+    /* Eğer grid içinde mesaj gösteriyorsak ve tüm sütunları kaplamasını istiyorsak */
+    grid-column: 1 / -1;
 }
+
+
+/* Hero Section */
+.hero-section {
+  /* ... mevcut stil ... */
+}
+.hero-image {
+  /* ... mevcut stil ... */
+}
+
 
 /* Kategori Nav Bar */
 .category-navbar-section {
@@ -36,7 +167,7 @@
   border-top: 1px solid #e9ecef;
   border-bottom: 1px solid #e9ecef;
   padding: 5px 0;
-  margin-top: -25px; /* Banner ile arasını ayarlamak için */
+  margin-top: -25px;
 }
 .category-nav {
   max-width: 1200px;
@@ -48,9 +179,17 @@
   padding: 10px 0;
   margin: 0;
   display: flex;
-
-  justify-content: center;
   gap: 10px 30px;
+  overflow-x: auto; /* Yatayda kaydırılabilir olsun */
+  white-space: nowrap; /* Alt satıra inmesin */
+}
+/* Scrollbar gizlenebilir */
+.category-nav-list::-webkit-scrollbar {
+  display: none;
+}
+.category-nav-list {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 .nav-link {
   text-decoration: none;
@@ -60,7 +199,6 @@
   padding: 10px 5px;
   border-bottom: 2px solid transparent;
   transition: color 0.2s ease, border-color 0.2s ease;
-  white-space: nowrap;
   display: inline-block;
 }
 .nav-link:hover {
@@ -88,10 +226,66 @@
 }
 /* Kategori Nav Bar Sonu */
 
-/* Ürün Grid Konteyneri (Bu kalmalı!) */
+
+/* Ürün Grid Konteyneri (Sağ sütun içinde yer alacak) */
+.product-grid-area {
+    /* ... */
+}
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 30px;
-  margin-top: 20px;
+  gap: 20px;
+  margin-top: 0;
+}
+
+/* Product Card Stilleri */
+app-product-card {
+    display: block;
+    height: 100%;
+}
+
+/* === RESPONSIVE AYARLAR === */
+@media (max-width: 992px) {
+    .main-product-area {
+        /* Orta ekranlarda sidebar alta geçer */
+        grid-template-columns: 1fr; /* Tek sütuna düşür */
+        gap: 20px; /* Elemanlar arası boşluk */
+    }
+     .sidebar-filter {
+         position: static;
+         margin-bottom: 20px;
+     }
+     .filter-card {
+        width: 100%;
+     }
+}
+
+@media (max-width: 768px) {
+    .homepage-container {
+        padding: 0 10px;
+    }
+     .section-title {
+        font-size: 1.5rem;
+     }
+}
+
+@media (max-width: 576px) {
+     .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+     }
+     .filter-card mat-card-content {
+        padding: 10px !important;
+     }
+     /* Fiyat aralığı inputlarını küçük ekranda alt alta alabiliriz */
+     .price-range-inputs {
+        flex-direction: column;
+        gap: 15px;
+     }
+      .price-range-inputs .price-input {
+         width: 100%; /* Tam genişlik kaplasın */
+      }
+      .price-range-separator {
+        display: none; /* Ayırıcıyı gizle */
+      }
 }
