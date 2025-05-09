@@ -42,10 +42,10 @@
                    (change)="onItemSelectChange(item, $event)">
           </td>
           <td class="item-image">
-            <a><img [src]="item.imageUrl || 'https://via.placeholder.com/60x60?text=No+Image'" [alt]="item.name"></a>
+            <a><img [src]="item.product?.imageUrl || 'https://via.placeholder.com/60x60?text=No+Image'" [alt]="item.product?.name || 'Ürün'"></a>
           </td>
           <td class="item-name">
-            <a>{{ item.name }}</a>
+            <a>{{ item.product?.name || 'Ürün' }}</a>
           </td>
           <td class="item-price">
             {{ item.price | currency:'TRY':'symbol':'1.0-0' }}

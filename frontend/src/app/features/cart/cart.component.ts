@@ -14,25 +14,25 @@ import { Router, RouterLink } from '@angular/router';
 export class CartComponent implements OnInit, OnDestroy {
 
   cartItems: CartItem[] = [];
-  selectedItems: Map<number | string, boolean> = new Map();
+  selectedItems: Map<number, boolean> = new Map();
   isAllSelected: boolean = false;
   private cartSubscription?: Subscription;
 
-  constructor(private cartService: CartService,private router :Router) { }
+  constructor(private cartService: CartService, private router: Router) { }
 
   ngOnInit(): void {
     console.log('CartComponent loaded');
     this.cartSubscription = this.cartService.cartItems$.subscribe(items => {
       console.log('Cart items received in component:', items);
       this.cartItems = items;
-      this.selectedItems.clear(); // Sepet güncellendiğinde eski seçimleri temizle
-      this.updateSelectAllState(); // Tümünü seç durumunu güncelle
+      this.selectedItems.clear();
+      this.updateSelectAllState();
     });
   }
 
   ngOnDestroy(): void {
     if (this.cartSubscription) {
-      this.cartSubscription.unsubscribe(); // Component yok olurken aboneliği bitir
+      this.cartSubscription.unsubscribe();
     }
   }
 
@@ -69,7 +69,7 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   deleteSelectedItems(): void {
-    const idsToDelete: (string | number)[] = [];
+    const idsToDelete: number[] = [];
     this.selectedItems.forEach((isSelected, id) => {
       if (isSelected) {
         idsToDelete.push(id);
@@ -78,23 +78,29 @@ export class CartComponent implements OnInit, OnDestroy {
 
     if (idsToDelete.length > 0) {
       console.log('CartComponent: Deleting selected items with IDs:', idsToDelete);
-         this.cartService.removeSelectedItems(idsToDelete);
+      // removeSelectedItems metodu olmadığı için her bir ürünü tek tek siliyoruz
+      idsToDelete.forEach(id => {
+        const cartItem = this.cartItems.find(item => item.id === id);
+        if (cartItem) {
+          this.cartService.removeFromCart(cartItem.productId);
+        }
+      });
     } else {
       alert('Lütfen silmek için en az bir ürün seçin.');
     }
   }
 
   getSelectedItemsCount(): number {
-     let count = 0;
-     this.selectedItems.forEach(isSelected => {
-         if (isSelected) {
-             count++;
-         }
-     });
-     return count;
+    let count = 0;
+    this.selectedItems.forEach(isSelected => {
+      if (isSelected) {
+        count++;
+      }
+    });
+    return count;
   }
 
-  calculateTotalPrice(): number { // Artık this.cartItems kullanıyor
+  calculateTotalPrice(): number {
     if (!this.cartItems || this.cartItems.length === 0) {
       return 0;
     }
@@ -102,20 +108,28 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   increaseQuantity(item: CartItem): void {
-    this.cartService.addToCart(item);
+    this.cartService.addToCart({
+      id: item.productId,
+      name: item.product?.name || '',
+      price: item.price,
+      stockQuantity: item.quantity, // Varsayılan olarak mevcut miktar
+      categoryId: 0, // Varsayılan değer
+      imageUrl: item.product?.imageUrl
+    });
   }
 
   decreaseQuantity(item: CartItem): void {
-    this.cartService.decreaseQuantity(item.id);
+    this.cartService.decreaseQuantity(item.productId);
   }
 
   removeFromCart(item: CartItem): void {
-    this.cartService.removeFromCart(item.id);
+    this.cartService.removeFromCart(item.productId);
   }
 
   clearCart(): void {
-     this.cartService.clearCart();
+    this.cartService.clearCart();
   }
+  
   goToCheckout(): void {
     console.log('Navigating to checkout...');
     this.router.navigate(['/checkout']);

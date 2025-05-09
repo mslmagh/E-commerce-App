@@ -75,7 +75,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     this.loginForm = new FormGroup({
-      'email': new FormControl(null, [Validators.required, Validators.email]),
+      'username': new FormControl(null, Validators.required),
       'password': new FormControl(null, Validators.required)
     });
 
@@ -99,19 +99,19 @@ export class LoginComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
-      this.snackBar.open('Lütfen e-posta ve şifre alanlarını doğru doldurun.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
+      this.snackBar.open('Lütfen kullanıcı adı ve şifre alanlarını doldurun.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
       return;
     }
 
     this.isLoading = true;
-    const email = this.loginForm.value.email;
+    const username = this.loginForm.value.username.trim();
     const password = this.loginForm.value.password;
 
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
     }
 
-    this.authSubscription = this.authService.login(email, password).subscribe({
+    this.authSubscription = this.authService.login(username, password).subscribe({
       next: (response: JwtResponse) => {
         this.isLoading = false;
         const userRole = this.authService.getUserRole(); 
@@ -193,6 +193,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
-  get email() { return this.loginForm.get('email'); }
+  get username() { return this.loginForm.get('username'); }
   get password() { return this.loginForm.get('password'); }
 }

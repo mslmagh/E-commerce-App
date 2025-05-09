@@ -44,6 +44,13 @@ export class AuthService {
   private accountStatus = new BehaviorSubject<string | null>(null);
   public accountStatus$: Observable<string | null> = this.accountStatus.asObservable();
 
+  // Event triggered when login status changes
+  private authStateChanged = new BehaviorSubject<{ isLoggedIn: boolean, event: 'login' | 'logout' | 'init' }>({ 
+    isLoggedIn: false,
+    event: 'init'
+  });
+  public authStateChanged$ = this.authStateChanged.asObservable();
+
   constructor(private http: HttpClient) {
     this.loadAuthDataFromStorage();
   }
@@ -57,17 +64,25 @@ export class AuthService {
         this.loggedInStatus.next(true);
         this.userRole.next(role);
         if (status) this.accountStatus.next(status);
+        
+        // Notify initial state
+        this.authStateChanged.next({
+          isLoggedIn: true,
+          event: 'init'
+        });
       }
     }
   }
 
-  login(emailAsUsername: string, password: string): Observable<JwtResponse> {
-    console.log('AuthService: Attempting login for username (using email):', emailAsUsername);
+  login(username: string, password: string): Observable<JwtResponse> {
+    console.log('AuthService: Attempting login for username:', username);
     const loginUrl = `${this.apiUrl}/auth/login`;
-    const body: LoginRequest = { username: emailAsUsername, password: password };
+    const body: LoginRequest = { username: username, password: password };
+    console.log('AuthService: Sending login request to:', loginUrl);
 
     return this.http.post<JwtResponse>(loginUrl, body).pipe(
       tap((response) => {
+        console.log('AuthService: Login response received:', response);
         if (response && response.token && response.roles && response.roles.length > 0) {
           let primaryRole = response.roles[0];
           if (response.roles.includes('ROLE_ADMIN')) {
@@ -78,6 +93,12 @@ export class AuthService {
           const sellerStatus = primaryRole === 'ROLE_SELLER' ? 'APPROVED' : undefined;
           this.saveAuthData(response.token, primaryRole, response, sellerStatus);
           console.log('AuthService: Login successful, auth data saved.');
+          
+          // Notify login event for services to sync data
+          this.authStateChanged.next({
+            isLoggedIn: true,
+            event: 'login'
+          });
         } else {
           console.error('AuthService: Token or roles not found in login response!', response);
           this.clearAuthDataAndNotify();
@@ -85,6 +106,13 @@ export class AuthService {
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('AuthService: Login HTTP error', error);
+        console.error('AuthService: Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || 'No error message provided',
+          url: error.url,
+          headers: error.headers.keys().map(key => `${key}: ${error.headers.get(key)}`)
+        });
         this.clearAuthDataAndNotify();
         return throwError(() => error);
       })
@@ -193,6 +221,13 @@ export class AuthService {
   }
 
   logout(): void {
+    // First notify services that we're about to log out
+    this.authStateChanged.next({
+      isLoggedIn: false,
+      event: 'logout'
+    });
+    
+    // Then clear auth data
     this.clearAuthDataAndNotify();
     console.log('AuthService: User logged out.');
     this.router.navigate(['/auth/login']);

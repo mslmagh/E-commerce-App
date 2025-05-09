@@ -7,7 +7,7 @@
         <div class="order-summary">
           <h3>Sipariş Özeti</h3>
           <div class="summary-item" *ngFor="let item of cartItems">
-            <span>{{ item.name }} (x{{ item.quantity }})</span>
+            <span>{{ item.product?.name || 'Ürün' }} (x{{ item.quantity }})</span>
             <span>{{ (item.price * item.quantity) | currency:'TRY':'symbol':'1.0-0' }}</span>
           </div>
           <mat-divider></mat-divider>
@@ -71,7 +71,8 @@
           <mat-expansion-panel [expanded]="selectedPaymentMethod === 'paypal'">
             <mat-expansion-panel-header>
               <mat-panel-title>
-                <mat-icon>paypal</mat-icon> PayPal ile Öde </mat-panel-title>
+                <mat-icon>paypal</mat-icon> PayPal ile Öde
+              </mat-panel-title>
             </mat-expansion-panel-header>
             <p class="payment-info">PayPal hesabınızla devam etmek için aşağıdaki butona tıklayın.</p>
             <div style="text-align: center; padding: 20px;">
@@ -105,7 +106,8 @@
         </div>
       </mat-card-content>
     </mat-card>
-  </ng-container> </div>
+  </ng-container>
+</div>
 
 <ng-template #emptyCartLoading>
   <div class="payment-container">

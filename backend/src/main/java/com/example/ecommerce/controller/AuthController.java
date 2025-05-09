@@ -43,22 +43,33 @@ public class AuthController {
     @ApiResponses(value = { /*...*/ })
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        System.out.println("AuthController: Login attempt for user: " + loginRequest.getUsername());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
 
-        User userDetails = (User) authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
+            User userDetails = (User) authentication.getPrincipal();
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
+            System.out.println("AuthController: Login successful for user: " + userDetails.getUsername() + 
+                              ", roles: " + roles + ", generating JWT token");
+                              
+            return ResponseEntity.ok(new JwtResponse(jwt,
                                                  userDetails.getId(),
                                                  userDetails.getUsername(),
                                                  userDetails.getEmail(),
                                                  roles));
+        } catch (Exception e) {
+            System.err.println("AuthController: Login failed for user: " + loginRequest.getUsername() + 
+                              ", error: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Operation(summary = "Register New User", description = "Creates a new user account with a single role (defaults to USER).")

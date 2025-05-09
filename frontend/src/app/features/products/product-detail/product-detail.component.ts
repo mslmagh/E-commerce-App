@@ -22,7 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 export interface ProductReview {
   id?: number | string;
-  productId: number | string;
+  productId: number | string; // Kimin yorum yaptığı (mock için string olabilir)
   userId: number | string; // Kimin yorum yaptığı (mock için string olabilir)
   userName: string; // Yorumu yapanın adı
   rating: number; // 1-5 arası puan
@@ -124,7 +124,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  checkIfFavorite(productId: string | number): void {
+  checkIfFavorite(productId: number): void {
     if (this.favoriteCheckSubscription) {
       this.favoriteCheckSubscription.unsubscribe();
     }
@@ -181,15 +181,15 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
 
-  loadReviews(productId: string | number): void {
+  loadReviews(productId: number): void {
       console.log(`Loading reviews for product ID: ${productId}`);
 
       setTimeout(() => {
           this.reviews = [
               { id: 1, productId: productId, userId: 101, userName: 'Ali Veli', rating: 5, comment: 'Ürün harika, çok beğendim!', date: new Date(2025, 4, 5) },
               { id: 2, productId: productId, userId: 102, userName: 'Ayşe Yılmaz', rating: 4, comment: 'Beklediğim gibi çıktı, hızlı kargo.', date: new Date(2025, 4, 6) },
-              ...(productId === 1 || productId === '1' ? [{ id: 3, productId: productId, userId: 103, userName: 'Mehmet Öztürk', rating: 5, comment: 'Kablosuz kulaklık müthiş!', date: new Date(2025, 4, 7) }] : []),
-              ...(productId === 2 || productId === '2' ? [{ id: 4, productId: productId, userId: 104, userName: 'Fatma Kaya', rating: 4, comment: 'Akıllı saat işimi görüyor.', date: new Date(2025, 4, 7) }] : []),
+              ...(productId === 1 ? [{ id: 3, productId: productId, userId: 103, userName: 'Mehmet Öztürk', rating: 5, comment: 'Kablosuz kulaklık müthiş!', date: new Date(2025, 4, 7) }] : []),
+              ...(productId === 2 ? [{ id: 4, productId: productId, userId: 104, userName: 'Fatma Kaya', rating: 4, comment: 'Akıllı saat işimi görüyor.', date: new Date(2025, 4, 7) }] : []),
           ];
           console.log('Mock reviews loaded:', this.reviews);
       }, 500);
@@ -215,7 +215,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
            return;
       }
 
-       let currentProductId: string | number | undefined;
+       let currentProductId: number | undefined;
        this.product$.pipe(take(1)).subscribe(product => {
            currentProductId = product?.id;
        });
