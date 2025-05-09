@@ -27,6 +27,16 @@ public class OrderItem {
     @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
     private Product product;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    private OrderItemStatus status = OrderItemStatus.ACTIVE; // Varsayılan durum
+
+    @Column(name = "stripe_refund_id", length = 255)
+    private String stripeRefundId; // Bu kalem için yapılan Stripe iade ID'si
+
+    @Column(name = "refunded_amount", precision = 10, scale = 2)
+    private BigDecimal refundedAmount; // Bu kalem için iade edilen tutar
+
     // Constructors
     public OrderItem() {}
 
@@ -41,4 +51,11 @@ public class OrderItem {
     public void setOrder(Order order) { this.order = order; }
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+    public OrderItemStatus getStatus() { return status; }
+    public void setStatus(OrderItemStatus status) { this.status = status; }
+    public String getStripeRefundId() { return stripeRefundId; }
+    public void setStripeRefundId(String stripeRefundId) { this.stripeRefundId = stripeRefundId; }
+    public BigDecimal getRefundedAmount() { return refundedAmount; }
+    public void setRefundedAmount(BigDecimal refundedAmount) { this.refundedAmount = refundedAmount; }
+
 }
