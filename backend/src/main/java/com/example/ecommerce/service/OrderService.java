@@ -1,6 +1,8 @@
 package com.example.ecommerce.service;
 
+// YENİ DTO
 import com.example.ecommerce.dto.*; // Import all DTOs from package
+// YENİ ENUM
 import com.example.ecommerce.entity.*; // Import all Entities + OrderStatus
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.repository.AddressRepository;
@@ -8,6 +10,9 @@ import com.example.ecommerce.repository.CartRepository;
 import com.example.ecommerce.repository.OrderRepository;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.UserRepository;
+import com.example.ecommerce.repository.OrderItemRepository; // EKLENECEK
+import com.stripe.model.Refund;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
@@ -15,6 +20,7 @@ import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +37,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Map; // EKLENECEK
+import java.util.function.Function; // EKLENECEK
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -50,11 +58,295 @@ public class OrderService {
     @Autowired
     private AddressRepository addressRepository;
     @Autowired
-    private CartRepository cartRepository;
-    @Autowired
     private CartService cartService;
     @Autowired
     private ProductService productService;
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Transactional // Bu metod veritabanını (Order entity) ve harici bir sistemi (Stripe)
+                   // etkileyebilir
+    public String processStripeRefund(String paymentIntentId, BigDecimal amountToRefund) throws StripeException {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            logger.warn("PaymentIntent ID is null or empty. Cannot process refund.");
+            throw new IllegalArgumentException("PaymentIntent ID is required to process a refund.");
+        }
+        if (amountToRefund == null || amountToRefund.compareTo(BigDecimal.ZERO) <= 0) {
+            logger.warn("Invalid refund amount: {}", amountToRefund);
+            throw new IllegalArgumentException("Refund amount must be greater than zero.");
+        }
+
+        // Stripe tutarları en küçük para birimi cinsinden (örn: kuruş) alır.
+        // TRY için 100 ile çarpılmalı.
+        long amountInKurus = amountToRefund.multiply(new BigDecimal("100")).longValueExact();
+
+        RefundCreateParams params = RefundCreateParams.builder()
+                .setPaymentIntent(paymentIntentId)
+                .setAmount(amountInKurus) // İade edilecek tutar (opsiyonel, belirtilmezse tamamı iade edilir)
+                // .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER) // İade nedeni
+                // (opsiyonel)
+                .build();
+
+        logger.info("Attempting to create Stripe refund for PaymentIntent ID: {}, Amount: {} kuruş", paymentIntentId,
+                amountInKurus);
+        Refund refund = Refund.create(params); // Stripe API çağrısı
+        logger.info("Stripe refund successful. Refund ID: {}, Status: {}", refund.getId(), refund.getStatus());
+
+        return refund.getId(); // Stripe tarafından verilen iade ID'sini döndür
+    }
+
+    @Transactional
+    public OrderDto cancelFullOrder(Long orderId, String actorUsername, String reason) { // `reason` parametresi eklendi
+                                                                                         // (opsiyonel)
+        User actor = userRepository.findByUsername(actorUsername)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Actor (User) not found with username: " + actorUsername));
+        Set<String> actorRoles = actor.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+        boolean isAdmin = actorRoles.contains("ROLE_ADMIN");
+        // boolean isSeller = actorRoles.contains("ROLE_SELLER"); // Satıcıların tüm
+        // siparişi iptali artık bu metodla yapılmayacak.
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        boolean isOwner = order.getCustomer().getId().equals(actor.getId());
+
+        // Admin Tüm Siparişi İptal ve İade Edebilir
+        if (isAdmin) {
+            logger.info("Admin {} initiating full cancellation and refund for order ID: {}", actorUsername, orderId);
+            // Siparişteki tüm *aktif* kalemlerin ID'lerini topla
+            List<Long> allActiveItemIds = order.getOrderItems().stream()
+                    .filter(item -> item.getStatus() == OrderItemStatus.ACTIVE
+                            || item.getStatus() == OrderItemStatus.SHIPPED)
+                    .map(OrderItem::getId)
+                    .collect(Collectors.toList());
+
+            if (allActiveItemIds.isEmpty()) {
+                // Eğer iptal/iade edilecek aktif kalem yoksa (belki hepsi zaten iptal edilmiş)
+                // siparişin durumunu kontrol et ve gerekirse CANCELLED yap.
+                if (order.getStatus() != OrderStatus.CANCELLED) {
+                    order.setStatus(OrderStatus.CANCELLED);
+                    orderRepository.save(order);
+                    logger.info("No active items to refund in order ID {}. Order status set to CANCELLED by admin.",
+                            orderId);
+                } else {
+                    logger.info("Order ID {} already cancelled. No action taken by admin for full cancel.", orderId);
+                }
+                return convertToDto(order);
+            }
+
+            CancelOrderItemsRequestDto requestDto = new CancelOrderItemsRequestDto();
+            requestDto.setOrderItemIds(allActiveItemIds);
+            requestDto.setReason(reason != null ? reason : "Full order cancellation by admin.");
+            // cancelAndRefundOrderItemsByActor metodu artık iadeyi de hallediyor.
+            return cancelAndRefundOrderItemsByActor(orderId, requestDto, actorUsername);
+        }
+        // Kullanıcı Kendi Siparişini Belirli Durumlarda İptal Edebilir (İadesiz)
+        else if (isOwner) {
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PREPARING) {
+                logger.info("Owner {} cancelling order ID: {} (status: {}). No refund processed at this stage.",
+                        actorUsername, orderId, order.getStatus());
+                for (OrderItem item : order.getOrderItems()) {
+                    if (item.getStatus() == OrderItemStatus.ACTIVE) { // Sadece aktif olanları iptal et
+                        item.setStatus(OrderItemStatus.CANCELLED);
+                        orderItemRepository.save(item);
+                        try {
+                            productService.increaseStock(item.getProduct().getId(), item.getQuantity());
+                        } catch (Exception e) {
+                            logger.error(
+                                    "CRITICAL: Failed to increase stock for product ID {} while owner cancelling order item ID {}. Error: {}",
+                                    item.getProduct().getId(), item.getId(), e.getMessage(), e);
+                        }
+                    }
+                }
+                order.setStatus(OrderStatus.CANCELLED); // Siparişin genel durumunu da iptal et
+                Order cancelledOrder = orderRepository.save(order);
+                return convertToDto(cancelledOrder);
+            } else {
+                throw new IllegalStateException(
+                        "Order cannot be cancelled by the owner at its current status: " + order.getStatus());
+            }
+        }
+        // Diğer roller (örn: Satıcı) bu metodla tüm siparişi iptal edemez.
+        else {
+            throw new AccessDeniedException(
+                    "User " + actorUsername + " is not authorized to cancel this entire order.");
+        }
+    }
+
+    @Transactional
+    public OrderDto cancelAndRefundOrderItemsByActor(Long orderId, CancelOrderItemsRequestDto requestDto,
+            String actorUsername) {
+        User actor = userRepository.findByUsername(actorUsername)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Actor (User) not found with username: " + actorUsername));
+        Set<String> actorRoles = actor.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+        boolean isAdmin = actorRoles.contains("ROLE_ADMIN");
+        boolean isSeller = actorRoles.contains("ROLE_SELLER");
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED /*
+                                                                                                      * veya
+                                                                                                      * FULLY_REFUNDED
+                                                                                                      * gibi son
+                                                                                                      * durumlar
+                                                                                                      */) {
+            throw new IllegalStateException(
+                    "Order is already in a final state (CANCELLED/DELIVERED) and cannot be partially modified.");
+        }
+        if (order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
+            throw new IllegalStateException("Order does not have a Payment Intent ID. Refunds cannot be processed.");
+        }
+
+        List<Long> itemIdsToCancel = requestDto.getOrderItemIds();
+        if (itemIdsToCancel == null || itemIdsToCancel.isEmpty()) {
+            throw new IllegalArgumentException("No order item IDs provided for cancellation.");
+        }
+
+        // Siparişe ait olan ve henüz iptal/iade edilmemiş kalemleri al
+        Map<Long, OrderItem> activeOrderItemsMap = order.getOrderItems().stream()
+                .filter(item -> item.getStatus() == OrderItemStatus.ACTIVE
+                        || item.getStatus() == OrderItemStatus.SHIPPED) // İptal edilebilir durumlar
+                .collect(Collectors.toMap(OrderItem::getId, Function.identity()));
+
+        BigDecimal totalAmountToRefund = BigDecimal.ZERO;
+        List<OrderItem> itemsSuccessfullyProcessedForRefund = new ArrayList<>();
+
+        for (Long itemId : itemIdsToCancel) {
+            OrderItem item = activeOrderItemsMap.get(itemId);
+            if (item == null) {
+                logger.warn("OrderItem ID {} not found in order ID {} or already processed.", itemId, orderId);
+                // İsteğe bağlı: burada bir hata fırlatılabilir veya sadece loglanıp devam
+                // edilebilir.
+                // Şimdilik devam edelim, olmayan veya zaten işlenmiş kalemleri atlayalım.
+                continue;
+            }
+
+            // Yetki Kontrolü: Admin her kalemi iptal edebilir, Satıcı sadece kendi ürününü.
+            if (!isAdmin) { // Eğer admin değilse, satıcı kontrolü yap
+                if (!isSeller || !item.getProduct().getSeller().getId().equals(actor.getId())) {
+                    logger.warn(
+                            "Seller {} (ID: {}) is not authorized to cancel OrderItem ID {} (Product Seller ID: {}).",
+                            actorUsername, actor.getId(), itemId, item.getProduct().getSeller().getId());
+                    throw new AccessDeniedException(
+                            "You are not authorized to cancel one or more of the selected items.");
+                }
+            }
+
+            // İade edilecek tutara ekle (her bir kalemin fiyatı * miktarı)
+            totalAmountToRefund = totalAmountToRefund
+                    .add(item.getPriceAtPurchase().multiply(new BigDecimal(item.getQuantity())));
+            itemsSuccessfullyProcessedForRefund.add(item);
+        }
+
+        if (itemsSuccessfullyProcessedForRefund.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "None of the provided item IDs were valid for cancellation/refund in order " + orderId);
+        }
+
+        String stripeRefundId = null;
+        if (totalAmountToRefund.compareTo(BigDecimal.ZERO) > 0) {
+            try {
+                logger.info("Processing partial refund for order ID {}. Amount: {}. Items: {}",
+                        orderId, totalAmountToRefund, itemsSuccessfullyProcessedForRefund.stream().map(OrderItem::getId)
+                                .collect(Collectors.toList()));
+                stripeRefundId = processStripeRefund(order.getStripePaymentIntentId(), totalAmountToRefund);
+
+                // İade edilen toplam tutarı siparişte güncelle
+                order.setTotalRefundedAmount(order.getTotalRefundedAmount().add(totalAmountToRefund));
+
+            } catch (StripeException e) {
+                logger.error("Stripe partial refund failed for order ID: {}. Amount: {}. Error: {}",
+                        orderId, totalAmountToRefund, e.getMessage(), e);
+                // Burada hata yönetimi önemli. İade başarısız olursa ne olacak?
+                // Belki kalemlerin durumu REFUND_FAILED gibi bir şeye ayarlanabilir.
+                // Şimdilik sadece logluyoruz ve sipariş iptal işlemi devam etmiyor (kısmi iade
+                // hatası)
+                throw new RuntimeException("Stripe refund processing failed: " + e.getMessage(), e);
+            }
+        } else {
+            logger.info(
+                    "Total amount to refund is zero for order ID {}. No Stripe refund will be processed. Items might be cancelled without monetary refund.",
+                    orderId);
+        }
+
+        // Başarıyla iade için işlenen kalemlerin durumunu ve stoklarını güncelle
+        for (OrderItem item : itemsSuccessfullyProcessedForRefund) {
+            item.setStatus(stripeRefundId != null ? OrderItemStatus.REFUNDED : OrderItemStatus.CANCELLED); // Eğer iade
+                                                                                                           // yapıldıysa
+                                                                                                           // REFUNDED
+            item.setStripeRefundId(stripeRefundId); // Tüm bu kalemler aynı iade işlemine ait
+            item.setRefundedAmount(item.getPriceAtPurchase().multiply(new BigDecimal(item.getQuantity()))); // Her
+                                                                                                            // kalemin
+                                                                                                            // iade
+                                                                                                            // edilen
+                                                                                                            // tutarı
+            orderItemRepository.save(item); // Her bir kalemi kaydet
+
+            try {
+                productService.increaseStock(item.getProduct().getId(), item.getQuantity());
+                logger.info("Stock increased for product ID {} by quantity {} due to item cancellation.",
+                        item.getProduct().getId(), item.getQuantity());
+            } catch (Exception e) {
+                logger.error(
+                        "CRITICAL: Failed to increase stock for product ID {} while cancelling order item ID {}. Error: {}",
+                        item.getProduct().getId(), item.getId(), e.getMessage(), e);
+            }
+        }
+
+        // Siparişin genel durumunu kontrol et ve güncelle
+        updateOverallOrderStatus(order);
+
+        Order savedOrder = orderRepository.save(order);
+        logger.info("Order ID {} items ({}) cancelled/refunded by {}. Stripe Refund ID (if any): {}",
+                orderId,
+                itemsSuccessfullyProcessedForRefund.stream().map(OrderItem::getId).collect(Collectors.toList()),
+                actorUsername, stripeRefundId);
+        return convertToDto(savedOrder); // convertToDto'nun OrderItemDto'ları da içermesi ve OrderItemDto'nun yeni
+                                         // alanları yansıtması gerekir.
+    }
+
+    private void updateOverallOrderStatus(Order order) {
+        boolean allItemsCancelledOrRefunded = order.getOrderItems().stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELLED
+                        || item.getStatus() == OrderItemStatus.REFUNDED);
+
+        boolean anyItemActive = order.getOrderItems().stream()
+                .anyMatch(item -> item.getStatus() == OrderItemStatus.ACTIVE ||
+                        item.getStatus() == OrderItemStatus.SHIPPED); // veya teslim edilmemiş diğer aktif durumlar
+
+        if (allItemsCancelledOrRefunded) {
+            order.setStatus(OrderStatus.CANCELLED); // Veya FULLY_REFUNDED (eğer OrderStatus'ta varsa)
+            logger.info("All items in order ID {} are cancelled/refunded. Order status set to CANCELLED.",
+                    order.getId());
+        } else if (!anyItemActive) {
+            // Eğer aktif kalem kalmadıysa ama hepsi de iptal/iade edilmediyse (örn:
+            // bazıları DELIVERED)
+            // Bu durum projenizin mantığına göre yönetilmeli.
+            // Şimdilik, eğer aktif kalem yoksa ve en az bir kalem iptal/iade edildiyse,
+            // siparişin durumunu değiştirmeden loglayabiliriz veya özel bir durum (örn:
+            // PARTIALLY_COMPLETED_REFUNDED) ekleyebiliriz.
+            // Basitlik adına, eğer en az bir kalem iade/iptal edildiyse ve diğerleri de
+            // nihai bir durumdaysa (örn: DELIVERED)
+            // siparişin genel durumunu değiştirmek yerine OrderItem durumlarına
+            // güvenebiliriz.
+            // VEYA, OrderStatus'a PARTIALLY_REFUNDED, PARTIALLY_CANCELLED gibi durumlar
+            // eklenebilir.
+            boolean anyRefunded = order.getOrderItems().stream()
+                    .anyMatch(oi -> oi.getStatus() == OrderItemStatus.REFUNDED);
+            if (anyRefunded && !allItemsCancelledOrRefunded) {
+                // order.setStatus(OrderStatus.PARTIALLY_REFUNDED); // Eğer böyle bir durum
+                // varsa
+                logger.info(
+                        "Order ID {} has some items refunded and some in other states. Keeping current overall status or set to PARTIALLY_REFUNDED if defined.",
+                        order.getId());
+            }
+        }
+        // Eğer hala aktif kalemler varsa, siparişin genel durumu genellikle değişmez
+        // (örn: PROCESSING, SHIPPED)
+        // veya projenizin iş akışına göre güncellenir.
+    }
 
     @Transactional
     public OrderDto createOrder(CreateOrderRequestDto requestDto) {
@@ -232,97 +524,6 @@ public class OrderService {
         return convertToDto(updatedOrder);
     }
 
-    // ===> YENİ METOT: Sipariş İptali <===
-    @Transactional
-    public OrderDto cancelOrder(Long orderId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = getCurrentAuthenticatedUserEntity(authentication); // Get user from authentication
-        Set<String> currentUserRoles = getUserRoles(authentication); // Get user roles
-
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
-
-        OrderStatus currentStatus = order.getStatus();
-        logger.info("Attempting to cancel order ID: {} by user: {}. Current status: {}",
-                orderId, currentUser.getUsername(), currentStatus);
-
-        // Check if already cancelled
-        if (currentStatus == OrderStatus.CANCELLED) {
-            logger.warn("Order ID: {} is already cancelled.", orderId);
-            throw new IllegalStateException("Order is already cancelled.");
-        }
-
-        boolean canCancel = false;
-        boolean isOwner = order.getCustomer().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
-        boolean isSeller = currentUserRoles.contains("ROLE_SELLER");
-
-        if (isAdmin) {
-            // Admin can cancel anytime
-            canCancel = true;
-            logger.info("Admin {} cancelling order ID: {}", currentUser.getUsername(), orderId);
-        } else if (isSeller) {
-            // Seller can cancel anytime IF the order contains their product
-            boolean orderContainsSellersProduct = order.getOrderItems().stream()
-                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
-            if (orderContainsSellersProduct) {
-                canCancel = true;
-                logger.info("Seller {} cancelling order ID: {} (contains their product)", currentUser.getUsername(),
-                        orderId);
-            } else {
-                logger.warn("Seller {} attempted to cancel order ID: {} which does not contain their products.",
-                        currentUser.getUsername(), orderId);
-                throw new AccessDeniedException(
-                        "Seller is not authorized to cancel this order as it does not contain their products.");
-            }
-        } else if (isOwner) {
-            // User can cancel only if status is PENDING or PREPARING
-            if (currentStatus == OrderStatus.PENDING || currentStatus == OrderStatus.PREPARING) {
-                canCancel = true;
-                logger.info("Owner {} cancelling order ID: {} (status is {})", currentUser.getUsername(), orderId,
-                        currentStatus);
-            } else {
-                logger.warn("Owner {} attempted to cancel order ID: {} but status is {}.", currentUser.getUsername(),
-                        orderId, currentStatus);
-                throw new IllegalStateException(
-                        "Order cannot be cancelled by the owner at its current status: " + currentStatus);
-            }
-        }
-
-        // If none of the above conditions met
-        if (!canCancel) {
-            logger.warn("User {} is not authorized to cancel order ID: {}", currentUser.getUsername(), orderId);
-            throw new AccessDeniedException("User not authorized to cancel this order.");
-        }
-
-        // --- Perform Cancellation ---
-        // 1. Increase stock
-        logger.debug("Increasing stock for cancelled order ID: {}", orderId);
-        for (OrderItem item : order.getOrderItems()) {
-            try {
-                productService.increaseStock(item.getProduct().getId(), item.getQuantity());
-            } catch (Exception e) {
-                logger.error(
-                        "CRITICAL: Failed to increase stock for product ID {} while cancelling order ID {}. Manual correction needed! Error: {}",
-                        item.getProduct().getId(), orderId, e.getMessage(), e);
-                // Consider how to handle this - maybe don't cancel if stock increase fails?
-                // For now, we log and continue cancellation.
-            }
-        }
-
-        // 2. Update order status
-        order.setStatus(OrderStatus.CANCELLED);
-
-        // 3. Save the order
-        Order cancelledOrder = orderRepository.save(order);
-        logger.info("Order ID: {} successfully cancelled.", orderId);
-
-        // 4. Return updated DTO
-        return convertToDto(cancelledOrder);
-    }
-    // ===> YENİ METOT SONU <===
-
-    // --- Diğer OrderService Metotları ---
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForCurrentUser() {
         User customer = getCurrentAuthenticatedUserEntity();
@@ -541,10 +742,15 @@ public class OrderService {
     }
 
     private OrderItemDto convertItemToDto(OrderItem item) {
-        Long productId = (item.getProduct() != null) ? item.getProduct().getId() : null;
-        String productName = (item.getProduct() != null) ? item.getProduct().getName() : null;
-        BigDecimal price = item.getPriceAtPurchase();
-        return new OrderItemDto(productId, productName, item.getQuantity(), price);
+        return new OrderItemDto(
+                item.getId(),
+                (item.getProduct() != null) ? item.getProduct().getId() : null,
+                (item.getProduct() != null) ? item.getProduct().getName() : null,
+                item.getQuantity(),
+                item.getPriceAtPurchase(),
+                item.getStatus() != null ? item.getStatus().name() : null,
+                item.getStripeRefundId(),
+                item.getRefundedAmount());
     }
 
     private AddressDto convertAddressToDto(Address address) {
