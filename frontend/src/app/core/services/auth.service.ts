@@ -78,11 +78,9 @@ export class AuthService {
     console.log('AuthService: Attempting login for username:', username);
     const loginUrl = `${this.apiUrl}/auth/login`;
     const body: LoginRequest = { username: username, password: password };
-    console.log('AuthService: Sending login request to:', loginUrl);
 
     return this.http.post<JwtResponse>(loginUrl, body).pipe(
       tap((response) => {
-        console.log('AuthService: Login response received:', response);
         if (response && response.token && response.roles && response.roles.length > 0) {
           let primaryRole = response.roles[0];
           if (response.roles.includes('ROLE_ADMIN')) {
@@ -106,13 +104,6 @@ export class AuthService {
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('AuthService: Login HTTP error', error);
-        console.error('AuthService: Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.error?.message || 'No error message provided',
-          url: error.url,
-          headers: error.headers.keys().map(key => `${key}: ${error.headers.get(key)}`)
-        });
         this.clearAuthDataAndNotify();
         return throwError(() => error);
       })

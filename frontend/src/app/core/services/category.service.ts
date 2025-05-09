@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError, of, delay } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, throwError } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environment';
 
@@ -23,145 +23,64 @@ export interface CategoryRequest {
 export class CategoryService {
   private apiUrl = `${environment.apiUrl}/categories`;
 
-  // Mock data for development without backend
-  private mockCategories: Category[] = [
-    {
-      id: 1,
-      name: 'Electronics',
-      description: 'All electronic devices and gadgets',
-      imageUrl: 'https://via.placeholder.com/300'
-    },
-    {
-      id: 2,
-      name: 'Accessories',
-      description: 'Bags, cases, and other accessories',
-      imageUrl: 'https://via.placeholder.com/300'
-    },
-    {
-      id: 3,
-      name: 'Home & Kitchen',
-      description: 'Products for your home and kitchen',
-      imageUrl: 'https://via.placeholder.com/300'
-    },
-    {
-      id: 4,
-      name: 'Sports',
-      description: 'Sports equipment and athletic wear',
-      imageUrl: 'https://via.placeholder.com/300'
-    }
-  ];
-
   constructor(private http: HttpClient) { }
 
   getAllCategories(): Observable<Category[]> {
-    if (environment.mockApi) {
-      console.log('CategoryService: Using mock categories data');
-      return of([...this.mockCategories]).pipe(
-        delay(300),
-        tap(categories => console.log(`CategoryService: Fetched ${categories.length} mock categories.`))
-      );
-    }
-
+    console.log('CategoryService: Fetching categories from API');
     return this.http.get<Category[]>(this.apiUrl)
       .pipe(
+        tap(categories => console.log(`CategoryService: Fetched ${categories.length} categories.`)),
         catchError(error => {
           console.error('Error fetching categories:', error);
-          return throwError(() => error);
+          return throwError(() => new Error('Failed to fetch categories'));
         })
       );
   }
 
   getCategoryById(id: number): Observable<Category> {
-    if (environment.mockApi) {
-      console.log(`CategoryService: Fetching mock category with ID: ${id}`);
-      const category = this.mockCategories.find(c => c.id === id);
-      if (category) {
-        return of({...category}).pipe(
-          delay(200),
-          tap(category => console.log(`CategoryService: Fetched mock category for ID ${id}:`, category))
-        );
-      }
-      return throwError(() => new Error(`Category with ID ${id} not found`));
-    }
-
+    console.log(`CategoryService: Fetching category with ID: ${id}`);
     return this.http.get<Category>(`${this.apiUrl}/${id}`)
       .pipe(
+        tap(category => console.log(`CategoryService: Fetched category for ID ${id}:`, category)),
         catchError(error => {
           console.error(`Error fetching category with id ${id}:`, error);
-          return throwError(() => error);
+          return throwError(() => new Error(`Failed to fetch category with id ${id}`));
         })
       );
   }
 
   createCategory(category: CategoryRequest): Observable<Category> {
-    if (environment.mockApi) {
-      console.log('CategoryService: Creating new mock category', category);
-      const newCategory: Category = {
-        ...category,
-        id: Math.max(...this.mockCategories.map(c => c.id)) + 1
-      };
-      this.mockCategories.push(newCategory);
-      return of({...newCategory}).pipe(
-        delay(300),
-        tap(category => console.log('CategoryService: Created new mock category with ID:', category.id))
-      );
-    }
-
+    console.log('CategoryService: Creating new category', category);
     return this.http.post<Category>(this.apiUrl, category)
       .pipe(
+        tap(newCategory => console.log('CategoryService: Created new category with ID:', newCategory.id)),
         catchError(error => {
           console.error('Error creating category:', error);
-          return throwError(() => error);
+          return throwError(() => new Error('Failed to create category'));
         })
       );
   }
 
   updateCategory(id: number, category: CategoryRequest): Observable<Category> {
-    if (environment.mockApi) {
-      console.log(`CategoryService: Updating mock category with ID: ${id}`, category);
-      const index = this.mockCategories.findIndex(c => c.id === id);
-      if (index !== -1) {
-        const updatedCategory: Category = {
-          ...this.mockCategories[index],
-          ...category
-        };
-        this.mockCategories[index] = updatedCategory;
-        return of({...updatedCategory}).pipe(
-          delay(300),
-          tap(_ => console.log(`CategoryService: Updated mock category with ID: ${id}`))
-        );
-      }
-      return throwError(() => new Error(`Category with ID ${id} not found`));
-    }
-
+    console.log(`CategoryService: Updating category with ID: ${id}`, category);
     return this.http.put<Category>(`${this.apiUrl}/${id}`, category)
       .pipe(
+        tap(_ => console.log(`CategoryService: Updated category with ID: ${id}`)),
         catchError(error => {
           console.error(`Error updating category with id ${id}:`, error);
-          return throwError(() => error);
+          return throwError(() => new Error(`Failed to update category with id ${id}`));
         })
       );
   }
 
   deleteCategory(id: number): Observable<void> {
-    if (environment.mockApi) {
-      console.log(`CategoryService: Deleting mock category with ID: ${id}`);
-      const index = this.mockCategories.findIndex(c => c.id === id);
-      if (index !== -1) {
-        this.mockCategories.splice(index, 1);
-        return of(undefined).pipe(
-          delay(300),
-          tap(_ => console.log(`CategoryService: Deleted mock category with ID: ${id}`))
-        );
-      }
-      return throwError(() => new Error(`Category with ID ${id} not found`));
-    }
-
+    console.log(`CategoryService: Deleting category with ID: ${id}`);
     return this.http.delete<void>(`${this.apiUrl}/${id}`)
       .pipe(
+        tap(_ => console.log(`CategoryService: Deleted category with ID: ${id}`)),
         catchError(error => {
           console.error(`Error deleting category with id ${id}:`, error);
-          return throwError(() => error);
+          return throwError(() => new Error(`Failed to delete category with id ${id}`));
         })
       );
   }

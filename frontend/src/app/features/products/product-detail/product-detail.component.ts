@@ -7,6 +7,7 @@ import { Product, ProductService } from '../../../core/services/product.service'
 import { CartService } from '../../../core/services/cart.service'; // Yolunuzu kontrol edin
 import { AuthService } from '../../../core/services/auth.service'; // Yolunuzu kontrol edin
 import { FavoritesService } from '../../../core/services/favorites.service'; // Yolunuzu kontrol edin
+import { Review, ReviewRequest, ReviewService } from '../../../core/services/review.service'; // Yeni eklenen
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -19,17 +20,6 @@ import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
-export interface ProductReview {
-  id?: number | string;
-  productId: number | string; // Kimin yorum yaptığı (mock için string olabilir)
-  userId: number | string; // Kimin yorum yaptığı (mock için string olabilir)
-  userName: string; // Yorumu yapanın adı
-  rating: number; // 1-5 arası puan
-  comment: string; // Yorum metni
-  date: Date; // Yorum tarihi
-}
-
 
 @Component({
   selector: 'app-product-detail',
@@ -61,10 +51,15 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private routeSubscription?: Subscription;
   private favoriteCheckSubscription?: Subscription;
 
-  reviews: ProductReview[] = [];
+  reviews: Review[] = [];
   newReviewRating: number = 0;
   newReviewComment: string = '';
   hoveredRating: number = 0;
+  loadingReviews: boolean = false;
+  reviewPage: number = 0;
+  reviewsPerPage: number = 5;
+  totalReviews: number = 0;
+  totalReviewPages: number = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -73,6 +68,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private router: Router, // Router private kalabilir, getter ekleyeceğiz
     private authService: AuthService, // AuthService private kalabilir, getter ekleyeceğiz
     private favoritesService: FavoritesService,
+    private reviewService: ReviewService, // Yeni eklenen
     private snackBar: MatSnackBar
   ) { }
 
@@ -180,19 +176,50 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-
   loadReviews(productId: number): void {
-      console.log(`Loading reviews for product ID: ${productId}`);
+    console.log(`Loading reviews for product ID: ${productId}`);
+    this.loadingReviews = true;
 
-      setTimeout(() => {
-          this.reviews = [
-              { id: 1, productId: productId, userId: 101, userName: 'Ali Veli', rating: 5, comment: 'Ürün harika, çok beğendim!', date: new Date(2025, 4, 5) },
-              { id: 2, productId: productId, userId: 102, userName: 'Ayşe Yılmaz', rating: 4, comment: 'Beklediğim gibi çıktı, hızlı kargo.', date: new Date(2025, 4, 6) },
-              ...(productId === 1 ? [{ id: 3, productId: productId, userId: 103, userName: 'Mehmet Öztürk', rating: 5, comment: 'Kablosuz kulaklık müthiş!', date: new Date(2025, 4, 7) }] : []),
-              ...(productId === 2 ? [{ id: 4, productId: productId, userId: 104, userName: 'Fatma Kaya', rating: 4, comment: 'Akıllı saat işimi görüyor.', date: new Date(2025, 4, 7) }] : []),
-          ];
-          console.log('Mock reviews loaded:', this.reviews);
-      }, 500);
+    this.reviewService.getProductReviews(productId, this.reviewPage, this.reviewsPerPage).subscribe(
+      response => {
+        this.reviews = response.content;
+        this.totalReviews = response.totalElements;
+        this.totalReviewPages = response.totalPages;
+        this.loadingReviews = false;
+        console.log(`Loaded ${response.content.length} reviews for product ID: ${productId}`);
+      },
+      error => {
+        console.error('Error loading reviews:', error);
+        this.loadingReviews = false;
+        this.snackBar.open('Değerlendirmeler yüklenirken bir hata oluştu', 'Kapat', { duration: 3000 });
+      }
+    );
+  }
+
+  loadNextReviewPage(): void {
+    if (this.reviewPage < this.totalReviewPages - 1) {
+      this.reviewPage++;
+      let currentProductId: number | undefined;
+      this.product$.pipe(take(1)).subscribe(product => {
+        currentProductId = product?.id;
+        if (currentProductId) {
+          this.loadReviews(currentProductId);
+        }
+      });
+    }
+  }
+
+  loadPreviousReviewPage(): void {
+    if (this.reviewPage > 0) {
+      this.reviewPage--;
+      let currentProductId: number | undefined;
+      this.product$.pipe(take(1)).subscribe(product => {
+        currentProductId = product?.id;
+        if (currentProductId) {
+          this.loadReviews(currentProductId);
+        }
+      });
+    }
   }
 
   selectRating(rating: number): void {
@@ -220,42 +247,44 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
            currentProductId = product?.id;
        });
 
-
        if (!currentProductId) {
             this.snackBar.open('Ürün bilgisi alınamadı, yorum gönderilemiyor.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
             console.error('Cannot submit review: Product ID is missing.');
             return;
        }
 
-      const newReview: ProductReview = {
-          productId: currentProductId,
-          userId: 'mock-user-id-' + Math.floor(Math.random() * 1000),
-          userName: 'Mevcut Kullanıcı',
+      const reviewRequest: ReviewRequest = {
           rating: this.newReviewRating,
-          comment: this.newReviewComment.trim(),
-          date: new Date()
+          comment: this.newReviewComment.trim()
       };
 
-      console.log('Submitting new review (simulated):', newReview);
+      console.log('Submitting new review:', reviewRequest);
 
-      setTimeout(() => {
-          this.reviews = [newReview, ...this.reviews];
-          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi (simülasyon)!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+      this.reviewService.createReview(currentProductId, reviewRequest).subscribe(
+        newReview => {
+          // Refresh reviews to show the new review
+          this.loadReviews(currentProductId!);
+          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
           this.newReviewRating = 0;
           this.newReviewComment = '';
           this.hoveredRating = 0;
-           console.log('New review added to mock list:', newReview);
-      }, 1000);
+        },
+        error => {
+          console.error('Error submitting review:', error);
+          this.snackBar.open('Değerlendirme gönderilirken bir hata oluştu', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      );
   }
 
   get isLoggedIn(): boolean {
-      return this.authService.isLoggedIn();
+    return this.authService.isLoggedIn();
+  }
+
+  get currentUsername(): string | null {
+    return this.authService.getUsername();
   }
 
   get currentUrl(): string {
-      return this.router.url;
+    return this.router.url;
   }
-
-
-
 }

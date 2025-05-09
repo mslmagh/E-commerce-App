@@ -1,0 +1,115 @@
+<div class="address-form-container">
+  <h2>{{ isEditMode ? 'Adres Düzenle' : 'Yeni Adres Ekle' }}
+    <button mat-icon-button (click)="showDebug = !showDebug" style="float:right;font-size:0.8rem;opacity:0.5">
+      <i class="fa-solid fa-bug"></i>
+    </button>
+  </h2>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    <p>{{ error }}</p>
+  </div>
+
+  <mat-card class="form-card" *ngIf="!isLoading">
+    <form [formGroup]="addressForm" (ngSubmit)="onSubmit()">
+      
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Telefon Numarası</mat-label>
+        <input matInput formControlName="phoneNumber" placeholder="555 123 4567" required>
+        <mat-error *ngIf="addressForm.get('phoneNumber')?.errors?.['required']">
+          Telefon numarası zorunludur
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Ülke</mat-label>
+        <input matInput formControlName="country" placeholder="Türkiye" required>
+        <mat-error *ngIf="addressForm.get('country')?.errors?.['required']">
+          Ülke adı zorunludur
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Şehir</mat-label>
+        <input matInput formControlName="city" placeholder="İstanbul" required>
+        <mat-error *ngIf="addressForm.get('city')?.errors?.['required']">
+          Şehir adı zorunludur
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Posta Kodu</mat-label>
+        <input matInput formControlName="postalCode" placeholder="34000" required>
+        <mat-error *ngIf="addressForm.get('postalCode')?.errors?.['required']">
+          Posta kodu zorunludur
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Adres</mat-label>
+        <textarea matInput formControlName="addressText" rows="3" placeholder="Örnek Mah. Test Sok. No:10 D:5" required></textarea>
+        <mat-error *ngIf="addressForm.get('addressText')?.errors?.['required']">
+          Adres zorunludur
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Form debugging info -->
+      <div *ngIf="error" class="error-message">
+        <p><strong>Form gönderilirken bir hata oluştu:</strong> {{ error }}</p>
+      </div>
+
+      <div *ngIf="showDebug" class="debug-info">
+        <p><strong>Original Address (ID: {{addressId}}):</strong></p>
+        <pre *ngIf="originalAddress">{{ originalAddress | json }}</pre>
+        <pre *ngIf="!originalAddress">No original address loaded</pre>
+        
+        <p><strong>Form Values:</strong></p>
+        <pre>{{ addressForm.value | json }}</pre>
+        
+        <p><strong>Form Status:</strong> {{ addressForm.status }}</p>
+        <p><strong>Form Touched:</strong> {{ addressForm.touched }}</p>
+        <p><strong>Form Dirty:</strong> {{ addressForm.dirty }}</p>
+        <p><strong>Is Edit Mode:</strong> {{ isEditMode }}</p>
+        <p><strong>Address ID:</strong> {{ addressId }}</p>
+        <p><strong>API URL:</strong> {{apiUrl}}/my-addresses/{{addressId}}</p>
+        
+        <p><strong>Formatted Data for Submission:</strong></p>
+        <pre>{{ 
+          {
+            phoneNumber: addressForm.get('phoneNumber')?.value?.trim() || '',
+            country: addressForm.get('country')?.value?.trim() || '',
+            city: addressForm.get('city')?.value?.trim() || '',
+            postalCode: addressForm.get('postalCode')?.value?.trim() || '',
+            addressText: addressForm.get('addressText')?.value?.trim() || ''
+          } | json 
+        }}</pre>
+      </div>
+
+      <div class="action-buttons">
+        <button 
+          type="button" 
+          mat-stroked-button 
+          (click)="cancel()"
+          [disabled]="isSubmitting">
+          İptal
+        </button>
+        <button 
+          type="submit" 
+          mat-raised-button 
+          color="primary"
+          [disabled]="isSubmitting">
+          <span *ngIf="isSubmitting">
+            <mat-spinner diameter="20" style="display: inline-block; margin-right: 5px;"></mat-spinner>
+            Kaydediliyor...
+          </span>
+          <span *ngIf="!isSubmitting">
+            {{ isEditMode ? 'Güncelle' : 'Kaydet' }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</div> 

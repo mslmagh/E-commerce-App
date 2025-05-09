@@ -102,9 +102,14 @@
             </div>
 
            <div class="existing-reviews-list">
-               <h4 *ngIf="reviews.length > 0">Ürün Değerlendirmeleri ({{ reviews.length }})</h4>
-                <h4 *ngIf="reviews.length === 0 && isLoggedIn">Henüz Hiç Değerlendirme Yapılmamış. İlk Değerlendirmeyi Siz Yapın!</h4>
-               <h4 *ngIf="reviews.length === 0 && !isLoggedIn">Bu ürüne henüz hiç değerlendirme yapılmamış.</h4>
+               <h4 *ngIf="reviews.length > 0">Ürün Değerlendirmeleri ({{ totalReviews }})</h4>
+               <h4 *ngIf="reviews.length === 0 && !loadingReviews && isLoggedIn">Henüz Hiç Değerlendirme Yapılmamış. İlk Değerlendirmeyi Siz Yapın!</h4>
+               <h4 *ngIf="reviews.length === 0 && !loadingReviews && !isLoggedIn">Bu ürüne henüz hiç değerlendirme yapılmamış.</h4>
+
+               <div *ngIf="loadingReviews" class="loading-reviews">
+                   <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                   <span>Değerlendirmeler yükleniyor...</span>
+               </div>
 
                <div class="review-item" *ngFor="let review of reviews">
                    <div class="review-header">
@@ -119,6 +124,17 @@
                        <p>{{ review.comment }}</p>
                    </div>
                    <mat-divider></mat-divider>
+               </div>
+
+               <!-- Pagination Controls -->
+               <div class="pagination-controls" *ngIf="totalReviewPages > 1">
+                   <button mat-button [disabled]="reviewPage === 0" (click)="loadPreviousReviewPage()">
+                       <mat-icon>chevron_left</mat-icon> Önceki
+                   </button>
+                   <span class="page-info">Sayfa {{ reviewPage + 1 }} / {{ totalReviewPages }}</span>
+                   <button mat-button [disabled]="reviewPage >= totalReviewPages - 1" (click)="loadNextReviewPage()">
+                       Sonraki <mat-icon>chevron_right</mat-icon>
+                   </button>
                </div>
            </div>
            </div>
