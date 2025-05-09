@@ -2,16 +2,25 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
-import { Product, ProductService } from '../../../core/services/product.service'; // Yolu Kontrol Et!
-import { CartService } from '../../../core/services/cart.service'; // Yolu Kontrol Et!
+import { switchMap, tap, catchError } from 'rxjs/operators';
+import { Product, ProductService } from '../../../core/services/product.service';
+import { CartService } from '../../../core/services/cart.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
+import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component'; // Eklendi
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; // Eklendi
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatSnackBarModule, MatButtonModule], // RouterLink ürün detayına gitmek için gerekli
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatSnackBarModule,
+    MatButtonModule,
+    ProductCardComponent, // Eklendi
+    MatProgressSpinnerModule // Eklendi
+  ],
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css']
 })
@@ -19,46 +28,66 @@ export class ProductListComponent implements OnInit {
 
   products$: Observable<Product[]> = of([]);
   categoryTitle: string = 'Tüm Ürünler';
+  isLoading: boolean = false; // Eklendi
 
   constructor(
-    private route: ActivatedRoute, // URL parametrelerini okumak için
-    private productService: ProductService, // Ürünleri çekmek için
-    private cartService: CartService, // Sepete eklemek için
-    private router: Router ,// Sepete ekledikten sonra yönlendirme için
+    private route: ActivatedRoute,
+    private productService: ProductService,
+    private cartService: CartService,
+    private router: Router,
     private snackBar: MatSnackBar
-       ) { }
+  ) { }
 
   ngOnInit(): void {
     console.log('ProductListComponent ngOnInit');
-    // Route parametrelerini (paramMap) reaktif olarak dinle
+    this.isLoading = true; // Yükleme başlangıcı
     this.products$ = this.route.paramMap.pipe(
       switchMap(params => {
-        const categorySlug = params.get('categorySlug'); // Rota tanımındaki :categorySlug
+        const categorySlug = params.get('categorySlug');
         console.log('ProductListComponent: categorySlug from route:', categorySlug);
         if (categorySlug) {
           this.categoryTitle = this.formatCategoryTitle(categorySlug);
-          return this.productService.getProductsByCategory(categorySlug);
+          // categorySlug string, ProductService'teki getProductsByCategorySlug metodu string bekliyor.
+          return this.productService.getProductsByCategorySlug(categorySlug).pipe(
+            tap(() => this.isLoading = false),
+            catchError(err => {
+              this.isLoading = false;
+              this.snackBar.open('Ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
+              console.error(err);
+              return of([]);
+            })
+          );
         } else {
           this.categoryTitle = 'Tüm Ürünler';
-          return this.productService.getProducts();
+          return this.productService.getProducts().pipe(
+            tap(() => this.isLoading = false),
+            catchError(err => {
+              this.isLoading = false;
+              this.snackBar.open('Ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
+              console.error(err);
+              return of([]);
+            })
+          );
         }
       })
     );
   }
 
-  // URL slug'ını okunabilir başlığa çevirir (basit versiyon)
   formatCategoryTitle(slug: string): string {
     if (!slug) return 'Tüm Ürünler';
-    return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Tireleri boşluk yap, baş harfleri büyüt
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
-  // Sepete Ekle mantığı (Homepage'den kopyalandı)
-  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+  addToCart(product: Product | undefined | null): void {
     if (product) {
-      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
-      this.cartService.addToCart(product);
-
-
+      if (product.stockQuantity !== undefined && product.stockQuantity < 1) {
+        this.snackBar.open(`'${product.name}' stokta bulunmamaktadır!`, 'Kapat', {
+          duration: 3000, panelClass: ['warning-snackbar']
+        });
+        return;
+      }
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
+      this.cartService.addToCart(product); // CartService güncellenmeli
       this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
         duration: 2500,
         horizontalPosition: 'center',
@@ -66,7 +95,6 @@ export class ProductListComponent implements OnInit {
       });
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
-
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
          duration: 3000,
          panelClass: ['error-snackbar']

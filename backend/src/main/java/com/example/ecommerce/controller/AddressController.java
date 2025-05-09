@@ -31,7 +31,6 @@ public class AddressController {
     private AddressService addressService;
 
     @Operation(summary = "Get My Addresses")
-    @ApiResponses(value = { /* ... */ })
     @GetMapping
     public ResponseEntity<List<AddressDto>> getMyAddresses() {
         List<AddressDto> addresses = addressService.getAddressesForCurrentUser();
@@ -39,25 +38,20 @@ public class AddressController {
     }
 
     @Operation(summary = "Get My Address by ID")
-    @ApiResponses(value = { /* ... */ })
     @GetMapping("/{addressId}")
     public ResponseEntity<AddressDto> getMyAddressById(@PathVariable Long addressId) {
         AddressDto addressDto = addressService.getAddressByIdForCurrentUser(addressId);
         return ResponseEntity.ok(addressDto);
     }
 
-
     @Operation(summary = "Add New Address",
-               // ===> Define RequestBody INSIDE @Operation <===
                requestBody = @RequestBody(
                        description = "Address data to create", required = true,
                        content = @Content(schema = @Schema(implementation = AddressRequestDto.class))
                )
     )
-    // Remove the separate @RequestBody annotation here
-    @ApiResponses(value = { /* ... */ })
     @PostMapping
-    public ResponseEntity<AddressDto> addMyAddress(@Valid @org.springframework.web.bind.annotation.RequestBody AddressRequestDto requestDto) {
+    public ResponseEntity<AddressDto> addMyAddress(@Valid @RequestBody AddressRequestDto requestDto) {
         AddressDto createdAddress = addressService.addAddressToCurrentUser(requestDto);
          URI location = ServletUriComponentsBuilder
             .fromCurrentRequest().path("/{id}")
@@ -66,24 +60,20 @@ public class AddressController {
     }
 
     @Operation(summary = "Update My Address",
-               // ===> Define RequestBody INSIDE @Operation <===
                requestBody = @RequestBody(
                        description = "Updated address data", required = true,
                        content = @Content(schema = @Schema(implementation = AddressRequestDto.class))
                )
     )
-    // Remove the separate @RequestBody annotation here
-    @ApiResponses(value = { /* ... */ })
     @PutMapping("/{addressId}")
     public ResponseEntity<AddressDto> updateMyAddress(
             @PathVariable Long addressId,
-            @Valid @org.springframework.web.bind.annotation.RequestBody AddressRequestDto requestDto) {
+            @Valid @RequestBody AddressRequestDto requestDto) {
         AddressDto updatedAddress = addressService.updateAddressForCurrentUser(addressId, requestDto);
         return ResponseEntity.ok(updatedAddress);
     }
 
     @Operation(summary = "Delete My Address")
-    @ApiResponses(value = { /* ... */ })
     @DeleteMapping("/{addressId}")
     public ResponseEntity<Void> deleteMyAddress(@PathVariable Long addressId) {
         addressService.deleteAddressForCurrentUser(addressId);

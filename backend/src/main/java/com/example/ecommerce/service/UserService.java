@@ -4,17 +4,17 @@ import com.example.ecommerce.dto.AdminUserViewDto;
 import com.example.ecommerce.entity.Role;
 import com.example.ecommerce.entity.User;
 import com.example.ecommerce.exception.ResourceNotFoundException;
-import com.example.ecommerce.repository.RoleRepository; // Eklendi
+import com.example.ecommerce.repository.RoleRepository;
 import com.example.ecommerce.repository.UserRepository;
-import org.slf4j.Logger; // Eklendi
-import org.slf4j.LoggerFactory; // Eklendi
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 // import org.springframework.security.crypto.password.PasswordEncoder; // İleride şifre reset için
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils; // Eklendi
+import org.springframework.util.StringUtils;
 
-import java.util.HashSet; // Eklendi
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,18 +22,18 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class); // Eklendi
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository; // Eklendi
+    private final RoleRepository roleRepository;
     // private final PasswordEncoder passwordEncoder; // İleride şifre reset için
 
     @Autowired
     public UserService(UserRepository userRepository,
                        RoleRepository roleRepository
-                       /*, PasswordEncoder passwordEncoder*/) { // Eklendi
+                       /*, PasswordEncoder passwordEncoder*/) {
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository; // Eklendi
+        this.roleRepository = roleRepository;
         // this.passwordEncoder = passwordEncoder; // İleride şifre reset için
     }
 

@@ -1,24 +1,24 @@
 package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.AdminUserViewDto;
-import com.example.ecommerce.dto.UserRoleUpdateRequestDto; // Eklendi
-import com.example.ecommerce.dto.UserStatusUpdateRequestDto; // Eklendi
+import com.example.ecommerce.dto.UserRoleUpdateRequestDto;
+import com.example.ecommerce.dto.UserStatusUpdateRequestDto;
 import com.example.ecommerce.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody; // Eklendi
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid; // Eklendi
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*; // Wildcard'a güncellendi
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ import java.util.List;
 @RequestMapping("/api/admin/users")
 @Tag(name = "Admin: User Management", description = "API endpoints for administrators to manage users")
 @SecurityRequirement(name = "bearerAuth")
-@PreAuthorize("hasRole('ADMIN')") // Controller seviyesinde ADMIN yetkisi
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final UserService userService;
@@ -36,7 +36,7 @@ public class AdminUserController {
         this.userService = userService;
     }
 
-    @Operation(summary = "List all users") // Kısaltılmış özet
+    @Operation(summary = "List all users")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of users",
                     content = @Content(mediaType = "application/json",
@@ -50,7 +50,7 @@ public class AdminUserController {
         return ResponseEntity.ok(users);
     }
 
-    @Operation(summary = "Get user by ID") // Kısaltılmış özet
+    @Operation(summary = "Get user by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user details",
                     content = @Content(mediaType = "application/json",
@@ -78,7 +78,7 @@ public class AdminUserController {
     @PutMapping("/{userId}/roles")
     public ResponseEntity<AdminUserViewDto> updateUserRoles(
             @Parameter(description = "ID of the user whose roles are to be updated", required = true) @PathVariable Long userId,
-            @Valid @org.springframework.web.bind.annotation.RequestBody UserRoleUpdateRequestDto roleUpdateRequestDto) {
+            @Valid @RequestBody UserRoleUpdateRequestDto roleUpdateRequestDto) {
         AdminUserViewDto updatedUser = userService.updateUserRoles(userId, roleUpdateRequestDto.getRoles());
         return ResponseEntity.ok(updatedUser);
     }
@@ -95,7 +95,7 @@ public class AdminUserController {
     @PutMapping("/{userId}/status")
     public ResponseEntity<AdminUserViewDto> updateUserStatus(
             @Parameter(description = "ID of the user whose status is to be updated", required = true) @PathVariable Long userId,
-            @Valid @org.springframework.web.bind.annotation.RequestBody UserStatusUpdateRequestDto statusUpdateRequestDto) {
+            @Valid @RequestBody UserStatusUpdateRequestDto statusUpdateRequestDto) {
         AdminUserViewDto updatedUser = userService.updateUserEnabledStatus(userId, statusUpdateRequestDto.isEnabled());
         return ResponseEntity.ok(updatedUser);
     }

@@ -9,15 +9,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'; // SlideToggleChange eklendi
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// MatDialog ve ilgili component importları kaldırıldı
-// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// import { AdminChangePasswordDialogComponent, ChangePasswordDialogData } from './admin-change-password-dialog/admin-change-password-dialog.component';
 import { FormsModule } from '@angular/forms';
-
-// import { AdminUserService } from '../../../../core/services/admin-user.service';
 
 // Kullanıcı modeli (Aynı)
 export interface AdminManagedUser {
@@ -29,7 +24,6 @@ export interface AdminManagedUser {
   isActive: boolean;
   registrationDate: Date;
   lastLogin?: Date;
-
 }
 
 @Component({
@@ -40,11 +34,9 @@ export interface AdminManagedUser {
     MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule,
     MatSlideToggleModule, MatProgressSpinnerModule, MatSnackBarModule
-    // MatDialogModule kaldırıldı
   ],
   templateUrl: './admin-user-list.component.html',
   styles: [
-    // Stiller aynı kalabilir
     `
     .user-list-container { padding: 20px; }
     .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
@@ -68,8 +60,8 @@ export interface AdminManagedUser {
     ::ng-deep .mat-sort-header-container { display: flex !important; justify-content: center; }
     ::ng-deep th[style*="text-align: right"] .mat-sort-header-container { justify-content: flex-end !important; }
     ::ng-deep th[style*="text-align: left"] .mat-sort-header-container { justify-content: flex-start !important; }
-    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; } /* Pasif renk */
-    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; } /* Aktif renk */
+    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; }
+    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; }
     tr.inactive-user { opacity: 0.6; background-color: #fafafa; }
     tr.inactive-user:hover { opacity: 0.8; }
     `
@@ -86,8 +78,6 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
   constructor(
     private router: Router,
     private snackBar: MatSnackBar,
-    // public dialog: MatDialog, // Dialog servisi kaldırıldı
-    // private adminUserService: AdminUserService
   ) {}
 
   ngOnInit(): void { this.loadUsers(); }
@@ -144,26 +134,8 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
 
   private updateUserStatusInBackend(userId: string | number, newStatus: boolean, actionText: string, toggleSource: any): void {
     this.isLoading = true;
-    // this.adminUserService.setUserStatus(userId, newStatus).subscribe({
-    //   next: () => {
-    //      this.snackBar.open(`Kullanıcı başarıyla ${actionText}ldi.`, 'Tamam', { duration: 2000 });
-    //      // DataSource'u güncellemeye gerek yok, toggle zaten state'i yansıtıyor (eğer hata olmazsa)
-    //      this.isLoading = false;
-    //   },
-    //   error: (err) => {
-    //      console.error(`Error ${actionText}ing user:`, err);
-    //      this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu.`, 'Kapat', { duration: 3000 });
-    //      toggleSource.checked = !newStatus; // Hata olursa toggle'ı geri al
-    //      this.isLoading = false;
-    //   }
-    // });
-
-    // Simülasyon
     setTimeout(() => {
         this.snackBar.open(`Kullanıcı ${actionText}ldi (Simülasyon).`, 'Tamam', { duration: 2000 });
-        // Simülasyonda hata durumunu test etmek için:
-        // toggleSource.checked = !newStatus; // Hata olmuş gibi toggle'ı geri al
-        // this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
         this.isLoading = false;
       }, 750);
   }
@@ -196,7 +168,6 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
   private sendNewPasswordToBackend(userId: string | number, newPass: string): void {
       console.log(`TODO: Backend call to change password for user ${userId} to ${newPass}`);
       this.isLoading = true; // Genel yükleme göstergesi
-      // this.adminUserService.changeUserPassword(userId, newPass).subscribe({ ... });
 
       const snackRef = this.snackBar.open(`Kullanıcı ${userId} için şifre değiştirme isteği gönderiliyor...`);
       setTimeout(() => { // Simülasyon
@@ -204,15 +175,9 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
            this.snackBar.open(`Kullanıcı ${userId} şifresi değiştirildi (Simülasyon).`, 'Tamam', { duration: 3000 });
            this.isLoading = false;
         }, 1500);
-      // Hata simülasyonu:
-      // setTimeout(() => {
-      //      snackRef.dismiss();
-      //      this.snackBar.open(`Şifre değiştirilirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
-      //      this.isLoading = false;
-      //   }, 1500);
   }
 
-  getRoleClass(role: AdminManagedUser['role']): string { /* ... Önceki gibi ... */
+  getRoleClass(role: AdminManagedUser['role']): string {
     switch (role) {
       case 'ADMIN': return 'role-admin';
       case 'SELLER': return 'role-seller';

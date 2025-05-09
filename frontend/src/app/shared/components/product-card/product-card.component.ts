@@ -4,17 +4,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Product } from '../../../core/services/product.service'; // Yolu Kontrol Et!
+import { Product } from '../../../core/services/product.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-// import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
   imports: [ CommonModule, RouterLink, MatCardModule, MatButtonModule /*, MatIconModule*/ ],
   templateUrl: './product-card.component.html',
-  // styleUrls: ['./product-card.component.css'] // KALDIRILDI
   styles: [`
     :host { display: block; height: 100%; }
     mat-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: box-shadow 0.3s ease; }

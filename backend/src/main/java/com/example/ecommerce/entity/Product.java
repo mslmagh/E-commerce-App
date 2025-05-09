@@ -22,6 +22,7 @@ public class Product {
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price; // Use BigDecimal for price
+    
     @Column(name = "average_rating", precision = 3, scale = 2) // DECIMAL(3,2) için
     private BigDecimal averageRating = BigDecimal.valueOf(0.0); // BigDecimal kullan
 

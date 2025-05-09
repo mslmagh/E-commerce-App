@@ -1,83 +1,117 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators'; // tap import edildi
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
+import { environment } from '../../../environment';
 
+// Backend ProductDto.java ile uyumlu arayüz
 export interface Product {
-  id: number | string;
+  id: number; // Long to number
   name: string;
-  price: number;
+  description?: string; // Backend'de de nullable olabilir
+  price: number; // BigDecimal to number
+  stockQuantity?: number; // Integer to number
+  categoryId?: number; // Long to number
+  categoryName?: string;
   imageUrl?: string;
-  description?: string;
-  categorySlug?: string;
-  rating?: number;
-  stockQuantity?: number;
+  averageRating?: number; // BigDecimal to number
+  // Frontend'e özel olabilecek ama backend DTO'sunda olmayan alanlar için:
+  // categorySlug?: string; // Bu backend DTO'sunda yok, gerekirse kaldırılabilir veya categoryName'den türetilebilir.
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
-
-  // Mock datayı buraya taşıdık (kategori bilgisiyle)
-  private mockProducts: Product[] = [
-    { id: 1, name: 'Kablosuz Kulaklık Pro X', price: 899, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Kulaklık', description: 'Aktif gürültü engelleme özellikli yüksek kaliteli kablosuz kulaklık.', categorySlug: 'elektronik' },
-    { id: 2, name: 'Akıllı Saat Fit+', price: 1450, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Akıllı+Saat', description: 'Adım sayar, nabız ölçer, uyku takibi ve GPS özellikli modern akıllı saat.', categorySlug: 'elektronik' },
-    { id: 3, name: 'Mekanik Klavye RGB', price: 650, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Klavye', description: 'Oyuncular ve yazarlar için özelleştirilebilir RGB aydınlatmalı, dayanıklı mekanik klavye.', categorySlug: 'elektronik' },
-    { id: 4, name: 'Yoga Matı Kaymaz', price: 250, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Yoga+Matı', description: 'TPE malzemeden üretilmiş, çevre dostu, ekstra kalın ve kaymaz yüzeyli yoga matı.', categorySlug: 'spor-outdoor' },
-    { id: 5, name: 'Blender Seti PowerMix', price: 1100, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Blender', description: 'Çok fonksiyonlu, güçlü motorlu mutfak blender seti.', categorySlug: 'ev-yasam' },
-    { id: 6, name: 'Erkek Sneaker Air', price: 1999, imageUrl: 'https://via.placeholder.com/300x300/cccccc/ffffff?text=Sneaker', description: 'Hafif ve rahat, günlük kullanıma uygun erkek sneaker.', categorySlug: 'erkek-giyim' }
-  ];
+  private apiUrl = `${environment.apiUrl}/products`;
+  private httpClient = inject(HttpClient);
 
   constructor() { }
 
+  // Tüm ürünleri backend'den getir
   getProducts(): Observable<Product[]> {
-    console.log('ProductService: Fetching all mock products...');
-    return of(this.mockProducts);
+    console.log('ProductService: Fetching all products from API...');
+    return this.httpClient.get<Product[]>(this.apiUrl).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products.`)),
+      catchError(this.handleError<Product[]>('getProducts', []))
+    );
   }
 
+  // ID ile tek bir ürünü backend'den getir
   getProductById(id: number | string): Observable<Product | undefined> {
     const productId = typeof id === 'string' ? parseInt(id, 10) : id;
-    console.log(`ProductService: Attempting to fetch product with numeric ID: ${productId}`);
-    return this.getProducts().pipe(
-      map(products => {
-        const foundProduct = products.find(product => product.id === productId);
-        console.log(`ProductService: Product found for ID ${productId}:`, foundProduct);
-        return foundProduct;
-      })
-    );
-  }
-
-  getProductsByCategory(categorySlug: string): Observable<Product[]> {
-    console.log(`ProductService: Fetching products for category: ${categorySlug}`);
-    return this.getProducts().pipe(
-      map(products => products.filter(product => product.categorySlug === categorySlug))
-    );
-  }
-
-  // --- YENİ ARAMA METODU ---
-  searchProducts(term: string): Observable<Product[]> {
-    // Gelen arama terimini küçük harfe çevirip başındaki/sonundaki boşlukları alalım
-    const searchTerm = term.trim().toLowerCase();
-    console.log(`ProductService: Searching for term: "${searchTerm}"`);
-
-    // Eğer arama terimi boşsa, boş bir dizi döndür
-    if (!searchTerm) {
-      return of([]); // Boş Observable<Product[]>
+    if (isNaN(productId)) {
+      console.error(`ProductService: Invalid product ID provided: ${id}`);
+      return of(undefined);
     }
+    console.log(`ProductService: Fetching product with ID: ${productId} from API`);
+    return this.httpClient.get<Product>(`${this.apiUrl}/${productId}`).pipe(
+      tap(product => console.log(`ProductService: Fetched product for ID ${productId}:`, product)),
+      catchError(this.handleError<Product | undefined>(`getProductById id=${productId}`))
+    );
+  }
 
-    // Tüm ürünleri alıp filtreleyelim
+  // Kategoriye göre ürünleri backend'den getirme (Backend'de bu endpoint'in olması varsayılıyor)
+  // Örn: /api/products?categoryId={id} veya /api/categories/{categoryId}/products
+  // Şimdilik, backend /api/products endpoint'inin categoryId ile filtrelemeyi desteklediğini varsayalım.
+  // Eğer desteklemiyorsa, tüm ürünler çekilip frontend'de filtrelenir veya backend güncellenir.
+  getProductsByCategory(categoryId: number): Observable<Product[]> {
+    console.log(`ProductService: Fetching products for category ID: ${categoryId}`);
+    // Backend'inizin kategoriye göre filtreleme yapıp yapmadığını kontrol edin.
+    // Yoksa, tüm ürünleri çekip filtreleyebilirsiniz:
+    // return this.getProducts().pipe(map(products => products.filter(p => p.categoryId === categoryId)));
+    return this.httpClient.get<Product[]>(`${this.apiUrl}?categoryId=${categoryId}`).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products for category ID ${categoryId}.`)),
+      catchError(this.handleError<Product[]>('getProductsByCategory', []))
+    );
+  }
+  // Kategori slug'ına göre ürünleri getiren metod (frontend'de categoryId'ye çevrilerek kullanılabilir)
+  getProductsByCategorySlug(categorySlug: string): Observable<Product[]> {
+    console.log(`ProductService: Fetching products for category slug: ${categorySlug}`);
+    // Bu metod, ya backend'in slug ile filtrelemeyi desteklemesini ya da
+    // frontend'in slug'dan categoryId'ye bir çevrim yapmasını gerektirir (örn: CategoryService aracılığıyla).
+    // Şimdilik basit bir örnek olarak, tüm ürünleri çekip slug'a benzer bir categoryName ile filtreleyelim (ideal değil).
+    return this.getProducts().pipe(
+      map(products => products.filter(product =>
+        product.categoryName?.toLowerCase().replace(/\s+/g, '-').includes(categorySlug.toLowerCase())
+      )),
+      tap(filteredProducts => console.log(`ProductService: Found ${filteredProducts.length} products for category slug ${categorySlug} (client-side filter).`)),
+      catchError(this.handleError<Product[]>('getProductsByCategorySlug', []))
+    );
+  }
+
+
+  // Arama metodu (Backend'de /api/products/search?q={term} gibi bir endpoint olduğu varsayılıyor)
+  searchProducts(term: string): Observable<Product[]> {
+    const searchTerm = term.trim().toLowerCase();
+    if (!searchTerm) {
+      return of([]);
+    }
+    console.log(`ProductService: Searching for term: "${searchTerm}" via API`);
+    // Backend'inizin arama endpoint'ini buraya girin.
+    // Örnek: return this.httpClient.get<Product[]>(`${this.apiUrl}/search?q=${searchTerm}`).pipe(
+    // Şimdilik, frontend tarafında filtreleme yapıyoruz, backend'e arama endpointi eklenmeli.
     return this.getProducts().pipe(
       map(products =>
         products.filter(product =>
-          // Ürün adı arama terimini içeriyorsa VEYA
           (product.name.toLowerCase().includes(searchTerm)) ||
-          // Ürün açıklaması varsa VE arama terimini içeriyorsa
-          (product.description && product.description.toLowerCase().includes(searchTerm))
+          (product.description && product.description.toLowerCase().includes(searchTerm)) ||
+          (product.categoryName && product.categoryName.toLowerCase().includes(searchTerm))
         )
       ),
-      // (Opsiyonel Debug) Filtreleme sonucunu konsola yazdır
-      tap(results => console.log(`ProductService: Found <span class="math-inline">\{results\.length\} products for term "</span>{searchTerm}"`))
+      tap(results => console.log(`ProductService: Found ${results.length} products for term "${searchTerm}" (client-side filter).`)),
+      catchError(this.handleError<Product[]>('searchProducts', []))
     );
   }
-  // --- YENİ ARAMA METODU SONU ---
+
+  // HttpClient için genel hata yakalama
+  private handleError<T>(operation = 'operation', result?: T) {
+    return (error: HttpErrorResponse): Observable<T> => {
+      console.error(`${operation} failed: Status ${error.status}, Body: `, error.error);
+      // Kullanıcıya yönelik hata mesajı yönetimi burada veya component seviyesinde yapılabilir.
+      // this.snackBar.open(`${operation} başarısız oldu. Lütfen tekrar deneyin.`, 'Kapat', { duration: 3000 });
+      return throwError(() => new Error(`${operation} failed; please try again later.`));
+      // return of(result as T); // Uygulamanın devam etmesi için boş sonuç (bazı durumlarda tercih edilebilir)
+    };
+  }
 }

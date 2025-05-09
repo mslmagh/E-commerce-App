@@ -19,8 +19,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-// AuthenticationEntryPoint import'u şimdilik gerekli değil
-// import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.web.cors.CorsConfiguration; // YENİ IMPORT
+import org.springframework.web.cors.CorsConfigurationSource; // YENİ IMPORT
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // YENİ IMPORT
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.Arrays; // YENİ IMPORT
+import java.util.List; // YENİ IMPORT
 
 @Configuration
 @EnableWebSecurity
@@ -30,7 +36,8 @@ public class SecurityConfig {
     @Autowired
     UserDetailsServiceImpl userDetailsService;
 
-    // unauthorizedHandler bean'i tanımlı değilse bu alanı ve kullanan yeri yorumlayın
+    // unauthorizedHandler bean'i tanımlı değilse bu alanı ve kullanan yeri
+    // yorumlayın
     // @Autowired
     // private AuthEntryPointJwt unauthorizedHandler;
 
@@ -48,7 +55,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -58,31 +66,50 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200")); // Angular uygulamanızın adresi
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration
+                .setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true); // Cookie veya Authorization header'ları için önemli
+        configuration.setMaxAge(3600L); // 1 saat
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration); // API endpointleriniz için CORS'u etkinleştir
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .csrf(AbstractHttpConfigurer::disable) // CSRF Kapatıldı
-            // Hata Yönetimi Giriş Noktası (Eğer özel bir handler'ınız yoksa yorumlayın)
-            // .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // STATELESS Session
-            .authorizeHttpRequests(authorize -> authorize
-                // İzin Verilen Public Endpointler
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/api/status").permitAll()
-                .requestMatchers("/api/webhooks/stripe").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                // Diğer tüm istekler kimlik doğrulaması gerektirir
-                // (Spesifik rol kontrolleri @PreAuthorize ile yapılıyor)
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider()) // <<<--- ÖNEMLİ: Provider'ı KAYDET
-            .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class) // JWT Filtresini EKLE
-            ; // Zincirin sonu
+        .cors(cors -> cors.configurationSource(corsConfigurationSource())) // <<<--- YENİ EKLENEN SATIR (CORS'u etkinleştir)
+                .csrf(AbstractHttpConfigurer::disable) // CSRF Kapatıldı
+                // Hata Yönetimi Giriş Noktası (Eğer özel bir handler'ınız yoksa yorumlayın)
+                // .exceptionHandling(exception ->
+                // exception.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // STATELESS
+                                                                                                              // Session
+                .authorizeHttpRequests(authorize -> authorize
+                        // İzin Verilen Public Endpointler
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/status").permitAll()
+                        .requestMatchers("/api/webhooks/stripe").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                        // Diğer tüm istekler kimlik doğrulaması gerektirir
+                        // (Spesifik rol kontrolleri @PreAuthorize ile yapılıyor)
+                        .anyRequest().authenticated())
+                .authenticationProvider(authenticationProvider()) // <<<--- ÖNEMLİ: Provider'ı KAYDET
+                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class) // JWT
+                                                                                                             // Filtresini
+                                                                                                             // EKLE
+        ; // Zincirin sonu
 
         return http.build();
     }
 
-     // WebSecurityCustomizer bean'inin olmadığından emin olun
+    // WebSecurityCustomizer bean'inin olmadığından emin olun
 }

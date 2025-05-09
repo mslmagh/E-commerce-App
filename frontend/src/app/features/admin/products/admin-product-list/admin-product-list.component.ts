@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router} from '@angular/router';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -31,7 +31,6 @@ export interface AdminProduct {
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -151,22 +150,14 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
 
   // Yeni ürün ekleme sayfasına yönlendirme (Bu rotayı tanımlamamız gerekecek)
   navigateToAddNewProduct(): void {
-    console.log('TODO: navigate to Admin Add New Product page');
-    // Admin routes dosyanızda bu rotayı tanımlamanız gerekecek,
-    // muhtemelen /admin/products/new gibi.
-    // Şimdilik bir alert gösterelim:
-    alert('Yeni Ürün Ekleme Sayfası (Admin) Henüz Hazır Değil!');
-    // this.router.navigate(['/admin/products/new']); // Örnek rota navigasyonu
+    console.log('AdminProductListComponent: Navigating to add new product.');
+    this.router.navigate(['/admin/products/new']);
   }
 
   // Ürün düzenleme sayfasına yönlendirme (Bu rotayı tanımlamamız gerekecek)
   editProduct(product: AdminProduct): void {
-     console.log('TODO: navigate to Admin Edit Product page for ID:', product.id);
-     // Admin routes dosyanızda bu rotayı tanımlamanız gerekecek,
-     // muhtemelen /admin/products/edit/:id gibi.
-     // Şimdilik bir alert gösterelim:
-     alert(`Ürün Düzenleme Sayfası (Admin) Henüz Hazır Değil! Ürün ID: ${product.id}`);
-    // this.router.navigate(['/admin/products/edit', product.id]); // Örnek rota navigasyonu
+    console.log('AdminProductListComponent: Navigating to edit product ID:', product.id);
+    this.router.navigate(['/admin/products/edit', product.id]);
   }
 
   // Ürün silme işlemi (Backend entegrasyonu gerektirecek)

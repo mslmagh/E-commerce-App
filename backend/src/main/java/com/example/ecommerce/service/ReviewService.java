@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest; // PageRequest import edildi
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort; // Sort import edildi
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,7 +70,7 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ReviewDto> getReviewsForProduct(Long productId, Pageable pageableFromController) { // Parametre adı netlik için değiştirildi
+    public Page<ReviewDto> getReviewsForProduct(Long productId, Pageable pageableFromController) {
         if (!productRepository.existsById(productId)) {
             throw new ResourceNotFoundException("Product not found with id: " + productId);
         }
@@ -208,7 +208,7 @@ public class ReviewService {
         String uName = null;
         if (review.getUser() != null) {
             uId = review.getUser().getId();
-            uName = review.getUser().getUsername(); // UserDetails'den gelen getUsername() değil, User entity'sindeki getUsername()
+            uName = review.getUser().getUsername();
             if (uName == null) {
                 logger.warn("User associated with Review ID {} has a null username.", review.getId());
             }
