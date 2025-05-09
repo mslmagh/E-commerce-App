@@ -41,10 +41,7 @@
       </div>
 
       <div class="sidebar-column">
-        <div class="sidebar-box campaign-box">
-          <strong>Kampanyalar</strong>
-          <p>150 TL Üzeri Kargo Bedava!</p>
-        </div>
+
         <div class="sidebar-box seller-box">
           <strong>Satıcı: Örnek Satıcı</strong>
           <p>Puan: 9.5</p>
@@ -60,9 +57,7 @@
          <a class="tab-link"
             [class.active]="activeTab === 'reviews'"
             (click)="selectTab('reviews')">Değerlendirmeler</a>
-         <a class="tab-link"
-            [class.active]="activeTab === 'qa'"
-            (click)="selectTab('qa')">Soru & Cevap</a>
+
       </div>
 
       <div class="tab-content">
@@ -117,11 +112,9 @@
                        <span class="review-date">{{ review.date | date:'dd.MM.yyyy' }}</span>
                    </div>
                    <div class="review-rating">
-                       <i *ngFor="let star of [1, 2, 3, 4, 5]; let i = index"
-                          class="fa-star solid-star"
-                          [class.filled]="i < review.rating">
-                       </i>
-                   </div>
+                    <i *ngFor="let star of [1, 2, 3, 4, 5]; let i = index"
+                       class="fa-star" [class.fa-solid]="i < review.rating" [class.fa-regular]="i >= review.rating"> </i>
+                </div>
                    <div class="review-comment">
                        <p>{{ review.comment }}</p>
                    </div>
@@ -130,10 +123,7 @@
            </div>
            </div>
 
-         <div *ngIf="activeTab === 'qa'">
-           <h3>Soru & Cevap</h3>
-           <p>TODO: Henüz hiç soru sorulmamış.</p>
-           </div>
+
       </div>
     </section> </div> </ng-container>
 

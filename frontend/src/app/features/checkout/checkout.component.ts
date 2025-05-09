@@ -1,16 +1,14 @@
-// frontend/src/app/features/checkout/checkout.component.ts
-// SON HAL (Login Kontrolü ve Yönlendirme Eklendi - Yorumsuz)
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { Router } from '@angular/router'; // Router gerekli
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // MatSnackBarModule import edildiğinden emin olun
 
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // CommonModule ve ReactiveFormsModule gerekli
+  imports: [CommonModule, ReactiveFormsModule, MatSnackBarModule], // MatSnackBarModule burada
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.css']
 })
@@ -25,14 +23,27 @@ export class CheckoutComponent implements OnInit {
     'Diğer': ['Diğer Şehir']
   };
   availableCities: string[] = [];
-  checkoutMessage: string | null = null; // Form validasyon hatası mesajı için
+  checkoutMessage: string | null = null;
 
   constructor(
-    private authService: AuthService, // Enjekte edildi
-    private router: Router // Enjekte edildi
+    private authService: AuthService,
+    private router: Router,
+    private snackBar: MatSnackBar // SnackBar eklendi
   ) { }
 
   ngOnInit(): void {
+    // authGuard zaten giriş kontrolünü yaptığı için, burada tekrar login'e yönlendirme
+    // yapmaya gerek kalmayabilir. Guard yoksa aşağıdaki blok önemlidir.
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/auth/login'], {
+        queryParams: {
+          reason: 'checkout_login_required',
+          returnUrl: this.router.url // Mevcut URL'yi (örn: /checkout) sakla
+         }
+      });
+      return; // Component'in geri kalanının yüklenmesini engelle
+    }
+
     this.addressForm = new FormGroup({
       'country': new FormControl('', Validators.required),
       'firstName': new FormControl('', Validators.required),
@@ -41,6 +52,7 @@ export class CheckoutComponent implements OnInit {
       'email': new FormControl('', [Validators.required, Validators.email]),
       'city': new FormControl('', Validators.required),
       'addressTitle': new FormControl('', Validators.required)
+      // İsteğe bağlı olarak 'addressLine2', 'district', 'postalCode' eklenebilir
     });
 
     this.addressForm.get('country')?.valueChanges.subscribe(selectedCountry => {
@@ -56,35 +68,35 @@ export class CheckoutComponent implements OnInit {
 
   onSubmit(): void {
     console.log('Address Form Submit triggered!');
-    this.checkoutMessage = null; // Önceki mesajları temizle
+    this.checkoutMessage = null;
 
-    // 1. GİRİŞ KONTROLÜ
-    if (!this.authService.isLoggedIn()) {
-      console.log('User not logged in. Redirecting to login with reason.');
-      this.router.navigate(['/auth/login'], {
-        queryParams: {
-           reason: 'checkout_login_required', // Login sayfasına neden geldiğini bildir
-           returnUrl: '/checkout' // Login sonrası geri dönülecek adres
-          }
-      });
-      return; // Burada bitir
-    }
+    // authGuard zaten bu kontrolü yapıyor olacak.
+    // if (!this.authService.isLoggedIn()) { ... } bloğu bu yüzden kaldırılabilir
+    // veya ek bir güvenlik katmanı olarak kalabilir.
 
-    // 2. FORM GEÇERLİLİK KONTROLÜ (Eğer giriş yapılmışsa)
     if (this.addressForm.valid) {
       console.log('Address Form is valid.');
-      console.log('Form Data:', this.addressForm.value);
-      alert('Adres bilgisi alındı (Kullanıcı Giriş Yapmış). Sonraki adım: Ödeme.');
-      // TODO: Adresi kaydetme (Servis çağrısı)
-      // TODO: Ödeme sayfasına yönlendirme (Router)
+      const addressData = this.addressForm.value;
+      console.log('Girilen Adres Bilgileri:', addressData);
+
+      // TODO: Adres bilgilerini bir servise göndererek kaydet veya bir sonraki adıma taşı.
+      // Örnek: this.checkoutService.setShippingAddress(addressData);
+
+      this.snackBar.open('Adres bilgileri başarıyla alındı. Ödeme adımına yönlendiriliyorsunuz...', 'Tamam', {
+        duration: 2500,
+      });
+
+      // Ödeme sayfasına yönlendir
+      this.router.navigate(['/checkout/payment']);
+
     } else {
       console.log('Address Form is invalid.');
-      this.checkoutMessage = 'Lütfen formdaki tüm zorunlu (*) alanları doğru şekilde doldurun.'; // Geçersiz form mesajını ayarla
+      this.checkoutMessage = 'Lütfen formdaki tüm zorunlu (*) alanları doğru şekilde doldurun.';
       this.addressForm.markAllAsTouched(); // Tüm alanlara dokunuldu yap (hataları göstermek için)
     }
   }
 
-  // Getter metodları
+  // Getter metodları (form kontrollerine kolay erişim için)
   get country() { return this.addressForm.get('country'); }
   get firstName() { return this.addressForm.get('firstName'); }
   get lastName() { return this.addressForm.get('lastName'); }
