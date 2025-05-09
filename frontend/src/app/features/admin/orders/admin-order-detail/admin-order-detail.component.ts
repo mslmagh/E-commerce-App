@@ -5,7 +5,6 @@ import { Observable, Subscription, of } from 'rxjs';
 import { delay, switchMap } from 'rxjs/operators';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-// Angular Material Modülleri
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,11 +16,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 
-// SellerOrder modelinden status tipini almak için
-// >>> Lütfen bu import yolunun doğru olduğundan emin olun <<<
 import { SellerOrder } from '../../../seller/orders/seller-order-list/seller-order-list.component';
 
-// Admin Sipariş Detay Modeli/Interface'i
 export interface AdminOrderDetail {
   orderId: string;
   orderDate: Date;
@@ -57,9 +53,6 @@ export interface AdminOrderDetail {
   trackingNumber?: string;
 }
 
-// --- YEREL TİP TANIMI (HATA ÇÖZÜMÜ İÇİN) ---
-// getMockOrderDetail metodu içinde kullanılacak mock özet siparişlerin tipini tanımlıyoruz.
-// Buradaki status alanı, AdminOrderDetail'deki status tipiyle (SellerOrder['status']) uyumlu olmalı.
 type AdminOrderSummary = {
   orderId: string;
   orderDate: Date;
@@ -68,7 +61,6 @@ type AdminOrderSummary = {
   status: AdminOrderDetail['status']; // <-- Burada AdminOrderDetail'in status tipini kullanıyoruz
   itemCount: number;
 };
-// --- YEREL TİP TANIMI SONU ---
 
 
 @Component({
@@ -122,7 +114,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar,
-    // private adminOrderService: any,
   ) { }
 
   ngOnInit(): void {
@@ -134,8 +125,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
         if (id) {
           this.orderId = id;
           console.log('Admin Order Detail: Loading details for order ID:', this.orderId);
-          // TODO: Backend'den sipariş detaylarını çek
-          // return this.adminOrderService.getOrderDetail(this.orderId);
           return this.getMockOrderDetail(this.orderId).pipe(delay(1000));
         } else {
           this.snackBar.open('Sipariş ID bulunamadı!', 'Kapat', { duration: 3000 });
@@ -165,12 +154,9 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-   // --- Mock Sipariş Detay Verisi Metodu (Düzeltme Uygulandı) ---
-   // mockOrdersSummary dizisi artık doğru AdminOrderSummary tipini kullanıyor
    getMockOrderDetail(id: string): Observable<AdminOrderDetail | null> {
       console.log(`Admin Order Detail: Fetching mock detail for ID: ${id}`);
 
-       // Mock özet siparişler dizisini AdminOrderSummary tipinde tanımla
        const mockOrdersSummary: AdminOrderSummary[] = [
             { orderId: 'ORD-2025-001', orderDate: new Date(2025, 4, 7, 10, 30), customerName: 'Ali Veli', totalAmount: 550.75, status: 'Yeni Sipariş', itemCount: 2 },
             { orderId: 'ORD-2025-002', orderDate: new Date(2025, 4, 6, 15, 0), customerName: 'Ayşe Yılmaz', totalAmount: 120.00, status: 'Hazırlanıyor', itemCount: 1 },
@@ -182,7 +168,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
              { orderId: 'ORD-2025-008', orderDate: new Date(2025, 4, 2, 16, 30), customerName: 'Deniz Aras', totalAmount: 700.00, status: 'Teslim Edildi', itemCount: 4 },
              { orderId: 'ORD-2025-009', orderDate: new Date(2025, 4, 1, 12, 10), customerName: 'Can Mert', totalAmount: 180.00, status: 'Kargoya Verildi', itemCount: 1 },
              { orderId: 'ORD-2025-020', orderDate: new Date(2025, 3, 28, 9, 0), customerName: 'Ebru Şahin', totalAmount: 600.00, status: 'Teslim Edildi', itemCount: 3 },
-             // Eğer AdminOrderDetail'deki SellerOrder['status'] içinde 'İade Edildi' varsa buraya da eklenmeli
              { orderId: 'ORD-2025-021', orderDate: new Date(2025, 4, 8, 11, 0), customerName: 'İade Müşterisi', totalAmount: 100.00, status: 'İade Edildi', itemCount: 1 },
        ];
 
@@ -192,7 +177,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
            return of(null).pipe(delay(500));
        }
 
-      // Detay bilgileri içeren mock obje
       const detailedOrder: AdminOrderDetail = {
           ...baseOrder, // Status alanı doğru tipte geliyor (AdminOrderSummary sayesinde)
           customer: {
@@ -208,7 +192,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
               country: 'Türkiye',
               phone: '555' + Math.floor(1000000 + Math.random() * 9000000).toString()
           },
-          // billingAddress: {...},
           items: [
               {
                   productId: 'PROD-' + Math.floor(Math.random() * 100),
@@ -240,7 +223,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
       return of(detailedOrder).pipe(delay(500));
   }
 
-   // Durum için CSS sınıfı döndüren yardımcı metot
    getStatusClass(status: AdminOrderDetail['status']): string {
      switch (status) {
        case 'Yeni Sipariş': return 'status-yeni-siparis';

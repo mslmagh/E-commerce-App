@@ -4,7 +4,6 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms'; // ngModel için
 import { Subscription, Observable, map } from 'rxjs'; // Observable ve map import edildi
 
-// Angular Material Modülleri
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
@@ -15,7 +14,6 @@ import { MatFormFieldModule } from '@angular/material/form-field'; // EKLENDİ
 import { MatInputModule } from '@angular/material/input'; // EKLENDİ
 import { MatDividerModule } from '@angular/material/divider'; // MatDividerModule eklendi
 
-// Servisler
 import { CartService, CartItem } from '../../../core/services/cart.service'; // CartService import edildi
 import { MatSpinner } from '@angular/material/progress-spinner';
 
@@ -44,12 +42,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
   selectedPaymentMethod: string = ''; // Örn: 'creditCard', 'paypal', 'cod'
   isLoading: boolean = false;
 
-  // Sipariş Özeti için
   cartItems$: Observable<CartItem[]>;
   cartTotal$: Observable<number>;
   private cartSubscription!: Subscription;
 
-  // Kredi Kartı Formu için (ngModel ile bağlanacak)
   creditCardForm = {
     cardNumber: '',
     cardHolderName: '',
@@ -71,7 +67,6 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('PaymentComponent yüklendi.');
-    // Sepet boşsa kullanıcıyı bilgilendirip belki sepet sayfasına yönlendirebiliriz.
     this.cartSubscription = this.cartItems$.subscribe(items => {
       if (items.length === 0) {
         this.snackBar.open('Sepetiniz boş. Ödeme yapamazsınız.', 'Sepete Git', { duration: 5000 })
@@ -101,17 +96,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
     if (this.selectedPaymentMethod === 'creditCard') {
       console.log('Kredi Kartı Bilgileri:', this.creditCardForm);
-      // TODO: Kredi kartı bilgilerini doğrula ve backend'e gönder (Stripe/PayPal SDK entegrasyonu).
-      // Örneğin: this.paymentService.processStripePayment(this.creditCardForm, await this.cartTotal$.toPromise());
     } else if (this.selectedPaymentMethod === 'paypal') {
-      // TODO: PayPal ödeme akışını başlat.
-      // Örneğin: this.paymentService.initiatePayPalPayment(await this.cartTotal$.toPromise());
     } else if (this.selectedPaymentMethod === 'cod') {
-      // Kapıda ödeme için siparişi direkt oluştur.
-      // Örneğin: this.orderService.createOrder({ paymentMethod: 'cod', address: ..., items: ... });
     }
 
-    // Simülasyon: Başarılı ödeme sonrası
     setTimeout(() => {
       this.isLoading = false; // Yükleme animasyonu durdur
       this.cartService.clearCart(); // Sepeti temizle (CartService üzerinden)

@@ -1,4 +1,3 @@
-// src/app/features/admin/admin.routes.ts
 
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
@@ -44,7 +43,6 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'products/new', // <-- YENİ: Admin Yeni Ürün Ekleme Rotası
         loadComponent: () =>
-           // Bu component'i birazdan oluşturacağız
           import('./products/admin-product-form/admin-product-form.component').then(
             (m) => m.AdminProductFormComponent
           ),
@@ -52,7 +50,6 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'products/edit/:productId', // <-- YENİ: Admin Ürün Düzenleme Rotası (parametre ile)
          loadComponent: () =>
-           // Aynı component'i düzenleme için de kullanacağız
           import('./products/admin-product-form/admin-product-form.component').then(
             (m) => m.AdminProductFormComponent
           ),

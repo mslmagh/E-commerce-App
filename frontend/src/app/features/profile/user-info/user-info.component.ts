@@ -1,5 +1,3 @@
-// frontend/src/app/features/profile/user-info/user-info.component.ts
-// SON HAL (Material + Inline Styles - Yorumsuz - TUTARLI)
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -11,8 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// import { AuthService } from '../../../core/services/auth.service';
-// import { UserService } from '../../../core/services/user.service';
 
 @Component({
   selector: 'app-user-info',
@@ -29,8 +25,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     MatSnackBarModule // Gerekli tüm modüller burada
   ],
   templateUrl: './user-info.component.html',
-  // styleUrls: ['./user-info.component.css'] // ---> KALDIRILDI
-  // INLINE STYLES EKLENDİ:
   styles: [`
     /* :host { display: block; } */ /* Gerekirse */
     .user-info-container {
@@ -77,7 +71,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   `]
 })
 export class UserInfoComponent implements OnInit {
-  // --- Sınıfın geri kalanı (formlar, metodlar, getter'lar) aynı kalır ---
   userInfoForm!: FormGroup;
   passwordChangeForm!: FormGroup;
   days: number[] = Array.from({length: 31}, (_, i) => i + 1);
@@ -91,8 +84,6 @@ export class UserInfoComponent implements OnInit {
 
   constructor(
     private snackBar: MatSnackBar
-    // private authService: AuthService, // İleride eklenecek
-    // private userService: UserService, // İleride eklenecek
   ) { }
 
   ngOnInit(): void { this.initUserInfoForm(); this.initPasswordChangeForm(); this.loadUserInfo(); }

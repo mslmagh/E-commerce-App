@@ -1,5 +1,3 @@
-// frontend/src/app/shared/components/product-card/product-card.component.ts
-// SON HAL (Yorumsuz, Inline Styles ile)
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';

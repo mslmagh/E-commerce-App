@@ -1,5 +1,3 @@
-// src/app/features/seller/orders/seller-order-detail/seller-order-detail.component.ts
-// SON HALİ (SellerOrder import edildi ve diğer importlar/tipler eklendi)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Gerekli
@@ -19,12 +17,9 @@ import { MatChipsModule } from '@angular/material/chips'; // Gerekli (status chi
 import { FormsModule } from '@angular/forms'; // [(ngModel)] için Gerekli
 import { HttpErrorResponse } from '@angular/common/http'; // Hata tipi için
 
-// SellerOrder interface'ini list component'inden import edelim
 import { SellerOrder } from '../seller-order-list/seller-order-list.component'; // <<-- ÖNEMLİ İMPORT
 
-// import { OrderService } from '../../../../core/services/order.service';
 
-// Detaylı Sipariş Modeli/Interface'i (SellerOrder'dan status'ü alabilir)
 export interface SellerOrderDetail {
   orderId: string;
   orderDate: Date;
@@ -59,7 +54,6 @@ export interface SellerOrderDetail {
   trackingNumber?: string;
 }
 
-// Sipariş durumları ve geçişler
 interface OrderStatusInfo {
   value: SellerOrderDetail['status'];
   viewValue: string;
@@ -131,7 +125,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar
-    // private orderService: OrderService,
   ) {}
 
   ngOnInit(): void {
@@ -146,7 +139,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
           return of(null);
         }
         console.log('Fetching details for order ID:', this.orderId);
-        // return this.orderService.getSellerOrderById(this.orderId); // Gerçek servis çağrısı
         return this.getMockOrderDetails(this.orderId).pipe(delay(1000)); // Simülasyon
       })
     ).subscribe({
@@ -171,14 +163,11 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
 
   updatePossibleActions(): void {
     if (!this.order) return;
-    // Mevcut durumun bilgilerini bul
     const currentStatusInfo = Object.values(this.orderStatuses).find(s => s.value === this.order?.status);
-    // Sonraki olası durumların bilgilerini al
     this.possibleNextStatuses = currentStatusInfo?.nextPossibleStatus
         ?.map(statusValue => Object.values(this.orderStatuses).find(s => s.value === statusValue))
         .filter((statusInfo): statusInfo is OrderStatusInfo => !!statusInfo) // null/undefined filtrele
         ?? [];
-    // İptal edilebilirliği ayarla
     this.isCancellable = currentStatusInfo?.cancellable ?? false;
     this.selectedNextStatus = null;
     console.log('Possible next statuses:', this.possibleNextStatuses);
@@ -192,8 +181,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
     console.log(`Updating order ${this.order.orderId} status to: ${newStatus}`);
     this.isLoading = true;
 
-    // TODO: Backend'e güncelleme isteği gönder
-    // this.orderService.updateSellerOrderStatus(this.order.orderId, newStatus).subscribe({ ... });
     setTimeout(() => { // Simülasyon
       if (this.order) {
          this.order.status = newStatus;
@@ -211,8 +198,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
       console.log(`Cancelling order ${this.order.orderId}`);
       this.isLoading = true;
 
-      // TODO: Backend'e iptal isteği gönder
-      // this.orderService.cancelSellerOrder(this.order.orderId).subscribe({ ... });
       setTimeout(() => { // Simülasyon
         if (this.order) {
           this.order.status = 'İptal Edildi';
@@ -224,7 +209,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Sahte sipariş detayı döndüren fonksiyon
   getMockOrderDetails(id: string): Observable<SellerOrderDetail | null> {
     const mockOrderList: SellerOrder[] = [ // SellerOrder tipi artık tanınıyor olmalı
       {orderId: 'ORD-001', orderDate: new Date(2025, 4, 6, 10, 30), customerName: 'Ali Veli Uzunİsimlioğlu', itemCount: 2, totalAmount: 570.99, status: 'Yeni Sipariş'},
@@ -258,7 +242,6 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
     return of(detail);
   }
 
-  // Durum çipleri için sınıfı buraya da ekleyelim
    getStatusClass(status: SellerOrder['status']): string {
     switch (status) {
       case 'Yeni Sipariş': return 'status-yeni-siparis';

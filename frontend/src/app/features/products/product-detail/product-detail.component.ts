@@ -9,7 +9,6 @@ import { AuthService } from '../../../core/services/auth.service'; // Yolunuzu k
 import { FavoritesService } from '../../../core/services/favorites.service'; // Yolunuzu kontrol edin
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-// Angular Material Modülleri
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -18,12 +17,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule } from '@angular/forms';
-// --- Eksik Material Modülleri Eklendi (Hataları çözecek) ---
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-// ----------------------------------------
 
-// Değerlendirme (Review) için temel interface
 export interface ProductReview {
   id?: number | string;
   productId: number | string;
@@ -50,10 +46,8 @@ export interface ProductReview {
       MatInputModule,
       MatDividerModule,
       FormsModule,
-      // --- Eksik Material Modülleri Imports'a Eklendi ---
       MatTooltipModule, // matTooltip hatası için
       MatProgressSpinnerModule, // mat-progress-spinner hatası için
-      // -------------------------------------------------
     ],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.css'] // CSS dosyasını kullanıyoruz
@@ -63,18 +57,14 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   product$: Observable<Product | undefined> = of(undefined);
   public activeTab: string = 'description';
   public isFavorite: boolean = false;
-  // --- Yeni Eklenen Değişken (isLoading hatasını çözecek) ---
   isLoading: boolean = false; // Yükleme durumu için
-  // -----------------------------
   private routeSubscription?: Subscription;
   private favoriteCheckSubscription?: Subscription;
 
-  // --- Değerlendirme (Review) İçin Yeni Değişkenler ---
   reviews: ProductReview[] = [];
   newReviewRating: number = 0;
   newReviewComment: string = '';
   hoveredRating: number = 0;
-  // ---------------------------------------------------
 
   constructor(
     private route: ActivatedRoute,
@@ -88,16 +78,13 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('ProductDetailComponent ngOnInit');
-    // URL'deki ürün ID'sini al ve ürünü yükle
     this.routeSubscription = this.route.paramMap.pipe(
       switchMap(params => {
         const productId = params.get('id');
         console.log('ProductDetailComponent: Found productId from route:', productId);
         this.isLoading = true; // Yüklemeyi başlat
         if (productId) {
-          // Ürün bilgisini çek
           const productObservable = this.productService.getProductById(productId);
-          // Ürün bilgisi geldiğinde favori durumunu ve yorumları kontrol et
           productObservable.subscribe(product => {
               if (product) {
                   this.checkIfFavorite(product.id); // Favori durumunu kontrol et
@@ -124,27 +111,23 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         }
       })
     ).subscribe(product => {
-        // Ana product$ Observable'ı güncellendiğinde çalışır
         this.product$ = of(product); // Componentteki product$ değişkenini güncelle
     });
   }
 
   ngOnDestroy(): void {
-    // Component yok olurken oluşturduğumuz abonelikleri iptal et
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
     }
     if (this.favoriteCheckSubscription) {
       this.favoriteCheckSubscription.unsubscribe();
     }
-    // Eğer review'ler için ayrı bir abonelik olsaydı onu da iptal ederdik
   }
 
   checkIfFavorite(productId: string | number): void {
     if (this.favoriteCheckSubscription) {
       this.favoriteCheckSubscription.unsubscribe();
     }
-     // Template'ten erişilebilen public getter'ı kullanacağız
      if (this.isLoggedIn) { // Kullanıcı giriş yapmışsa kontrol et
         this.favoriteCheckSubscription = this.favoritesService.isFavorite(productId).pipe(
           take(1) // Sadece ilk cevabı al, sonra abonelik otomatik bitsin
@@ -179,7 +162,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         this.snackBar.open("Favori işlemi yapılamadı.", "Kapat", { duration: 3000 });
         return;
     }
-     // Template'ten erişilebilen public getter'ı kullanacağız
     if (this.isLoggedIn) { // Kullanıcı giriş yapmışsa işlem yap
       if (this.isFavorite) {
         this.favoritesService.removeFavorite(product.id);
@@ -193,25 +175,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     } else {
       const snackRef = this.snackBar.open('Favorilere eklemek için lütfen giriş yapın.', 'Giriş Yap', { duration: 4000 });
       snackRef.onAction().subscribe(() => {
-        // Template'ten erişilebilen public getter'ı kullanacağız
         this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.currentUrl } });
       });
     }
   }
 
-  // --- Değerlendirme (Review) Metotları ---
 
   loadReviews(productId: string | number): void {
       console.log(`Loading reviews for product ID: ${productId}`);
-      // TODO: Gerçek uygulamada backend servisinden değerlendirmeleri çek
-      // this.reviewService.getReviewsByProductId(productId).subscribe(reviews => { ... });
 
-      // Mock değerlendirme verisi simülasyonu
       setTimeout(() => {
           this.reviews = [
               { id: 1, productId: productId, userId: 101, userName: 'Ali Veli', rating: 5, comment: 'Ürün harika, çok beğendim!', date: new Date(2025, 4, 5) },
               { id: 2, productId: productId, userId: 102, userName: 'Ayşe Yılmaz', rating: 4, comment: 'Beklediğim gibi çıktı, hızlı kargo.', date: new Date(2025, 4, 6) },
-              // Ürün ID'sine göre farklı mock yorumlar döndürebilirsiniz
               ...(productId === 1 || productId === '1' ? [{ id: 3, productId: productId, userId: 103, userName: 'Mehmet Öztürk', rating: 5, comment: 'Kablosuz kulaklık müthiş!', date: new Date(2025, 4, 7) }] : []),
               ...(productId === 2 || productId === '2' ? [{ id: 4, productId: productId, userId: 104, userName: 'Fatma Kaya', rating: 4, comment: 'Akıllı saat işimi görüyor.', date: new Date(2025, 4, 7) }] : []),
           ];
@@ -230,20 +206,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   submitReview(): void {
-      // Template'ten erişilebilen public getter'ı kullanacağız
       if (!this.isLoggedIn) {
           this.snackBar.open('Değerlendirme göndermek için lütfen giriş yapın.', 'Kapat', { duration: 3000 });
           return;
       }
-       // Puan ve yorum metni zorunlu
       if (this.newReviewRating === 0 || !this.newReviewComment.trim()) {
            this.snackBar.open('Lütfen puan verin ve yorum yazın.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
            return;
       }
 
        let currentProductId: string | number | undefined;
-       // product$ Observable'ının güncel değerini senkron olarak almak için take(1) ve subscribe kullanılır
-       // product$ pipe'ı içindeki subscribe metodunu da kullanabiliriz, bu örnek daha basit
        this.product$.pipe(take(1)).subscribe(product => {
            currentProductId = product?.id;
        });
@@ -265,17 +237,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       };
 
       console.log('Submitting new review (simulated):', newReview);
-      // TODO: Backend servis çağrısı ile yorumu gönder
-      // this.reviewService.submitReview(newReview).subscribe({
-      //   next: (response) => { ... },
-      //   error: (error) => { ... }
-      // });
 
-      // Başarılı gönderim simülasyonu
       setTimeout(() => {
           this.reviews = [newReview, ...this.reviews];
           this.snackBar.open('Değerlendirmeniz başarıyla gönderildi (simülasyon)!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
-          // Formu temizle
           this.newReviewRating = 0;
           this.newReviewComment = '';
           this.hoveredRating = 0;
@@ -283,7 +248,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       }, 1000);
   }
 
-  // --- Private servis üyelerine template'ten erişim için Getter'lar (Hataları çözecek) ---
   get isLoggedIn(): boolean {
       return this.authService.isLoggedIn();
   }
@@ -292,11 +256,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       return this.router.url;
   }
 
-  // productForm hatası için: review comment validasyonu productForm kullanmıyor,
-  // sadece newReviewComment'ın boş olup olmadığını kontrol ediyor.
-  // productForm özelliği bu componentte tanımlı DEĞİL ve gerekli de değil.
-  // HTML'deki hata kontrolünü düzenledik.
 
-  // ---------------------------------------
 
 }

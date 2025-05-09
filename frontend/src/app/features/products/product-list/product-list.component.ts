@@ -47,7 +47,6 @@ export class ProductListComponent implements OnInit {
         console.log('ProductListComponent: categorySlug from route:', categorySlug);
         if (categorySlug) {
           this.categoryTitle = this.formatCategoryTitle(categorySlug);
-          // categorySlug string, ProductService'teki getProductsByCategorySlug metodu string bekliyor.
           return this.productService.getProductsByCategorySlug(categorySlug).pipe(
             tap(() => this.isLoading = false),
             catchError(err => {

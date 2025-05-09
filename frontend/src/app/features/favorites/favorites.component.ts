@@ -1,5 +1,3 @@
-// frontend/src/app/features/favorites/favorites.component.ts
-// SON HAL (Sepete Ekleme Fonksiyonu Eklendi - Yorumsuz)
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -44,7 +42,6 @@ export class FavoritesComponent implements OnInit {
 
   favorites$: Observable<Product[]>;
 
-  // CartService ve Router constructor'a eklendi
   constructor(
     private favoritesService: FavoritesService,
     private cartService: CartService,
@@ -58,7 +55,6 @@ export class FavoritesComponent implements OnInit {
     console.log('FavoritesComponent loaded');
   }
 
-  // Favorilerden çıkarma metodu (mevcuttu)
   removeFromFavorites(product: Product): void {
     if (product) {
       console.log('FavoritesPage: Removing product from favorites:', product.name);

@@ -1,4 +1,3 @@
-// src/app/features/auth/components/seller-registration/seller-registration.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -81,7 +80,6 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
       privacyPolicyAccepted: [false, Validators.requiredTrue]
     }, { validator: this.passwordMatchValidator });
 
-    // Mağaza tipine göre Vergi No / TC Kimlik No zorunluluğunu ayarla
     this.sellerRegisterForm.get('storeType')?.valueChanges.subscribe(type => {
       const taxNumberControl = this.sellerRegisterForm.get('taxNumber');
       const idNumberControl = this.sellerRegisterForm.get('idNumber');
@@ -138,10 +136,6 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
       role: 'ROLE_SELLER' // Rolü explicit olarak SELLER ata
     };
 
-    // Mağaza adı, vergi no, adres gibi diğer bilgiler backend'deki SignupRequest DTO'sunda yok.
-    // Bu bilgiler, temel kullanıcı kaydı başarılı olduktan sonra,
-    // satıcıya özel bir profil tamamlama adımıyla veya ayrı bir API üzerinden güncellenmeli.
-    // Şimdilik sadece temel kullanıcı hesabı oluşturuluyor.
 
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
@@ -160,8 +154,6 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
         });
         this.sellerRegisterForm.updateValueAndValidity();
         console.log('Seller basic account registration submitted successfully:', response);
-        // Burada kullanıcıyı "Başvurunuz alındı, onay bekleniyor" gibi bir sayfaya yönlendirebilirsiniz
-        // veya mevcut sayfada mesaj gösterebilirsiniz. this.applicationSubmitted bunu sağlıyor.
       },
       error: (error: HttpErrorResponse) => {
         this.isLoading = false;

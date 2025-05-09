@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { CartService, CartItem } from '../../core/services/cart.service';
 import { Router, RouterLink } from '@angular/router';
-// Checkbox'lar için FormsModule'e gerek yok, (change) event'i ile handle edeceğiz.
-// import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-cart',
@@ -46,7 +44,6 @@ export class CartComponent implements OnInit, OnDestroy {
     } else {
       this.selectedItems.delete(item.id);
     }
-    // console.log('Selected items map:', this.selectedItems);
     this.updateSelectAllState();
   }
 
@@ -56,7 +53,6 @@ export class CartComponent implements OnInit, OnDestroy {
       return;
     }
     this.isAllSelected = this.cartItems.every(item => this.selectedItems.get(item.id));
-    // console.log('isAllSelected updated:', this.isAllSelected);
   }
 
   onSelectAllChange(event: Event): void {
@@ -70,7 +66,6 @@ export class CartComponent implements OnInit, OnDestroy {
         this.selectedItems.delete(item.id);
       }
     });
-    // console.log('Selected items map after Select All:', this.selectedItems);
   }
 
   deleteSelectedItems(): void {
@@ -83,9 +78,7 @@ export class CartComponent implements OnInit, OnDestroy {
 
     if (idsToDelete.length > 0) {
       console.log('CartComponent: Deleting selected items with IDs:', idsToDelete);
-      // if (confirm(`${idsToDelete.length} adet ürünü silmek istediğinize emin misiniz?`)) {
          this.cartService.removeSelectedItems(idsToDelete);
-      // }
     } else {
       alert('Lütfen silmek için en az bir ürün seçin.');
     }
@@ -108,7 +101,6 @@ export class CartComponent implements OnInit, OnDestroy {
     return this.cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   }
 
-  // Adet artırma/azaltma/tekil silme metodları aynı kalır
   increaseQuantity(item: CartItem): void {
     this.cartService.addToCart(item);
   }

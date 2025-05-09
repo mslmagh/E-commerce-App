@@ -1,4 +1,3 @@
-// src/app/features/seller/layout/seller-layout/seller-layout.component.ts
 
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -107,7 +106,5 @@ export class SellerLayoutComponent {
 
   logout(): void {
     this.authService.logout(); // AuthService'teki logout metodunu çağır
-    // Yönlendirme AuthService.logout() içinde zaten yapılıyor olmalı (/login'e)
-    // Eğer yapılmıyorsa: this.router.navigate(['/auth/login']);
   }
 }

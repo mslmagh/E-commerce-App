@@ -1,16 +1,12 @@
-// frontend/src/app/features/profile/profile.routes.ts
-// TEKRAR KONTROL - YORUMSUZ
 
 import { Routes } from '@angular/router';
 import { ProfileComponent } from './profile.component'; // Layout Component
-// Child Componentler
 import { UserInfoComponent } from './user-info/user-info.component';
 import { AddressListComponent } from './address-list/address-list.component';
 import { OrderListComponent } from './order-list/order-list.component';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { SavedCardsComponent } from './saved-cards/saved-cards.component';
 
-// Profil bölümünün rotaları
 export const PROFILE_ROUTES: Routes = [
   {
     path: '', // Ana /profile yolu

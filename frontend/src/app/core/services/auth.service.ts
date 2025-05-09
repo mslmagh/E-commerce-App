@@ -1,4 +1,3 @@
-// src/app/core/services/auth.service.ts
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -6,8 +5,6 @@ import { Observable, BehaviorSubject, tap, catchError, throwError, of } from 'rx
 import { Router } from '@angular/router';
 import { environment } from '../../../environment'; // Environment importu
 
-// Backend'den beklenen login yanıtı için interface
-// Bu, backend/src/main/java/com/example/ecommerce/dto/JwtResponse.java ile eşleşmelidir.
 export interface JwtResponse {
   token: string;
   type?: string; // Genellikle "Bearer"
@@ -17,15 +14,11 @@ export interface JwtResponse {
   roles: string[];
 }
 
-// Backend'e gönderilecek login isteği için interface
-// Bu, backend/src/main/java/com/example/ecommerce/dto/LoginRequest.java ile eşleşmelidir.
 export interface LoginRequest {
   username: string;
   password: string;
 }
 
-// Backend'e gönderilecek üye kayıt isteği için interface
-// Bu, backend/src/main/java/com/example/ecommerce/dto/SignupRequest.java ile eşleşmelidir.
 export interface SignupRequest {
   username: string;
   email: string;
@@ -48,8 +41,6 @@ export class AuthService {
   private userRole = new BehaviorSubject<string | null>(null);
   public userRole$: Observable<string | null> = this.userRole.asObservable();
 
-  // Backend JwtResponse'da 'accountStatus' alanı olmadığı için bunu şimdilik localStorage'dan manuel yöneteceğiz.
-  // İdealde bu bilgi de token ile veya /me endpoint'inden gelmeli.
   private accountStatus = new BehaviorSubject<string | null>(null);
   public accountStatus$: Observable<string | null> = this.accountStatus.asObservable();
 
@@ -84,7 +75,6 @@ export class AuthService {
           } else if (response.roles.includes('ROLE_SELLER')) {
             primaryRole = 'ROLE_SELLER';
           }
-          // Backend'den 'accountStatus' gelmiyor. SELLER ise şimdilik 'APPROVED' varsayalım.
           const sellerStatus = primaryRole === 'ROLE_SELLER' ? 'APPROVED' : undefined;
           this.saveAuthData(response.token, primaryRole, response, sellerStatus);
           console.log('AuthService: Login successful, auth data saved.');
@@ -119,11 +109,9 @@ export class AuthService {
     );
   }
 
-  // Satıcı temel hesap kaydı (SellerRegistrationComponent'tan gelen verilerle)
   registerSeller(sellerData: SignupRequest): Observable<any> {
     console.log('AuthService: Registering seller (basic account):', sellerData);
     const registerUrl = `${this.apiUrl}/auth/register`;
-    // `role` zaten sellerData içinde 'ROLE_SELLER' olarak geliyor olmalı.
     return this.http.post<any>(registerUrl, sellerData).pipe(
       tap((response) => {
         console.log('AuthService: Seller (basic account) registration API response:', response);

@@ -188,10 +188,6 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
         this.resultsLength = page.totalElements;
         return page.content.map(order => ({
           ...order,
-          // Backend OrderDto'da 'items' alanı varsa itemCount'u oradan alabiliriz.
-          // Şimdilik backend'den itemCount'un geldiğini varsayıyoruz veya 0 atıyoruz.
-          // Eğer backend OrderDto'da items: OrderItemDto[] varsa:
-          // itemCount: order.items ? order.items.length : 0
           itemCount: (order as any).items ? (order as any).items.length : (order.itemCount || 0) // Güvenli erişim
         }));
       }),
@@ -206,18 +202,10 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // HTML'de (keyup)="applyApiFilter($event)" olarak değiştirildi.
   applyApiFilter(event?: Event): void { // Event opsiyonel yapıldı, formdan direkt çağrılabilir
     if (event) { // Eğer event ile çağrıldıysa (input'tan)
         const filterValue = (event.target as HTMLInputElement).value;
-        // Bu metod artık doğrudan formdan filtreleme yapmak yerine loadOrders'ı tetikleyecek.
-        // customerUsername filtresi formControl ile yönetiliyor.
-        // Bu metod sadece genel bir tetikleyici olarak kalabilir veya kaldırılabilir
-        // eğer tüm filtreler form üzerinden yönetiliyorsa.
-        // Şimdilik, eğer input'tan geliyorsa formdaki customerUsername'i güncelleyebiliriz.
-        // this.filterForm.get('customerUsername')?.setValue(filterValue.trim());
     }
-    // Paginator'ı sıfırla ve API'den veri çek
     if(this.paginator) this.paginator.pageIndex = 0;
     this.loadOrders();
   }
@@ -230,7 +218,6 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
       startDate: null,
       endDate: null
     });
-    // loadOrders zaten form valueChanges ile tetiklenecek (veya manuel çağrı)
     this.applyApiFilter(); // Filtreleri temizledikten sonra listeyi yenile
   }
 

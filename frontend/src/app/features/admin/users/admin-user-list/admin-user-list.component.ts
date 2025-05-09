@@ -14,7 +14,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 
-// Kullanıcı modeli (Aynı)
 export interface AdminManagedUser {
   id: string | number;
   firstName: string;
@@ -140,7 +139,6 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
       }, 750);
   }
 
-  // Şifre Değiştirme Metodu (Dialog yerine prompt ile)
   changePasswordDirectly(user: AdminManagedUser, event: Event): void {
      event.stopPropagation();
      const newPassword = prompt(`${user.firstName} ${user.lastName} (${user.email}) için YENİ ŞİFREYİ girin (en az 6 karakter):`);
@@ -148,23 +146,19 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
      if (newPassword && newPassword.trim().length >= 6) {
          const confirmPassword = prompt('Yeni şifreyi TEKRAR girin:');
          if (newPassword.trim() === confirmPassword?.trim()) {
-             // Şifreler eşleşti, backend'e gönder
              this.sendNewPasswordToBackend(user.id, newPassword.trim());
          } else if (confirmPassword !== null) {
              alert('Girilen şifreler eşleşmiyor!');
          } else {
-             // Kullanıcı ikinci prompt'u iptal etti
              console.log('Password change cancelled at confirmation.');
          }
      } else if (newPassword !== null) {
          alert('Geçersiz şifre. En az 6 karakter olmalı.');
      } else {
-        // Kullanıcı ilk prompt'u iptal etti
         console.log('Password change cancelled.');
      }
   }
 
-  // Backend'e şifre değiştirme isteği gönderen metot (şimdilik simülasyon)
   private sendNewPasswordToBackend(userId: string | number, newPass: string): void {
       console.log(`TODO: Backend call to change password for user ${userId} to ${newPass}`);
       this.isLoading = true; // Genel yükleme göstergesi
@@ -188,7 +182,6 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
 
   UserDetails(user: AdminManagedUser): void {
     console.log('Navigating to user details for:', user.id);
-    // Kullanıcı detay sayfasına yönlendirme
     this.router.navigate(['/admin/users', user.id]);
   }
 }

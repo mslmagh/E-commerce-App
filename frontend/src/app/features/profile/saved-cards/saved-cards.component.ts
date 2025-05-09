@@ -1,14 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-// Angular Material Modülleri
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip'; // İkonlar için açıklama
 
-// Kayıtlı Kart yapısı için Interface
 export interface SavedCard {
   id: number | string;
   cardType: 'visa' | 'mastercard' | 'amex' | 'other'; // Kart tipi (ikon için)
@@ -30,7 +28,6 @@ export interface SavedCard {
     MatTooltipModule // Tooltip için
   ],
   templateUrl: './saved-cards.component.html',
-  // styleUrls: ['./saved-cards.component.css'] // ---> KALDIRILDI
   styles: [`
     .saved-cards-container { } /* Genel konteyner */
     .add-card-button-container {
@@ -94,7 +91,6 @@ export interface SavedCard {
 })
 export class SavedCardsComponent implements OnInit {
 
-  // Sahte kayıtlı kart verisi
   savedCards: SavedCard[] = [
     { id: 101, cardType: 'visa', last4Digits: '1234', expiryDate: '12/26', isDefault: true },
     { id: 102, cardType: 'mastercard', last4Digits: '5678', expiryDate: '08/25', isDefault: false },
@@ -104,12 +100,9 @@ export class SavedCardsComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('SavedCardsComponent loaded');
-    // TODO: Gerçek uygulamada kayıtlı kartlar servisten çekilmeli
-    // this.paymentService.getSavedCards().subscribe(...)
   }
 
   getCardIcon(cardType: string): string {
-    // Basit ikon eşleştirmesi (Font Awesome varsayımı)
     switch (cardType) {
       case 'visa': return 'fa-brands fa-cc-visa';
       case 'mastercard': return 'fa-brands fa-cc-mastercard';
@@ -121,7 +114,6 @@ export class SavedCardsComponent implements OnInit {
   addNewCard(): void {
     console.log('TODO: Navigate to Add New Card Page/Open Modal');
     alert('Yeni Kart Ekleme Formu Açılacak (Henüz yapılmadı)');
-    // Güvenli kart ekleme formu (muhtemelen iframe veya payment provider yönlendirmesi)
   }
 
   editCard(cardId: number | string): void {
@@ -131,9 +123,6 @@ export class SavedCardsComponent implements OnInit {
 
   deleteCard(cardId: number | string): void {
     console.log('TODO: Show confirmation and call service to delete card ID:', cardId);
-    // if(confirm(`Kartı silmek istediğinize emin misiniz?`)) {
-    //   this.paymentService.deleteCard(cardId).subscribe(...)
-    // }
     alert(`Kart Sil Tıklandı: ${cardId} (Henüz yapılmadı)`);
   }
 

@@ -1,5 +1,3 @@
-// src/app/features/seller/products/seller-product-form/seller-product-form.component.ts
-// TÜM HATALARI GİDERİLMİŞ VE TİPLERİ EKLENMİŞ SON HALİ (Bir önceki mesajdaki gibi)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,7 +8,6 @@ import { delay } from 'rxjs/operators'; // delay import edildi
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 
-// Angular Material Modülleri
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,11 +20,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-// Kendi Servisleriniz (Yorum satırlarını kaldırıp kendi servislerinizi import edin)
  import { ProductService } from '../../../../core/services/product.service';
-// import { CategoryService } from '../../../../core/services/category.service';
 
-// Modelleriniz
 export interface Category {
   id: string | number;
   name: string;
@@ -45,7 +39,6 @@ export interface ProductFormData {
   brand?: string;
   tags?: string[];
   isActive: boolean;
-  // imageUrl?: string; // Eğer backend'den geliyorsa veya mockProduct'ta kullanılacaksa
 }
 
 @Component({
@@ -102,8 +95,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
-    // private productService: ProductService, // Gerçek servisiniz
-    // private categoryService: CategoryService // Gerçek servisiniz
   ) {}
 
   ngOnInit(): void {
@@ -137,7 +128,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
       isActive: [productData ? productData.isActive : true, Validators.required]
     });
 
-    // İndirimli fiyat validasyonunu ekle
     this.productForm.get('discountedPrice')?.setValidators([
         Validators.min(0),
         (control: AbstractControl): ValidationErrors | null => {
@@ -154,7 +144,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
   }
 
   loadCategories(): void {
-    // this.categories$ = this.categoryService.getCategories(); // Gerçek servis çağrısı
     this.categories$ = of([
       { id: 'cat1', name: 'Elektronik' }, { id: 'cat2', name: 'Giyim' },
       { id: 'cat3', name: 'Ev & Yaşam' }, { id: 'cat4', name: 'Kozmetik' },
@@ -164,23 +153,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
 
   loadProductForEdit(id: string | number): void {
     this.isLoading = true;
-    // this.productSubscription = this.productService.getProductByIdForSeller(id).subscribe({ // Gerçek servis çağrısı
-    //   next: (product: ProductFormData | undefined) => {
-    //     if (product) {
-    //       this.productForm.patchValue(product);
-    //       // this.imagePreviewUrl = product.imageUrl; // Eğer backend'den görsel URL'i geliyorsa
-    //     } else {
-    //       this.snackBar.open('Düzenlenecek ürün bulunamadı.', 'Kapat', { duration: 3000 });
-    //       this.router.navigate(['/seller/products']);
-    //     }
-    //     this.isLoading = false;
-    //   },
-    //   error: (error: HttpErrorResponse) => {
-    //     console.error('Ürün yüklenirken hata:', error);
-    //     this.isLoading = false;
-    //     this.snackBar.open('Ürün bilgileri yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
-    //   }
-    // });
 
     setTimeout(() => { // Simülasyon
       const mockProduct: ProductFormData = {
@@ -189,7 +161,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
         brand: 'Harika Marka', isActive: false, tags: ['düzenleme', 'test']
       };
       this.initForm(mockProduct); // Formu mockProduct ile başlat/güncelle
-      // this.imagePreviewUrl = mockProduct.imageUrl; // Eğer mock'ta varsa
       this.isLoading = false;
     }, 1000);
   }
@@ -223,11 +194,9 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
     if (this.isEditMode && this.productId) {
       formValues.id = this.productId;
       console.log('Ürün Güncelleniyor:', formValues);
-      // apiCall = this.productService.updateSellerProduct(this.productId, formValues);
       apiCall = of({ success: true, message: 'Ürün başarıyla güncellendi (simülasyon)!' }).pipe(delay(1000));
     } else {
       console.log('Yeni Ürün Ekleniyor:', formValues);
-      // apiCall = this.productService.addSellerProduct(formValues);
       apiCall = of({ success: true, message: 'Ürün başarıyla eklendi (simülasyon)!' }).pipe(delay(1000));
     }
 
@@ -251,7 +220,6 @@ export class SellerProductFormComponent implements OnInit, OnDestroy {
     if (this.productSubscription) this.productSubscription.unsubscribe();
   }
 
-  // Form kontrollerine kolay erişim için getter'lar
   get name() { return this.productForm.get('name'); }
   get description() { return this.productForm.get('description'); }
   get price() { return this.productForm.get('price'); }

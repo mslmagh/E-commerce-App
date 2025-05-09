@@ -14,5 +14,4 @@ export const CHECKOUT_ROUTES: Routes = [
     component: PaymentComponent, // '/checkout/payment' -> Ödeme sayfası
     canActivate: [authGuard] // Ödeme sayfasına erişim için de giriş yapmış olmalı
   }
-  // İleride sipariş onay sayfası için '/checkout/confirmation' gibi bir rota eklenebilir
 ];

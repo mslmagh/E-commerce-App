@@ -1,5 +1,3 @@
-// src/app/features/seller/orders/seller-order-list/seller-order-list.component.ts
-// SON HALİ (Gerekli importlar ve metodlar eklenmiş)
 
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core'; // ViewChild ve AfterViewInit eklendi
 import { CommonModule } from '@angular/common';
@@ -16,9 +14,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort'; // Sort eklendi
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // Snackbar için
-// import { OrderService } from '../../../../core/services/order.service'; // Kendi sipariş servisinizi import edin
 
-// Sipariş listesi için model/interface
 export interface SellerOrder {
   orderId: string;
   orderDate: Date;
@@ -73,33 +69,26 @@ export interface SellerOrder {
     ::ng-deep th[style*="text-align: left"] .mat-sort-header-container { justify-content: flex-start !important; }
   `]
 })
-// AfterViewInit eklendi (Paginator ve Sort için)
 export class SellerOrderListComponent implements OnInit, AfterViewInit {
-  // Kolon tanımları güncellendi (itemCount eklenmişti)
   displayedColumns: string[] = ['orderId', 'orderDate', 'customerName', 'itemCount', 'totalAmount', 'status', 'actions'];
-  // MatTableDataSource kullanıldı
   dataSourceMat = new MatTableDataSource<SellerOrder>();
   isLoading = false;
 
-  // Paginator ve Sort için ViewChild eklendi
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
     private router: Router,
     private snackBar: MatSnackBar // Snackbar inject edildi
-    // private orderService: OrderService // Gerçek servis
   ) {}
 
   ngOnInit(): void {
     this.loadOrders();
   }
 
-  // Paginator ve Sort'u datasource'a bağlamak için
   ngAfterViewInit(): void {
     this.dataSourceMat.paginator = this.paginator;
     this.dataSourceMat.sort = this.sort;
-     // Sort için custom sıralama fonksiyonu (isteğe bağlı, örn: tarih)
      this.dataSourceMat.sortingDataAccessor = (item, property) => {
         switch (property) {
           case 'orderDate': return item.orderDate.getTime(); // Tarih için timestamp kullan
@@ -110,7 +99,6 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
 
   loadOrders(): void {
     this.isLoading = true;
-    // TODO: Backend entegrasyonu...
     setTimeout(() => { // Simülasyon
       const mockData: SellerOrder[] = [
         {orderId: 'ORD-001', orderDate: new Date(2025, 4, 6, 10, 30), customerName: 'Ali Veli Uzunİsimlioğlu', itemCount: 2, totalAmount: 570.99, status: 'Yeni Sipariş'},
@@ -126,7 +114,6 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
     }, 1000);
   }
 
-  // applyFilter metodu eklendi
   applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSourceMat.filter = filterValue.trim().toLowerCase();
@@ -136,13 +123,11 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // viewOrderDetail metodu eklendi
   viewOrderDetail(order: SellerOrder): void {
     console.log('Sipariş detayına gidiliyor:', order.orderId);
     this.router.navigate(['/seller/orders', order.orderId]);
   }
 
-  // getStatusClass metodu eklendi
   getStatusClass(status: SellerOrder['status']): string {
     switch (status) {
       case 'Yeni Sipariş': return 'status-yeni-siparis';

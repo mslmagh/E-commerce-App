@@ -1,4 +1,3 @@
-// frontend/src/app/features/auth/login/login.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
@@ -7,7 +6,6 @@ import { AuthService, JwtResponse } from '../../../core/services/auth.service'; 
 import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http'; // HttpErrorResponse import edildi
 
-// Angular Material Importları
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -77,9 +75,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     this.loginForm = new FormGroup({
-      // Backend 'username' beklediği için form kontrol adını 'username' yapalım
-      // ya da template'deki formControlName="email" kalır, onSubmit'te map edilir.
-      // Şimdilik template'de 'email' kalsın, onSubmit'te 'username' olarak gönderelim.
       'email': new FormControl(null, [Validators.required, Validators.email]),
       'password': new FormControl(null, Validators.required)
     });
@@ -168,16 +163,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     console.log(`LoginComponent: Redirecting. Role: ${role}, Status: ${accountStatus}, Default ReturnURL: ${this.returnUrl}`);
     let targetUrl = this.returnUrl;
 
-    // Backend "ROLE_ADMIN", "ROLE_SELLER", "ROLE_USER" gibi dönecek.
     if (role === 'ROLE_ADMIN') {
       targetUrl = '/admin/dashboard';
     } else if (role === 'ROLE_SELLER') {
-      // Satıcı için accountStatus backend'den gelmeli. Şimdilik 'APPROVED' varsayıyoruz.
       if (accountStatus === 'APPROVED') {
         targetUrl = '/seller/dashboard';
       } else {
-        // Onay bekleyen veya reddedilen satıcı için bilgilendirme snackbar'da yapıldı.
-        // Login sayfasında kalmaları için yönlendirme yapma. AuthService zaten logout yapmış olabilir.
         this.snackBar.open('Satıcı hesabınız henüz onaylanmamış veya aktif değil.', 'Kapat', { duration: 5000 });
         this.authService.logout(); // Onaylanmamışsa token'ı temizle
         return;
@@ -202,7 +193,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Form kontrollerine template'ten kolay erişim için getter'lar
   get email() { return this.loginForm.get('email'); }
   get password() { return this.loginForm.get('password'); }
 }

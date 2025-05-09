@@ -32,8 +32,6 @@ export class CheckoutComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // authGuard zaten giriş kontrolünü yaptığı için, burada tekrar login'e yönlendirme
-    // yapmaya gerek kalmayabilir. Guard yoksa aşağıdaki blok önemlidir.
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/auth/login'], {
         queryParams: {
@@ -52,7 +50,6 @@ export class CheckoutComponent implements OnInit {
       'email': new FormControl('', [Validators.required, Validators.email]),
       'city': new FormControl('', Validators.required),
       'addressTitle': new FormControl('', Validators.required)
-      // İsteğe bağlı olarak 'addressLine2', 'district', 'postalCode' eklenebilir
     });
 
     this.addressForm.get('country')?.valueChanges.subscribe(selectedCountry => {
@@ -70,23 +67,17 @@ export class CheckoutComponent implements OnInit {
     console.log('Address Form Submit triggered!');
     this.checkoutMessage = null;
 
-    // authGuard zaten bu kontrolü yapıyor olacak.
-    // if (!this.authService.isLoggedIn()) { ... } bloğu bu yüzden kaldırılabilir
-    // veya ek bir güvenlik katmanı olarak kalabilir.
 
     if (this.addressForm.valid) {
       console.log('Address Form is valid.');
       const addressData = this.addressForm.value;
       console.log('Girilen Adres Bilgileri:', addressData);
 
-      // TODO: Adres bilgilerini bir servise göndererek kaydet veya bir sonraki adıma taşı.
-      // Örnek: this.checkoutService.setShippingAddress(addressData);
 
       this.snackBar.open('Adres bilgileri başarıyla alındı. Ödeme adımına yönlendiriliyorsunuz...', 'Tamam', {
         duration: 2500,
       });
 
-      // Ödeme sayfasına yönlendir
       this.router.navigate(['/checkout/payment']);
 
     } else {
@@ -96,7 +87,6 @@ export class CheckoutComponent implements OnInit {
     }
   }
 
-  // Getter metodları (form kontrollerine kolay erişim için)
   get country() { return this.addressForm.get('country'); }
   get firstName() { return this.addressForm.get('firstName'); }
   get lastName() { return this.addressForm.get('lastName'); }

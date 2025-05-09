@@ -1,4 +1,3 @@
-// frontend/src/app/features/auth/register/register.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -66,9 +65,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.registerForm = this.fb.group({
-      // Backend SignupRequest username, email, password bekliyor.
-      // firstName ve lastName için backend'e ekleme yapılabilir veya username için email kullanılabilir.
-      // Şimdilik kullanıcıdan username alalım.
       username: ['', [Validators.required, Validators.minLength(3)]],
       firstName: ['', Validators.required], // Bu bilgi backend DTO'sunda yok, ama formda tutulabilir.
       lastName: ['', Validators.required],  // Bu bilgi backend DTO'sunda yok.
@@ -87,7 +83,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
       return null;
     }
     if (password.value === confirmPassword.value) {
-      // Eşleşiyorsa ve confirmPassword'de sadece 'mismatch' hatası varsa temizle
       if (confirmPassword.hasError('mismatch')) {
         const errors = { ...confirmPassword.errors };
         delete errors['mismatch'];
@@ -95,7 +90,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
       }
       return null;
     } else {
-      // Eşleşmiyorsa 'mismatch' hatasını confirmPassword'e ekle
       confirmPassword.setErrors({ ...(confirmPassword.errors || {}), mismatch: true });
       return { mismatch: true }; // Form seviyesinde de hata döndür
     }
@@ -115,7 +109,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
       username: formValue.username, // Formdan alınan username
       email: formValue.email,
       password: formValue.password,
-      // role: 'ROLE_USER' // AuthService içinde varsayılan olarak atanıyor
     };
 
     if (this.authSubscription) {
@@ -126,7 +119,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.isLoading = false;
         this.registrationSuccessful = true; // Başarı mesajını göster
-        // this.snackBar.open('Üyelik kaydınız başarıyla oluşturuldu! Lütfen giriş yapın.', 'Tamam', { duration: 5000, panelClass: ['success-snackbar'] });
         this.registerForm.reset();
         Object.keys(this.registerForm.controls).forEach(key => {
             this.registerForm.get(key)?.setErrors(null) ;
@@ -134,7 +126,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
             this.registerForm.get(key)?.markAsUntouched();
         });
         this.registerForm.updateValueAndValidity();
-        // Kullanıcıyı login sayfasına yönlendirip orada bir "kayıt başarılı" mesajı gösterebiliriz.
         this.router.navigate(['/auth/login'], { queryParams: { reason: 'registration_success' } });
         console.log('Member registration successful:', response);
       },

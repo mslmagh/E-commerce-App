@@ -1,4 +1,3 @@
-// frontend/src/app/pages/social-responsibility/social-responsibility.routes.ts
 import { Routes } from '@angular/router';
 import { SocialResponsibilityComponent } from './social-responsibility.component';
 

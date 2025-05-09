@@ -1,5 +1,3 @@
-// frontend/src/app/features/search/search.component.ts
-// SON HAL (Inline Styles ile - YORUMSUZ - DÜZELTİLMİŞ)
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -19,12 +17,8 @@ import { MatButtonModule } from '@angular/material/button';
       CommonModule,
       RouterLink
       , MatSnackBarModule, MatButtonModule
-      // İleride Material modülleri eklenecek
-      // MatCardModule,
-      // MatButtonModule
   ],
   templateUrl: './search.component.html',
-  // styleUrls: ['./search.component.css'] // ---> KALDIRILDI
   styles: [`
 
     .search-results-container {
@@ -69,7 +63,6 @@ import { MatButtonModule } from '@angular/material/button';
   `]
 })
 export class SearchComponent implements OnInit {
-  // --- Sınıfın geri kalanı (products$, searchTerm, constructor, ngOnInit, addToCart) aynı kalır ---
   products$: Observable<Product[]> = of([]);
   searchTerm: string | null = null;
 

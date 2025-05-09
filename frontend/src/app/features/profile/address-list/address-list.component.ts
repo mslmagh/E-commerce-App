@@ -6,7 +6,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider'; // Gerekirse kullanılabilir
 
-// Adres interface'i
 export interface Address {
   id: number | string;
   title: string;
@@ -30,7 +29,6 @@ export interface Address {
     MatDividerModule
   ],
   templateUrl: './address-list.component.html',
-  // styleUrls: ['./address-list.component.css'] // ---> KALDIRILDI
   styles: [`
     .address-list-container { padding: 0 10px; } /* İçerik alanına hafif padding */
     .add-address-button-container {
@@ -101,25 +99,20 @@ export class AddressListComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('AddressListComponent loaded');
-    // TODO: Gerçek uygulamada adresler bir servisten çekilmeli
-    // this.addressService.getAddresses().subscribe(data => this.addresses = data);
   }
 
   addNewAddress(): void {
     console.log('TODO: Navigate to Add New Address Page/Open Modal');
     alert('Yeni Adres Ekleme Formu Açılacak (Henüz yapılmadı)');
-    // this.router.navigate(['/profile/addresses/new']); // İleride eklenecek rota
   }
 
   editAddress(address: Address): void {
     console.log('TODO: Navigate to Edit Address Page/Open Modal for ID:', address.id);
     alert(`Adres Düzenle Tıklandı: ${address.title} (Henüz yapılmadı)`);
-    // this.router.navigate(['/profile/addresses/edit', address.id]); // İleride eklenecek rota
   }
 
   deleteAddress(address: Address): void {
     console.log('TODO: Show confirmation and call service to delete address ID:', address.id);
     alert(`Adres Sil Tıklandı: ${address.title} (Henüz yapılmadı)`);
-    // if (confirm(...)) { this.addressService.delete(address.id)... }
   }
 }

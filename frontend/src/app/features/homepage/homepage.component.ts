@@ -56,7 +56,6 @@ export class HomepageComponent implements OnInit {
         this.allProducts = products;
         if (!products || products.length === 0) {
             console.warn("API'den ürün gelmedi.");
-            // İsteğe bağlı: Mock data burada da kullanılabilir veya boş mesaj gösterilir.
             this.snackBar.open('Gösterilecek ürün bulunamadı.', 'Kapat', { duration: 3000 });
         }
         this.updateDisplayedProducts();
@@ -75,7 +74,6 @@ export class HomepageComponent implements OnInit {
 
   addToCart(product: Product | undefined | null): void {
     if (product) {
-      // Stock kontrolü eklenebilir (eğer Product interface'inde stockQuantity varsa)
       if (product.stockQuantity !== undefined && product.stockQuantity < 1) {
         this.snackBar.open(`'${product.name}' stokta bulunmamaktadır!`, 'Kapat', {
           duration: 3000, panelClass: ['warning-snackbar']
@@ -125,7 +123,6 @@ export class HomepageComponent implements OnInit {
         break;
       case 'default':
       default:
-        // ID'ye göre veya isme göre varsayılan bir sıralama yapılabilir.
         productsToSort.sort((a, b) => a.id - b.id); // Örnek: ID'ye göre sırala
         break;
     }
@@ -138,7 +135,6 @@ export class HomepageComponent implements OnInit {
        this.maxPrice = this.maxPrice !== null && !isNaN(Number(this.maxPrice)) ? Number(this.maxPrice) : null;
        if (this.minPrice !== null && this.maxPrice !== null && this.minPrice > this.maxPrice) {
         this.snackBar.open('Min fiyat, max fiyattan büyük olamaz.', 'Kapat', { duration: 3000 });
-        // Gerekirse birini sıfırla veya eski değerine döndür
        }
         this.updateDisplayedProducts();
    }

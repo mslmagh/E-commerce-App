@@ -25,10 +25,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 export class HeaderComponent implements OnInit, OnDestroy {
 
   searchTerm: string = '';
-  // isUserLoggedIn değişkeni yerine Observable kullanacağız
   isLoggedIn$: Observable<boolean>;
   cartItemCount$: Observable<number>;
-  // Sadece cartSubscription kaldı (isLoggedIn$ async pipe ile kullanılacak)
   private cartSubscription?: Subscription;
 
   constructor(
@@ -36,25 +34,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private cartService: CartService,
     private router: Router
   ) {
-    // Login durumunu servisteki Observable'dan al
     this.isLoggedIn$ = this.authService.isLoggedIn$;
-    // Sepet sayısını servisteki Observable'dan al ve map ile işle
     this.cartItemCount$ = this.cartService.cartItems$.pipe(
       map((items: CartItem[]) => items.reduce((count, item) => count + item.quantity, 0)),
-      // tap(count => console.log('Header: cartItemCount$ emitted:', count))
     );
   }
 
   ngOnInit(): void {
-    // Artık ngOnInit içinde login durumu kontrolüne gerek yok, Observable takip ediyor.
     console.log('HeaderComponent ngOnInit');
   }
 
   ngOnDestroy(): void {
-    // cartSubscription artık yok (eğer cartItemCount$ için tap logunu kaldırdıysak)
-    // Eğer cartSubscription varsa iptal edilmeli.
-    // Eğer isLoggedIn$ için manuel subscribe yapsaydık onu da iptal ederdik.
-    // Async pipe kullandığımız için gerek yok.
      if (this.cartSubscription) { this.cartSubscription.unsubscribe(); } // Bu da kaldırılabilir eğer tap yoksa
   }
 
@@ -68,9 +58,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         queryParams: { q: this.searchTerm.trim() }
       });
 
-      // this.searchTerm = '';
     } else {
-      // Arama terimi boşsa bir şey yapma veya kullanıcıyı uyarabilirsin
       console.log('Header: Empty search term, not navigating.');
     }
   }
@@ -78,8 +66,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   logout(): void {
     console.log('HeaderComponent: Logging out...');
     this.authService.logout(); // Servisteki metodu çağır (token'ı siler ve status'u günceller)
-    // Yönlendirmeyi de logout metodu yapabilir veya burada kalabilir
     this.router.navigate(['/auth/login']); // Login sayfasına yönlendir
-    // this.isUserLoggedIn = false; // Artık buna gerek yok, Observable güncellenecek
   }
 }

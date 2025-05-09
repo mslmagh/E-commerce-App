@@ -1,4 +1,3 @@
-// src/app/features/seller/products/seller-product-list/seller-product-list.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; // *ngFor, async pipe vb. için
@@ -12,8 +11,6 @@ import { MatCardModule } from '@angular/material/card'; // Kart görünümü iç
 import { MatDividerModule } from '@angular/material/divider'; // Ayırıcı için (opsiyonel)
 import { MatSnackBar } from '@angular/material/snack-bar'; // Snackbar için
 
-// Satıcının ürünleri için bir interface/model tanımlayalım
-// Bu model, backend'den gelecek ürün verisine göre şekillenecek
 export interface SellerListedProduct {
   id: string | number;
   name: string;
@@ -23,7 +20,6 @@ export interface SellerListedProduct {
   status: 'Yayında' | 'Taslak' | 'Onay Bekliyor' | 'Reddedildi' | 'Stok Tükendi';
   imageUrl?: string; // Küçük resim için
   category?: string; // Ürün kategorisi
-  // dateAdded?: Date; // Eklenme tarihi (isteğe bağlı)
 }
 
 @Component({
@@ -135,7 +131,6 @@ export class SellerProductListComponent implements OnInit {
 
   constructor(
     private router: Router,
-    // private productService: ProductService // Gerçek ProductService'iniz (ileride eklenecek)
     private snackBar: MatSnackBar
   ) {}
 
@@ -145,20 +140,7 @@ export class SellerProductListComponent implements OnInit {
 
   loadSellerProducts(): void {
     this.isLoading = true;
-    // TODO: Backend entegrasyonu -> Satıcının kendi ürünlerini servisten çek
-    // this.productService.getProductsByCurrentSeller().subscribe({
-    //   next: (data) => {
-    //     this.dataSource = data;
-    //     this.isLoading = false;
-    //   },
-    //   error: (error) => {
-    //     console.error('Satıcı ürünleri yüklenirken hata:', error);
-    //     this.isLoading = false;
-    //     this.snackBar.open('Ürünler yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
-    //   }
-    // });
 
-    // Şimdilik sahte (mock) veri ile simülasyon
     setTimeout(() => {
       this.dataSource = [
         {id: 'S001', name: 'El Yapımı Deri Çanta', sku: 'DERI-CNT-001', price: 450.99, stockQuantity: 15, status: 'Yayında', imageUrl: 'https://via.placeholder.com/50/FFA07A/000000?Text=P1', category: 'Aksesuar'},
@@ -181,10 +163,8 @@ export class SellerProductListComponent implements OnInit {
 
   deleteProduct(product: SellerListedProduct): void {
     console.log('Silinecek ürün:', product);
-    // TODO: Onay dialogu (MatDialog) ve backend'e silme isteği
     if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
       this.isLoading = true;
-      // Örnek: this.productService.deleteSellerProduct(product.id).subscribe( ... )
       setTimeout(() => { // Simülasyon
         this.dataSource = this.dataSource.filter(p => p.id !== product.id);
         this.snackBar.open(`'${product.name}' silindi (simülasyon).`, 'Tamam', { duration: 2000 });
@@ -193,7 +173,6 @@ export class SellerProductListComponent implements OnInit {
     }
   }
 
-  // Durum etiketleri için CSS sınıfı döndüren yardımcı fonksiyon
   getStatusClass(status: SellerListedProduct['status']): string {
     switch (status) {
       case 'Yayında': return 'status-yayinda';
