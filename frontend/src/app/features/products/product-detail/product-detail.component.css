@@ -267,3 +267,17 @@
    border-bottom: 1px solid #eee; /* İçerik başlığı altına çizgi */
    padding-bottom: 10px;
 }
+.review-rating .fa-star {
+  color: #ffc107;
+  margin-right: 2px;
+  font-size: 1em;
+}
+
+
+.review-rating .fa-regular {
+  font-weight: 400;
+}
+
+.review-rating .fa-solid {
+  font-weight: 900;
+}

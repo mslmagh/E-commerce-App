@@ -1,21 +1,21 @@
 // src/app/features/seller/orders/seller-order-list/seller-order-list.component.ts
 // SON HALİ (Gerekli importlar ve metodlar eklenmiş)
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // *ngIf, | date, | currency, [ngClass] için GEREKLİ
-import { Router, RouterLink } from '@angular/router'; // RouterLink GEREKLİ (eğer HTML'de varsa)
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // MatTableDataSource ve Modül GEREKLİ
-import { MatButtonModule } from '@angular/material/button'; // MatButtonModule GEREKLİ
-import { MatIconModule } from '@angular/material/icon'; // MatIconModule GEREKLİ
-import { MatTooltipModule } from '@angular/material/tooltip'; // MatTooltipModule GEREKLİ
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; // MatProgressSpinnerModule GEREKLİ
-import { MatCardModule } from '@angular/material/card'; // MatCardModule GEREKLİ (mesaj için)
-import { MatChipsModule } from '@angular/material/chips'; // MatChipsModule GEREKLİ
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'; // MatPaginatorModule GEREKLİ
-import { MatSort, MatSortModule } from '@angular/material/sort'; // MatSortModule GEREKLİ
-import { MatFormFieldModule } from '@angular/material/form-field'; // MatFormFieldModule GEREKLİ
-import { MatInputModule } from '@angular/material/input'; // MatInputModule GEREKLİ
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // MatSnackBarModule GEREKLİ
 
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core'; // ViewChild ve AfterViewInit eklendi
+import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router'; // RouterLink eklendi
+import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // MatTableDataSource eklendi
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'; // Paginator eklendi
+import { MatSort, MatSortModule } from '@angular/material/sort'; // Sort eklendi
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // Snackbar için
 // import { OrderService } from '../../../../core/services/order.service'; // Kendi sipariş servisinizi import edin
 
 // Sipariş listesi için model/interface

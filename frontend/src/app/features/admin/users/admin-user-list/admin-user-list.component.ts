@@ -1,5 +1,3 @@
-// src/app/features/admin/users/admin-user-list/admin-user-list.component.ts
-
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -11,43 +9,49 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Aktif/Pasif için
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'; // SlideToggleChange eklendi
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'; // Onay kutusu için (opsiyonel)
-import { FormsModule } from '@angular/forms'; // MatSlideToggle [(ngModel)] için
+// MatDialog ve ilgili component importları kaldırıldı
+// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+// import { AdminChangePasswordDialogComponent, ChangePasswordDialogData } from './admin-change-password-dialog/admin-change-password-dialog.component';
+import { FormsModule } from '@angular/forms';
 
-// import { AdminUserService } from '../../../../core/services/admin-user.service'; // Admin için ayrı bir servis olabilir
+// import { AdminUserService } from '../../../../core/services/admin-user.service';
 
-// Kullanıcı modeli
+// Kullanıcı modeli (Aynı)
 export interface AdminManagedUser {
   id: string | number;
   firstName: string;
   lastName: string;
   email: string;
   role: 'ADMIN' | 'SELLER' | 'MEMBER';
-  isActive: boolean; // true: Aktif, false: Yasaklı/Pasif
+  isActive: boolean;
   registrationDate: Date;
-  lastLogin?: Date; // Opsiyonel
+  lastLogin?: Date;
+
 }
 
 @Component({
   selector: 'app-admin-user-list',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, FormsModule, // FormsModule eklendi
+    CommonModule, RouterLink, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule,
-    MatSlideToggleModule, MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule
+    MatSlideToggleModule, MatProgressSpinnerModule, MatSnackBarModule
+    // MatDialogModule kaldırıldı
   ],
   templateUrl: './admin-user-list.component.html',
-  styles: [`
+  styles: [
+    // Stiller aynı kalabilir
+    `
     .user-list-container { padding: 20px; }
     .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
     .list-header h2 { margin: 0; font-size: 1.8em; font-weight: 500; flex-grow: 1; }
     .filter-field { width: 100%; max-width: 400px; }
     .user-table-container { overflow-x: auto; }
-    table.mat-mdc-table { width: 100%; min-width: 900px; /* Geniş tablo için min-width */ box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12); border-radius: 4px; margin-bottom: 16px; }
+    table.mat-mdc-table { width: 100%; min-width: 900px; box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12); border-radius: 4px; margin-bottom: 16px; }
     .mat-column-id { flex: 0 0 80px; }
     .mat-column-name { flex: 1 1 180px; }
     .mat-column-email { flex: 1 1 200px; }
@@ -58,18 +62,18 @@ export interface AdminManagedUser {
     .actions-cell button:not(:last-child) { margin-right: 5px; }
     .loading-spinner-container, .no-users-message { text-align: center; padding: 40px; }
     .role-chip { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 500; }
-    .role-admin { background-color: #ffebee; color: #b71c1c; } /* Kırmızı */
-    .role-seller { background-color: #e3f2fd; color: #0d47a1; } /* Mavi */
-    .role-member { background-color: #e8f5e9; color: #1b5e20; } /* Yeşil */
+    .role-admin { background-color: #ffebee; color: #b71c1c; }
+    .role-seller { background-color: #e3f2fd; color: #0d47a1; }
+    .role-member { background-color: #e8f5e9; color: #1b5e20; }
     ::ng-deep .mat-sort-header-container { display: flex !important; justify-content: center; }
     ::ng-deep th[style*="text-align: right"] .mat-sort-header-container { justify-content: flex-end !important; }
     ::ng-deep th[style*="text-align: left"] .mat-sort-header-container { justify-content: flex-start !important; }
-    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; } /* Pasif renk (pembe) */
-    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; } /* Aktif renk (yeşilimsi) */
-    /* Pasif durum için opaklık */
+    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; } /* Pasif renk */
+    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; } /* Aktif renk */
     tr.inactive-user { opacity: 0.6; background-color: #fafafa; }
     tr.inactive-user:hover { opacity: 0.8; }
-  `]
+    `
+  ]
 })
 export class AdminUserListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'registrationDate', 'isActive', 'actions'];
@@ -82,38 +86,30 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
   constructor(
     private router: Router,
     private snackBar: MatSnackBar,
-    public dialog: MatDialog, // Onay için dialog servisi
-    // private adminUserService: AdminUserService // Gerçek servis
+    // public dialog: MatDialog, // Dialog servisi kaldırıldı
+    // private adminUserService: AdminUserService
   ) {}
 
-  ngOnInit(): void {
-    this.loadUsers();
-  }
-
+  ngOnInit(): void { this.loadUsers(); }
   ngAfterViewInit(): void {
-    this.dataSourceMat.paginator = this.paginator;
-    this.dataSourceMat.sort = this.sort;
-     this.dataSourceMat.sortingDataAccessor = (item, property) => {
-        switch (property) {
-          case 'registrationDate': return item.registrationDate.getTime();
-          case 'name': return `${item.firstName} ${item.lastName}`; // Ad+Soyad'a göre sıralama
-          default: return (item as any)[property];
-        }
-     };
-     // Filtreleme için özel predicate (Ad+Soyad'a göre arama için)
-     this.dataSourceMat.filterPredicate = (data: AdminManagedUser, filter: string): boolean => {
-        const dataStr = `${data.id} ${data.firstName} ${data.lastName} ${data.email} ${data.role}`.toLowerCase();
-        return dataStr.includes(filter);
+      this.dataSourceMat.paginator = this.paginator;
+      this.dataSourceMat.sort = this.sort;
+      this.dataSourceMat.sortingDataAccessor = (item, property) => {
+          switch (property) {
+            case 'registrationDate': return item.registrationDate.getTime();
+            case 'name': return `${item.firstName} ${item.lastName}`;
+            default: return (item as any)[property];
+          }
+      };
+      this.dataSourceMat.filterPredicate = (data: AdminManagedUser, filter: string): boolean => {
+          const dataStr = `${data.id} ${data.firstName} ${data.lastName} ${data.email} ${data.role}`.toLowerCase();
+          return dataStr.includes(filter);
       };
   }
 
   loadUsers(): void {
     this.isLoading = true;
-    // TODO: Backend'den tüm kullanıcıları çek (AdminUserService)
-    // this.adminUserService.getAllUsers({ page: 0, size: 10, sort: 'registrationDate,desc' }).subscribe({ ... });
-
-    // Mock data
-    setTimeout(() => {
+    setTimeout(() => { // Simülasyon
       const mockUsers: AdminManagedUser[] = [
         { id: 101, firstName: 'Ali', lastName: 'Veli', email: 'ali.veli@email.com', role: 'MEMBER', isActive: true, registrationDate: new Date(2025, 3, 15) },
         { id: 102, firstName: 'Ayşe', lastName: 'Yılmaz', email: 'ayse.seller@shop.com', role: 'SELLER', isActive: true, registrationDate: new Date(2025, 4, 1) },
@@ -134,57 +130,89 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Kullanıcı Aktif/Pasif Durumunu Değiştirme
-  toggleUserStatus(user: AdminManagedUser, event: Event): void {
-    event.stopPropagation(); // Satıra tıklama olayını tetiklemesin
-    const newStatus = !user.isActive;
+  toggleUserStatus(user: AdminManagedUser, event: MatSlideToggleChange): void {
+    const newStatus = event.checked;
     const actionText = newStatus ? 'aktif etmek' : 'yasaklamak';
-
-    // Onay isteyelim (Basit confirm veya MatDialog)
     if (confirm(`${user.firstName} ${user.lastName} adlı kullanıcıyı ${actionText} istediğinizden emin misiniz?`)) {
-        console.log(`TODO: Backend call to ${actionText} user ${user.id}`);
-        this.isLoading = true; // Geçici olarak yükleme durumu
-        // this.adminUserService.setUserStatus(user.id, newStatus).subscribe({ ... });
-
-        // Simülasyon
-        setTimeout(() => {
-          const userIndex = this.dataSourceMat.data.findIndex(u => u.id === user.id);
-          if (userIndex > -1) {
-              // MatTableDataSource'un içindeki veriyi güncellemek için yeni bir referans oluşturmak en iyisi
-              const updatedData = [...this.dataSourceMat.data];
-              updatedData[userIndex] = { ...updatedData[userIndex], isActive: newStatus };
-              this.dataSourceMat.data = updatedData;
-
-              this.snackBar.open(`Kullanıcı ${actionText}ldi (Simülasyon).`, 'Tamam', { duration: 2000 });
-          }
-          this.isLoading = false;
-        }, 750);
+        console.log(`TODO: Backend call to set user ${user.id} status to ${newStatus}`);
+        this.updateUserStatusInBackend(user.id, newStatus, actionText, event.source); // source'u gönder
     } else {
-        // Eğer toggle'ı geri almak gerekiyorsa (kullanıcı iptal ettiyse)
-        // MatSlideToggle'ın [(ngModel)] kullanılması veya event.source ile yönetilmesi gerekebilir.
-        // Şimdilik basit tutuyoruz.
+        event.source.checked = !newStatus; // İptal edilirse toggle'ı geri al
         console.log('User status change cancelled.');
     }
   }
 
-  // Şifre Sıfırlama İsteği
-  resetPassword(user: AdminManagedUser, event: Event): void {
-     event.stopPropagation();
-     if (confirm(`${user.firstName} ${user.lastName} için şifre sıfırlama e-postası göndermek istediğinizden emin misiniz?`)) {
-         console.log(`TODO: Backend call to send password reset email for user ${user.id}`);
-         this.isLoading = true;
-         // this.adminUserService.sendPasswordReset(user.id).subscribe({...});
+  private updateUserStatusInBackend(userId: string | number, newStatus: boolean, actionText: string, toggleSource: any): void {
+    this.isLoading = true;
+    // this.adminUserService.setUserStatus(userId, newStatus).subscribe({
+    //   next: () => {
+    //      this.snackBar.open(`Kullanıcı başarıyla ${actionText}ldi.`, 'Tamam', { duration: 2000 });
+    //      // DataSource'u güncellemeye gerek yok, toggle zaten state'i yansıtıyor (eğer hata olmazsa)
+    //      this.isLoading = false;
+    //   },
+    //   error: (err) => {
+    //      console.error(`Error ${actionText}ing user:`, err);
+    //      this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu.`, 'Kapat', { duration: 3000 });
+    //      toggleSource.checked = !newStatus; // Hata olursa toggle'ı geri al
+    //      this.isLoading = false;
+    //   }
+    // });
 
-         // Simülasyon
-         setTimeout(() => {
-            this.snackBar.open('Şifre sıfırlama isteği gönderildi (Simülasyon).', 'Tamam', { duration: 3000 });
-            this.isLoading = false;
-         }, 1000);
+    // Simülasyon
+    setTimeout(() => {
+        this.snackBar.open(`Kullanıcı ${actionText}ldi (Simülasyon).`, 'Tamam', { duration: 2000 });
+        // Simülasyonda hata durumunu test etmek için:
+        // toggleSource.checked = !newStatus; // Hata olmuş gibi toggle'ı geri al
+        // this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
+        this.isLoading = false;
+      }, 750);
+  }
+
+  // Şifre Değiştirme Metodu (Dialog yerine prompt ile)
+  changePasswordDirectly(user: AdminManagedUser, event: Event): void {
+     event.stopPropagation();
+     const newPassword = prompt(`${user.firstName} ${user.lastName} (${user.email}) için YENİ ŞİFREYİ girin (en az 6 karakter):`);
+
+     if (newPassword && newPassword.trim().length >= 6) {
+         const confirmPassword = prompt('Yeni şifreyi TEKRAR girin:');
+         if (newPassword.trim() === confirmPassword?.trim()) {
+             // Şifreler eşleşti, backend'e gönder
+             this.sendNewPasswordToBackend(user.id, newPassword.trim());
+         } else if (confirmPassword !== null) {
+             alert('Girilen şifreler eşleşmiyor!');
+         } else {
+             // Kullanıcı ikinci prompt'u iptal etti
+             console.log('Password change cancelled at confirmation.');
+         }
+     } else if (newPassword !== null) {
+         alert('Geçersiz şifre. En az 6 karakter olmalı.');
+     } else {
+        // Kullanıcı ilk prompt'u iptal etti
+        console.log('Password change cancelled.');
      }
   }
 
-  // Rol etiketleri için CSS sınıfı
-  getRoleClass(role: AdminManagedUser['role']): string {
+  // Backend'e şifre değiştirme isteği gönderen metot (şimdilik simülasyon)
+  private sendNewPasswordToBackend(userId: string | number, newPass: string): void {
+      console.log(`TODO: Backend call to change password for user ${userId} to ${newPass}`);
+      this.isLoading = true; // Genel yükleme göstergesi
+      // this.adminUserService.changeUserPassword(userId, newPass).subscribe({ ... });
+
+      const snackRef = this.snackBar.open(`Kullanıcı ${userId} için şifre değiştirme isteği gönderiliyor...`);
+      setTimeout(() => { // Simülasyon
+           snackRef.dismiss();
+           this.snackBar.open(`Kullanıcı ${userId} şifresi değiştirildi (Simülasyon).`, 'Tamam', { duration: 3000 });
+           this.isLoading = false;
+        }, 1500);
+      // Hata simülasyonu:
+      // setTimeout(() => {
+      //      snackRef.dismiss();
+      //      this.snackBar.open(`Şifre değiştirilirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
+      //      this.isLoading = false;
+      //   }, 1500);
+  }
+
+  getRoleClass(role: AdminManagedUser['role']): string { /* ... Önceki gibi ... */
     switch (role) {
       case 'ADMIN': return 'role-admin';
       case 'SELLER': return 'role-seller';
@@ -193,9 +221,9 @@ export class AdminUserListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Satıra tıklandığında kullanıcı detayına git (opsiyonel)
-  viewUserDetails(user: AdminManagedUser): void {
+  UserDetails(user: AdminManagedUser): void {
     console.log('Navigating to user details for:', user.id);
-    // this.router.navigate(['/admin/users', user.id]); // Detay sayfası rotası
+    // Kullanıcı detay sayfasına yönlendirme
+    this.router.navigate(['/admin/users', user.id]);
   }
 }

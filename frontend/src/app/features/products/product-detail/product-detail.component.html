@@ -41,10 +41,7 @@
       </div>
 
       <div class="sidebar-column">
-        <div class="sidebar-box campaign-box">
-          <strong>Kampanyalar</strong>
-          <p>150 TL Üzeri Kargo Bedava!</p>
-        </div>
+
         <div class="sidebar-box seller-box">
           <strong>Satıcı: Örnek Satıcı</strong>
           <p>Puan: 9.5</p>
@@ -60,9 +57,7 @@
          <a class="tab-link"
             [class.active]="activeTab === 'reviews'"
             (click)="selectTab('reviews')">Değerlendirmeler</a>
-         <a class="tab-link"
-            [class.active]="activeTab === 'qa'"
-            (click)="selectTab('qa')">Soru & Cevap</a>
+
       </div>
 
       <div class="tab-content">
@@ -73,19 +68,69 @@
 
          <div *ngIf="activeTab === 'reviews'">
            <h3>Değerlendirmeler</h3>
-           <p>Henüz hiç değerlendirme yapılmamış.</p>
+
+           <div class="add-review-section" *ngIf="isLoggedIn">
+              <h4>Yeni Değerlendirme Bırakın</h4>
+              <div class="rating-input">
+                  <span>Puanınız:</span>
+                  <i *ngFor="let star of [1, 2, 3, 4, 5]; let i = index"
+                     class="fa-star star-icon"
+                     [class.fa-solid]="i < (hoveredRating || newReviewRating)"
+                     [class.fa-regular]="i >= (hoveredRating || newReviewRating)"
+                     (mouseover)="hoverRating(i + 1)"
+                     (mouseout)="hoverRating(0)"
+                     (click)="selectRating(i + 1)"
+                     title="{{ i + 1 }} Yıldız">
+                  </i>
+                  <span class="rating-value">({{ newReviewRating || 0 }}/5)</span>
+              </div>
+               <mat-form-field appearance="outline" style="width: 100%; margin-top: 15px;">
+                  <mat-label>Yorumunuz</mat-label>
+                  <textarea matInput rows="4" [(ngModel)]="newReviewComment" name="newReviewComment" required placeholder="Ürün hakkındaki düşüncelerinizi yazın..."></textarea>
+                   <mat-error *ngIf="newReviewComment.trim().length === 0 && newReviewComment !== ''">Yorum alanı boş bırakılamaz.</mat-error>
+              </mat-form-field>
+               <button mat-raised-button color="primary"
+                      (click)="submitReview()"
+                      [disabled]="!newReviewRating || newReviewComment.trim().length === 0">
+                   Değerlendirmeyi Gönder
+              </button>
+              <mat-divider style="margin-top: 30px; margin-bottom: 30px;"></mat-divider>
            </div>
 
-         <div *ngIf="activeTab === 'qa'">
-           <h3>Soru & Cevap</h3>
-           <p>Henüz hiç soru sorulmamış.</p>
+            <div class="login-to-review-message" *ngIf="!isLoggedIn">
+                <p>Değerlendirme yapmak için lütfen <a routerLink="/auth/login" [queryParams]="{ returnUrl: currentUrl }">giriş yapın</a>.</p>
+            </div>
+
+           <div class="existing-reviews-list">
+               <h4 *ngIf="reviews.length > 0">Ürün Değerlendirmeleri ({{ reviews.length }})</h4>
+                <h4 *ngIf="reviews.length === 0 && isLoggedIn">Henüz Hiç Değerlendirme Yapılmamış. İlk Değerlendirmeyi Siz Yapın!</h4>
+               <h4 *ngIf="reviews.length === 0 && !isLoggedIn">Bu ürüne henüz hiç değerlendirme yapılmamış.</h4>
+
+               <div class="review-item" *ngFor="let review of reviews">
+                   <div class="review-header">
+                       <span class="reviewer-name">{{ review.userName }}</span>
+                       <span class="review-date">{{ review.date | date:'dd.MM.yyyy' }}</span>
+                   </div>
+                   <div class="review-rating">
+                    <i *ngFor="let star of [1, 2, 3, 4, 5]; let i = index"
+                       class="fa-star" [class.fa-solid]="i < review.rating" [class.fa-regular]="i >= review.rating"> </i>
+                </div>
+                   <div class="review-comment">
+                       <p>{{ review.comment }}</p>
+                   </div>
+                   <mat-divider></mat-divider>
+               </div>
            </div>
+           </div>
+
+
       </div>
     </section> </div> </ng-container>
 
 <ng-template #loadingOrNotFound>
   <div class="loading-container">
-    <p>Ürün bilgisi yükleniyor veya ürün bulunamadı...</p>
-    <a routerLink="/" class="btn btn-secondary">Ana Sayfaya Dön</a>
+     <mat-progress-spinner *ngIf="isLoading" mode="indeterminate" diameter="50"></mat-progress-spinner>
+     <p *ngIf="!isLoading">Ürün bilgisi yükleniyor veya ürün bulunamadı...</p>
+     <a routerLink="/" class="btn btn-secondary" *ngIf="!isLoading">Ana Sayfaya Dön</a>
   </div>
 </ng-template>
