@@ -30,15 +30,23 @@ public class ProductDto {
     @Schema(description = "URL of the product image", example = "https://i.imgur.com/5yfRfJ2.jpeg")
     private String imageUrl;
 
-    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl) {
+    @Schema(description = "Average rating of the product", example = "4.50")
+    private BigDecimal averageRating;
+
+    @Schema(description = "Total number of reviews for the product", example = "120")
+    private Integer reviewCount;
+
+    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl, BigDecimal averageRating, Integer reviewCount) {
         this.imageUrl = imageUrl;
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
-        this.stockQuantity = stockQuantity; // <<<--- YENİ ATAMA
+        this.stockQuantity = stockQuantity;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
+        this.averageRating = averageRating;
+        this.reviewCount = reviewCount;
     }
     public ProductDto() {} // Default constructor
 
@@ -59,4 +67,8 @@ public class ProductDto {
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public BigDecimal getAverageRating() { return averageRating; }
+    public void setAverageRating(BigDecimal averageRating) { this.averageRating = averageRating; }
+    public Integer getReviewCount() { return reviewCount; }
+    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
 }

@@ -193,7 +193,9 @@ public class ProductService {
                 product.getStockQuantity(),
                 categoryId,
                 categoryName,
-                product.getImageUrl()
+                product.getImageUrl(),
+                product.getAverageRating(),
+                product.getReviewCount()
         );
     }
 }

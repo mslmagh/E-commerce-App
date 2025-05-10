@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Product } from '../../../core/services/product.service';
@@ -25,10 +25,20 @@ import { MatIconModule } from '@angular/material/icon';
      button[mat-flat-button]:hover { background-color: #e66000; }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnChanges {
   @Input() product!: Product;
   @Output() addToCartClick = new EventEmitter<Product>();
+
   constructor() { }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['product'] && this.product) {
+      console.log('ProductCardComponent - Product Data:', this.product);
+      console.log('Average Rating:', this.product.averageRating);
+      console.log('Review Count:', this.product.reviewCount);
+    }
+  }
+
   addToCart(): void {
     console.log('ProductCard: Emitting addToCartClick for:', this.product?.name);
     this.addToCartClick.emit(this.product);
