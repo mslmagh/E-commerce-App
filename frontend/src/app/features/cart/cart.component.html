@@ -1,85 +1,98 @@
 <div class="cart-page-container">
   <h2>Alışveriş Sepetim</h2>
 
-  <ng-container *ngIf="cartItems && cartItems.length > 0; else emptyCart">
+  <div *ngIf="isLoading && !currentCart" class="loading-spinner-container">
+    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+    <p>Sepet yükleniyor...</p>
+  </div>
 
-    <div class="cart-actions-top">
-      <button class="btn btn-danger btn-sm"
-              (click)="deleteSelectedItems()"
-              [disabled]="getSelectedItemsCount() === 0"
-              title="Seçili Ürünleri Sepetten Kaldır">
-        Seçilenleri Sil ({{ getSelectedItemsCount() }})
-      </button>
-      <button class="btn btn-outline-danger btn-sm"
-              (click)="clearCart()"
-              title="Tüm Sepeti Boşalt">
-        Tümünü Boşalt
-      </button>
-    </div>
+  <ng-container *ngIf="!isLoading || currentCart">
+    <ng-container *ngIf="currentCart && currentCart.items && currentCart.items.length > 0; else emptyCart">
+      <div class="cart-actions-top">
+        <button mat-stroked-button color="warn"
+                (click)="deleteSelectedItems()"
+                [disabled]="selectedItems.size === 0 || isLoading"
+                title="Seçili Ürünleri Sepetten Kaldır">
+          <mat-icon>delete_sweep</mat-icon> Seçilenleri Sil ({{ selectedItems.size }})
+        </button>
+        <button mat-stroked-button color="accent"
+                (click)="clearCart()"
+                [disabled]="isLoading"
+                title="Tüm Sepeti Boşalt">
+          <mat-icon>remove_shopping_cart</mat-icon> Tümünü Boşalt
+        </button>
+      </div>
 
-    <table class="cart-table">
-      <thead>
-        <tr>
-          <th class="select-col">
-            <input type="checkbox"
-                   [checked]="isAllSelected"
-                   (change)="onSelectAllChange($event)"
-                   [disabled]="cartItems.length === 0"
-                   title="Tümünü Seç / Seçimi Kaldır">
-          </th>
-          <th colspan="2">Ürün</th>
-          <th>Fiyat</th>
-          <th>Adet</th>
-          <th>Toplam</th>
-          <th>Sil</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of cartItems" class="cart-item-row">
-          <td class="select-col">
-            <input type="checkbox"
-                   [checked]="selectedItems.get(item.id)"
-                   (change)="onItemSelectChange(item, $event)">
-          </td>
-          <td class="item-image">
-            <a><img [src]="item.product?.imageUrl || 'https://via.placeholder.com/60x60?text=No+Image'" [alt]="item.product?.name || 'Ürün'"></a>
-          </td>
-          <td class="item-name">
-            <a>{{ item.product?.name || 'Ürün' }}</a>
-          </td>
-          <td class="item-price">
-            {{ item.price | currency:'TRY':'symbol':'1.0-0' }}
-          </td>
-          <td class="item-quantity">
-            <button class="btn-qty decrease-qty" (click)="decreaseQuantity(item)" [disabled]="item.quantity <= 1">-</button>
-            <span class="qty-value">{{ item.quantity }}</span>
-            <button class="btn-qty increase-qty" (click)="increaseQuantity(item)">+</button>
-          </td>
-          <td class="item-total">
-            {{ (item.price * item.quantity) | currency:'TRY':'symbol':'1.0-0' }}
-          </td>
-          <td class="item-remove">
-            <button class="remove-btn" (click)="removeFromCart(item)" title="Ürünü Kaldır">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th class="select-col">
+              <mat-checkbox [checked]="isAllSelected"
+                            (change)="onSelectAllChange($event)"
+                            [disabled]="!currentCart || !currentCart.items || currentCart.items.length === 0 || isLoading"
+                            title="Tümünü Seç / Seçimi Kaldır"></mat-checkbox>
+            </th>
+            <th colspan="2">Ürün</th>
+            <th>Birim Fiyat</th>
+            <th>Adet</th>
+            <th>Toplam</th>
+            <th>Sil</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of currentCart.items" class="cart-item-row" [class.item-updating]="itemUpdateInProgress.get(item.itemId)">
+            <td class="select-col">
+              <mat-checkbox [checked]="selectedItems.get(item.itemId)"
+                            [disabled]="itemUpdateInProgress.get(item.itemId) || isLoading"
+                            (change)="onItemSelectChange(item, $event)"></mat-checkbox>
+            </td>
+            <td class="item-image">
+              <!-- item.imageUrl gelince burası güncellenecek -->
+              <a><img [src]="'https://via.placeholder.com/60x60?text=' + item.productName.substring(0,10)" [alt]="item.productName"></a>
+            </td>
+            <td class="item-name">
+              <a>{{ item.productName }}</a>
+            </td>
+            <td class="item-price">
+              {{ item.unitPrice | currency:'TRY':'symbol':'1.2-2' }}
+            </td>
+            <td class="item-quantity">
+              <button mat-icon-button (click)="decreaseQuantity(item)" [disabled]="item.quantity <= 1 || itemUpdateInProgress.get(item.itemId) || isLoading" aria-label="Miktarı azalt">
+                <mat-icon>remove_circle_outline</mat-icon>
+              </button>
+              <span class="qty-value">{{ item.quantity }}</span>
+              <button mat-icon-button (click)="increaseQuantity(item)" [disabled]="itemUpdateInProgress.get(item.itemId) || isLoading" aria-label="Miktarı artır">
+                <mat-icon>add_circle_outline</mat-icon>
+              </button>
+              <mat-progress-spinner *ngIf="itemUpdateInProgress.get(item.itemId)" mode="indeterminate" diameter="20" strokeWidth="2"></mat-progress-spinner>
+            </td>
+            <td class="item-total">
+              {{ item.totalPrice | currency:'TRY':'symbol':'1.2-2' }}
+            </td>
+            <td class="item-remove">
+              <button mat-icon-button color="warn" (click)="removeFromCart(item)" [disabled]="itemUpdateInProgress.get(item.itemId) || isLoading" title="Ürünü Kaldır" aria-label="Ürünü kaldır">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-    <div class="cart-summary">
-      <h3>Sepet Özeti</h3>
-      <p>Toplam Tutar: <span class="total-price">{{ calculateTotalPrice() | currency:'TRY':'symbol':'1.0-0' }}</span></p>
-      <button class="checkout-btn btn btn-success" (click)="goToCheckout()">Siparişi Tamamla</button>
-    </div>
+      <div class="cart-summary">
+        <h3>Sepet Özeti</h3>
+        <p>Ara Toplam ({{ totalItemsInCart }} ürün): 
+            <span class="total-price">{{ grandTotal | currency:'TRY':'symbol':'1.2-2' }}</span>
+        </p>
+        <button mat-raised-button color="primary" (click)="goToCheckout()" [disabled]="isLoading">Siparişi Tamamla</button>
+      </div>
+    </ng-container>
 
+    <ng-template #emptyCart>
+      <div *ngIf="!isLoading" class="empty-cart-message">
+        <mat-icon class="empty-cart-icon">shopping_cart_off</mat-icon>
+        <p>Sepetiniz şu anda boş.</p>
+        <a mat-stroked-button color="primary" routerLink="/">Alışverişe Başla</a>
+      </div>
+    </ng-template>
   </ng-container>
-
-  <ng-template #emptyCart>
-    <div class="empty-cart-message">
-      <p>Sepetiniz şu anda boş.</p>
-      <a routerLink="/" class="btn btn-primary">Alışverişe Başla</a>
-    </div>
-  </ng-template>
-
 </div>

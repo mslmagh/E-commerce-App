@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Observable, Subscription, map } from 'rxjs'; // Observable eklendi
+import { Observable, Subscription, map } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { CartService, CartItem } from '../../../core/services/cart.service';
+import { CartService } from '../../../core/services/cart.service';
+import { Cart } from '../../../core/models/cart.model';
 
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,8 +36,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router
   ) {
     this.isLoggedIn$ = this.authService.isLoggedIn$;
-    this.cartItemCount$ = this.cartService.cartItems$.pipe(
-      map((items: CartItem[]) => items.reduce((count, item) => count + item.quantity, 0)),
+    this.cartItemCount$ = this.cartService.cart$.pipe(
+      map((cart: Cart | null) => {
+        if (!cart || !cart.items) {
+          return 0;
+        }
+        return cart.items.reduce((count, item) => count + item.quantity, 0);
+      })
     );
   }
 

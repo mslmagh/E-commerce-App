@@ -9,6 +9,7 @@ import { AuthService } from '../../../core/services/auth.service'; // Yolunuzu k
 import { FavoritesService } from '../../../core/services/favorites.service'; // Yolunuzu kontrol edin
 import { Review, ReviewRequest, ReviewService } from '../../../core/services/review.service'; // Yeni eklenen
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { CartItemRequest } from '../../../core/models/cart-item-request.model'; // Import CartItemRequest
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -138,11 +139,36 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   addToCart(product: Product | undefined | null): void {
     if (product) {
+      // Stok kontrolü (Örnek: product.stockQuantity > 0 olmalı)
+      if (product.stockQuantity !== undefined && product.stockQuantity < 1) {
+        this.snackBar.open(`'${product.name}' stokta bulunmamaktadır!`, 'Kapat', {
+          duration: 3000, panelClass: ['warning-snackbar']
+        });
+        return;
+      }
+
       console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
-      this.cartService.addToCart(product);
-      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
-        duration: 2500, horizontalPosition: 'center', verticalPosition: 'bottom'
+      
+      const itemRequest: CartItemRequest = { 
+        productId: product.id,
+        quantity: 1 // Default quantity to add, can be dynamic if quantity input exists
+      };
+
+      this.cartService.addItem(itemRequest, product).subscribe({
+        next: (cart) => {
+          this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+            duration: 2500, horizontalPosition: 'center', verticalPosition: 'bottom'
+          });
+        },
+        error: (err) => {
+          console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+          this.snackBar.open(err.message || "Ürün sepete eklenemedi!", 'Kapat', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
+
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });

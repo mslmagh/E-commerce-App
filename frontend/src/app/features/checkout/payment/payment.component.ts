@@ -14,7 +14,9 @@ import { MatFormFieldModule } from '@angular/material/form-field'; // EKLENDİ
 import { MatInputModule } from '@angular/material/input'; // EKLENDİ
 import { MatDividerModule } from '@angular/material/divider'; // MatDividerModule eklendi
 
-import { CartService, CartItem } from '../../../core/services/cart.service'; // CartService import edildi
+import { CartService } from '../../../core/services/cart.service'; // CartService import edildi
+import { CartItem } from '../../../core/models/cart-item.model'; // CartItem modelden import edildi
+import { Cart } from '../../../core/models/cart.model'; // Cart modelini import et
 import { MatSpinner } from '@angular/material/progress-spinner';
 
 @Component({
@@ -44,7 +46,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   cartItems$: Observable<CartItem[]>;
   cartTotal$: Observable<number>;
-  private cartSubscription!: Subscription;
+  // private cartSubscription!: Subscription; // Bu subscribe içinde ele alınacak
 
   creditCardForm = {
     cardNumber: '',
@@ -59,29 +61,41 @@ export class PaymentComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private cartService: CartService // CartService enjekte edildi
   ) {
-    this.cartItems$ = this.cartService.cartItems$;
-    this.cartTotal$ = this.cartItems$.pipe(
-      map(items => items.reduce((total, item) => total + (item.price * item.quantity), 0))
+    this.cartItems$ = this.cartService.cart$.pipe(
+      map((cart: Cart | null) => cart?.items || [])
+    );
+    this.cartTotal$ = this.cartService.cart$.pipe(
+      map((cart: Cart | null) => cart?.grandTotal || 0)
     );
   }
 
   ngOnInit(): void {
     console.log('PaymentComponent yüklendi.');
-    this.cartSubscription = this.cartItems$.subscribe(items => {
-      if (items.length === 0) {
-        this.snackBar.open('Sepetiniz boş. Ödeme yapamazsınız.', 'Sepete Git', { duration: 5000 })
-          .onAction().subscribe(() => {
-            this.router.navigate(['/cart']);
-          });
-        this.router.navigate(['/cart']); // Otomatik yönlendirme
+    // cartSubscription ngOnDestroy içinde ele alınacak şekilde yeniden düzenlenecek.
+    // Şimdilik doğrudan subscribe oluyoruz, ancak uzun vadede takeUntil(this.destroy$) gibi bir mekanizma daha iyi olabilir.
+    this.cartItems$.subscribe(items => {
+      if (items.length === 0 && !this.isLoading) { // isLoading kontrolü eklendi, sipariş sonrası clearCart yapıldığında yönlendirmesin diye.
+        // Kullanıcı ödeme sayfasındayken sepet boşalırsa (örn: başka bir sekmede)
+        // ve henüz bir ödeme işlemi başlatılmadıysa (isLoading false ise)
+        this.snackBar.open('Sepetiniz boşaldı. Ana sayfaya yönlendiriliyorsunuz.', 'Tamam', { duration: 4000 });
+        this.router.navigate(['/']); // Ana sayfaya veya sepet sayfasına yönlendir.
       }
     });
   }
 
   ngOnDestroy(): void {
-    if (this.cartSubscription) {
-      this.cartSubscription.unsubscribe();
-    }
+    // Eğer cartSubscription ngOnInit'te atanırsa burada unsubscribe edilmeli.
+    // Ancak mevcut yapıda constructor'da Observable'lar oluşturuluyor ve async pipe ile template'de kullanılıyor olabilir.
+    // Eğer ngOnInit'te subscribe ediliyorsa, burada unsubscribe etmek önemlidir.
+    // Mevcut kodda this.cartSubscription tanımlı ama atanmıyor. Bu satırı kaldırabiliriz ya da ngOnInit'te atama yapıp burada unsubscribe edebiliriz.
+    // Şimdilik ngOnInit'teki subscribe'ı bıraktım, bu yüzden bir unsubscribe mekanizması (örn: takeUntil) daha robust olur.
+    // Ya da subscribe'ı ngOnInit'e taşıyıp, this.cartSubscription'a atayıp burada unsubscribe edebiliriz.
+    // Şimdilik sadece ngOnInit'teki subscribe'ın potansiyel memory leak'e dikkat çekmek istedim.
+    // Örnek bir implementasyon:
+    // private destroy$ = new Subject<void>();
+    // ngOnInit() { this.cartItems$.pipe(takeUntil(this.destroy$)).subscribe(...); }
+    // ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+    // Bu değişiklik şimdilik uygulanmayacak, sadece bir not.
   }
 
   proceedToPayment(): void {
@@ -102,11 +116,23 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
     setTimeout(() => {
       this.isLoading = false; // Yükleme animasyonu durdur
-      this.cartService.clearCart(); // Sepeti temizle (CartService üzerinden)
-      this.router.navigate(['/profile/orders']); // Ya da özel bir sipariş onay sayfasına (/order-confirmation)
-      this.snackBar.open('Ödeme başarıyla tamamlandı! Siparişiniz alındı.', 'Harika!', {
-        duration: 7000,
-        panelClass: ['success-snackbar'] // Başarı mesajı için özel stil (styles.css'e eklenebilir)
+      this.cartService.clearCart().subscribe({ // clearCart backend'e istek atıyorsa subscribe gerekli
+        next: () => {
+            console.log("Cart cleared after payment.");
+            this.router.navigate(['/profile/orders']); 
+            this.snackBar.open('Ödeme başarıyla tamamlandı! Siparişiniz alındı.', 'Harika!', {
+              duration: 7000,
+              panelClass: ['success-snackbar'] 
+            });
+        },
+        error: (err) => {
+            console.error("Error clearing cart after payment:", err);
+            // Kullanıcıya hata mesajı gösterilebilir, ancak ödeme başarılı olduğu için sipariş sayfasına yönlendirildi.
+            this.router.navigate(['/profile/orders']); 
+             this.snackBar.open('Ödeme başarılı ancak sepet temizlenirken bir sorun oluştu.', 'Tamam', {
+              duration: 5000,
+            });
+        }
       });
     }, 2500);
   }

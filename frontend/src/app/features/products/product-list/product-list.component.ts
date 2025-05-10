@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CategoryService } from '../../../core/services/category.service';
+import { CartItemRequest } from '../../../core/models/cart-item-request.model';
 
 @Component({
   selector: 'app-product-list',
@@ -117,12 +118,30 @@ export class ProductListComponent implements OnInit {
         return;
       }
       console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
-      this.cartService.addToCart(product);
-      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
-        duration: 2500,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom'
+      
+      const itemRequest: CartItemRequest = { 
+        productId: product.id,
+        quantity: 1 // Default quantity to add
+      };
+
+      // Call the updated CartService method
+      this.cartService.addItem(itemRequest, product).subscribe({
+        next: (cart) => {
+          this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+            duration: 2500,
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom'
+          });
+        },
+        error: (err) => {
+          console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+          this.snackBar.open(err.message || "Ürün sepete eklenemedi!", 'Kapat', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
+
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {

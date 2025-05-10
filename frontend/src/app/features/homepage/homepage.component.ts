@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Observable, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { CartItemRequest } from '../../core/models/cart-item-request.model';
 
 @Component({
   selector: 'app-homepage',
@@ -81,12 +82,36 @@ export class HomepageComponent implements OnInit {
         return;
       }
       console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
-      this.cartService.addToCart(product); // CartService güncellenmeli
-      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
-        duration: 2500,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom'
+      
+      const itemRequest: CartItemRequest = { 
+        productId: product.id,
+        quantity: 1 // Default quantity
+      };
+
+      // Call the updated CartService method
+      this.cartService.addItem(itemRequest, product).subscribe({
+        next: (cart) => {
+          this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+            duration: 2500,
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom'
+          });
+        },
+        error: (err) => {
+          console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+          let errorMessage = "Ürün sepete eklenemedi!";
+          if (err && err.error && err.error.message) {
+            errorMessage = err.error.message;
+          } else if (err && err.message) {
+            errorMessage = err.message;
+          }
+          this.snackBar.open(errorMessage, 'Kapat', {
+            duration: 3500,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
+
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {

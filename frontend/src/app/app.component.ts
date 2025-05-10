@@ -34,7 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (state.event === 'login') {
         // User logged in - sync local data to API
         console.log('AppComponent: User logged in, syncing local data to API');
-        this.cartService.syncLocalCartWithApi();
+        // this.cartService.syncLocalCartWithApi(); // Method removed from CartService
         this.favoritesService.syncFavoritesWithApi();
       } else if (state.event === 'logout') {
         // User logged out - no action needed as local data will be loaded
