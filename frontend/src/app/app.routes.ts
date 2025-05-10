@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-
 import { HomepageComponent } from './features/homepage/homepage.component';
 import { adminGuard } from './core/guards/admin.guard';
+import { sellerGuard } from './core/guards/seller.guard';
 
 export const routes: Routes = [
   { path: '', component: HomepageComponent },
@@ -62,6 +62,6 @@ export const routes: Routes = [
   {
     path: 'seller',
     loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES),
-    canActivate: [authGuard]
+    canActivate: [authGuard, sellerGuard]
   }
 ];

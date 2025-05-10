@@ -150,6 +150,16 @@ public class ProductService {
          logger.info("Stock updated for Product ID: {}. New Stock: {}", productId, newStock);
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductDto> getProductsForCurrentSeller() {
+        User currentUser = getCurrentAuthenticatedUserEntity();
+        logger.debug("Fetching products for current seller: {}", currentUser.getUsername());
+        List<Product> products = productRepository.findBySellerUsername(currentUser.getUsername());
+        return products.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     private User getCurrentAuthenticatedUserEntity() {
          Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
          String username;

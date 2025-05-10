@@ -72,6 +72,22 @@ public class ProductController {
         return ResponseEntity.ok(productDto);
     }
 
+    @Operation(summary = "Get Products for Current Seller",
+               description = "Retrieves a list of products belonging to the currently authenticated seller.")
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products for the current seller",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden, user is not a seller")
+    })
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<List<ProductDto>> getMyProducts() {
+        List<ProductDto> products = productService.getProductsForCurrentSeller();
+        return ResponseEntity.ok(products);
+    }
+
     // CREATE Product
     @Operation(summary = "Create a New Product")
     @RequestBody(description = "Product data to create", required = true, content = @Content(schema = @Schema(implementation = ProductRequestDto.class))) // Use Save DTO

@@ -52,6 +52,14 @@ export class ProductService {
     );
   }
 
+  getMyProducts(): Observable<Product[]> {
+    console.log('ProductService: Fetching products for current seller from API...');
+    return this.httpClient.get<Product[]>(`${this.apiUrl}/my`).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products for current seller.`)),
+      catchError(this.handleError<Product[]>('getMyProducts', []))
+    );
+  }
+
   getProductById(id: number | string): Observable<Product | undefined> {
     const productId = typeof id === 'string' ? parseInt(id, 10) : id;
     if (isNaN(productId)) {
