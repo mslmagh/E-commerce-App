@@ -16,21 +16,26 @@
     <p style="margin-top: 10px;">Kullanıcılar Yükleniyor...</p>
   </div>
 
-  <div *ngIf="!isLoading && dataSourceMat.data.length === 0" class="no-users-message">
+  <div *ngIf="!isLoading && !dataSource.data.length && !error" class="no-users-message">
     <p>Gösterilecek kullanıcı bulunamadı.</p>
   </div>
 
-  <div *ngIf="!isLoading && dataSourceMat.data.length > 0" class="mat-elevation-z2 user-table-container">
-    <table mat-table [dataSource]="dataSourceMat" matSort class="user-table">
+  <div *ngIf="error" class="error-message">
+    <p>{{ error }}</p>
+    <button mat-raised-button color="warn" (click)="loadUsers()">Tekrar Dene</button>
+  </div>
+
+  <div *ngIf="!isLoading && dataSource.data.length > 0" class="mat-elevation-z2 user-table-container">
+    <table mat-table [dataSource]="dataSource" matSort class="user-table">
 
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
         <td mat-cell *matCellDef="let user"> {{user.id}} </td>
       </ng-container>
 
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header> Ad Soyad </th>
-        <td mat-cell *matCellDef="let user"> {{user.firstName}} {{user.lastName}} </td>
+      <ng-container matColumnDef="username">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Kullanıcı Adı </th>
+        <td mat-cell *matCellDef="let user"> {{user.username}} </td>
       </ng-container>
 
       <ng-container matColumnDef="email">
@@ -38,25 +43,21 @@
         <td mat-cell *matCellDef="let user" [matTooltip]="user.email"> {{user.email}} </td>
       </ng-container>
 
-      <ng-container matColumnDef="role">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Rol </th>
+      <ng-container matColumnDef="roles">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Roller </th>
         <td mat-cell *matCellDef="let user" style="text-align: center;">
-           <span class="role-chip" [ngClass]="getRoleClass(user.role)">{{user.role}}</span>
+           <span>{{getRolesAsString(user.roles)}}</span>
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="registrationDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header> Kayıt Tarihi </th>
-        <td mat-cell *matCellDef="let user"> {{user.registrationDate | date:'dd.MM.yyyy'}} </td>
-      </ng-container>
-
-      <ng-container matColumnDef="isActive">
+      <ng-container matColumnDef="enabled">
         <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Durum </th>
         <td mat-cell *matCellDef="let user" style="text-align: center;">
           <mat-slide-toggle
-              [checked]="user.isActive"
+              [checked]="user.enabled"
+              (click)="$event.stopPropagation()" 
               (change)="toggleUserStatus(user, $event)" color="primary"
-              matTooltip="{{ user.isActive ? 'Hesabı Yasakla' : 'Hesabı Aktifleştir' }}"
+              [matTooltip]="user.enabled ? 'Hesabı Devre Dışı Bırak' : 'Hesabı Aktifleştir'"
               aria-label="Kullanıcı aktiflik durumu">
           </mat-slide-toggle>
         </td>
@@ -67,7 +68,7 @@
         <td mat-cell *matCellDef="let user" class="actions-cell">
           <button mat-icon-button color="accent" (click)="changePasswordDirectly(user, $event)" matTooltip="Şifre Değiştir"> <mat-icon>key</mat-icon>
           </button>
-          <button mat-icon-button color="primary" (click)="UserDetails(user)" matTooltip="Kullanıcı Detayları/Düzenle">
+          <button mat-icon-button color="primary" (click)="navigateToDetail(user.id)" matTooltip="Kullanıcı Detayları/Düzenle">
             <mat-icon>visibility</mat-icon>
           </button>
         </td>
@@ -75,7 +76,7 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-          (click)="UserDetails(row)" [class.inactive-user]="!row.isActive" style="cursor: pointer;"></tr>
+          (click)="navigateToDetail(row.id)" [class.inactive-user]="!row.enabled" style="cursor: pointer;"></tr>
 
        <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="text-align: center; padding: 20px;">

@@ -120,7 +120,9 @@ public class UserFavoriteService {
             product.getStockQuantity(),
             categoryId,
             categoryName,
-            product.getImageUrl()
+            product.getImageUrl(),
+            null,
+            0
         );
     }
 

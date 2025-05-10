@@ -2,25 +2,28 @@ package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.AdminUserViewDto;
 import com.example.ecommerce.dto.UserRoleUpdateRequestDto;
-import com.example.ecommerce.dto.UserStatusUpdateRequestDto;
 import com.example.ecommerce.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -29,7 +32,9 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminUserController.class);
     private final UserService userService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public AdminUserController(UserService userService) {
@@ -87,7 +92,7 @@ public class AdminUserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User account status updated successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminUserViewDto.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid request data (e.g., enabled status is null)"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data (e.g., malformed JSON, or enabled status missing/invalid when parsed manually)"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "User not found")
@@ -95,8 +100,33 @@ public class AdminUserController {
     @PutMapping("/{userId}/status")
     public ResponseEntity<AdminUserViewDto> updateUserStatus(
             @Parameter(description = "ID of the user whose status is to be updated", required = true) @PathVariable Long userId,
-            @Valid @RequestBody UserStatusUpdateRequestDto statusUpdateRequestDto) {
-        AdminUserViewDto updatedUser = userService.updateUserEnabledStatus(userId, statusUpdateRequestDto.isEnabled());
-        return ResponseEntity.ok(updatedUser);
+            @org.springframework.web.bind.annotation.RequestBody String requestBodyString) throws JsonProcessingException {
+
+        logger.info("[Controller-TEST] Entered updateUserStatus for user ID: {}. Raw Request Body String: {}", userId, requestBodyString);
+        AdminUserViewDto updatedUser = null;
+        boolean manuallyParsedEnabledValue = false;
+
+        try {
+            Map<String, Object> bodyMap = objectMapper.readValue(requestBodyString, Map.class);
+            
+            if (bodyMap.containsKey("enabled") && bodyMap.get("enabled") instanceof Boolean) {
+                manuallyParsedEnabledValue = (Boolean) bodyMap.get("enabled");
+                logger.info("[Controller-TEST] Manually parsed 'enabled' value: {} for user ID: {}", manuallyParsedEnabledValue, userId);
+            } else {
+                logger.warn("[Controller-TEST] 'enabled' field not found in request body, not a boolean, or request body is not a valid JSON object. Body: {}. Setting enabled to false by default.", requestBodyString);
+            }
+            
+            updatedUser = userService.updateUserEnabledStatus(userId, manuallyParsedEnabledValue);
+            logger.info("[Controller-TEST] Successfully called service with manually parsed value ({}) for user ID: {}", manuallyParsedEnabledValue, userId);
+            return ResponseEntity.ok(updatedUser);
+
+        } catch (JsonProcessingException e_json) {
+            logger.error("[Controller-TEST] JSON PARSING EXCEPTION for user ID: {}. Body String: '{}', Exception Type: {}, Exception Message: {}", 
+                         userId, requestBodyString, e_json.getClass().getName(), e_json.getMessage());
+            throw e_json;
+        } catch (Exception e) {
+            logger.error("[Controller-TEST] GENERAL EXCEPTION (non-JSON parsing) for user ID: {}. Body String: '{}', Exception: ", userId, requestBodyString, e);
+            throw e;
+        }
     }
 }

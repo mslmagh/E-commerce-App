@@ -1,28 +1,29 @@
 package com.example.ecommerce.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "DTO for updating a user's account status (enabled/disabled) by an admin")
 public class UserStatusUpdateRequestDto {
 
     @Schema(description = "The new enabled status for the user account (true for enabled, false for disabled)",
             requiredMode = Schema.RequiredMode.REQUIRED, example = "true")
-    @NotNull(message = "Enabled status cannot be null")
-    private Boolean enabled; // Wrapper Boolean for @NotNull to work as expected
+    @JsonProperty("enabled")
+    private boolean enabled;
 
     public UserStatusUpdateRequestDto() {
+        // Primitive boolean zaten varsayılan olarak false olur.
     }
 
-    public UserStatusUpdateRequestDto(Boolean enabled) {
+    public UserStatusUpdateRequestDto(boolean enabled) {
         this.enabled = enabled;
     }
 
-    public Boolean isEnabled() { // Getter for Boolean type
+    public boolean getEnabled() {
         return enabled;
     }
 
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 }

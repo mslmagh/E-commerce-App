@@ -10,7 +10,7 @@ export const adminGuard: CanActivateFn = (route, state): boolean | UrlTree => {
 
   console.log('AdminGuard: Checking access. User Role:', userRole);
 
-  if (authService.isLoggedIn() && userRole === 'ADMIN') {
+  if (authService.isLoggedIn() && userRole === 'ROLE_ADMIN') {
     console.log('AdminGuard: Access granted.');
     return true; // Giriş yapmış ve rolü ADMIN ise izin ver
   } else {
