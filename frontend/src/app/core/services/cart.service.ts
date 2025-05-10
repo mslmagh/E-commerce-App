@@ -1,5 +1,5 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, map, tap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, tap, throwError, of } from 'rxjs';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Product } from './product.service';
 import { environment } from '../../../environment';
@@ -247,14 +247,23 @@ export class CartService {
 
   clearCart(): Observable<Cart | null> { 
     if (this.authService.isLoggedIn()) {
-        console.warn("CartService.clearCart() for API user: Backend endpoint for clearing cart is missing. Simulating local clear.");
-        const oldCart = this.getCurrentCartValue();
-        this.cartSource.next(null);
-        return new Observable<Cart|null>(observer => { observer.next(null); observer.complete(); });
+      return this.http.delete<Cart>(`${this.apiUrl}/items`, this.getHttpOptions()).pipe(
+        tap(emptyCart => { 
+          console.log('CartService: Cart cleared via API', emptyCart);
+          this.cartSource.next(emptyCart); 
+        }),
+        catchError(error => {
+          console.error('Error clearing cart via API', error);
+          return throwError(() => new Error('Failed to clear cart on server. ' + (error.error?.message || error.message)));
+        })
+      );
     } else {
-      this.cartSource.next(null);
-      this.saveCartToLocalStorage(null);
-      return new Observable<Cart|null>(observer => { observer.next(null); observer.complete(); });
+      // For anonymous users, clear local storage
+      if (this.isBrowser) {
+        localStorage.removeItem('anonymousCart');
+      }
+      this.cartSource.next(null); // Update the BehaviorSubject
+      return of(null); // Return an observable that completes
     }
   }
 

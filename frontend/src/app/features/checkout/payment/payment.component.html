@@ -7,8 +7,8 @@
         <div class="order-summary">
           <h3>Sipariş Özeti</h3>
           <div class="summary-item" *ngFor="let item of cartItems">
-            <span>{{ item.product?.name || 'Ürün' }} (x{{ item.quantity }})</span>
-            <span>{{ (item.price * item.quantity) | currency:'TRY':'symbol':'1.0-0' }}</span>
+            <span>{{ item.productName || 'Ürün' }} (x{{ item.quantity }})</span>
+            <span>{{ item.totalPrice | currency:'TRY':'symbol':'1.0-0' }}</span>
           </div>
           <mat-divider></mat-divider>
           <div class="summary-total">
