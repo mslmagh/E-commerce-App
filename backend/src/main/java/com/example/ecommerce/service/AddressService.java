@@ -7,7 +7,10 @@ import com.example.ecommerce.entity.User;
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.repository.AddressRepository;
 import com.example.ecommerce.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,13 +23,16 @@ import java.util.stream.Collectors;
 @Service
 public class AddressService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AddressService.class);
+
     @Autowired private AddressRepository addressRepository;
     @Autowired private UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<AddressDto> getAddressesForCurrentUser() {
         User currentUser = getCurrentAuthenticatedUserEntity();
-        return addressRepository.findByUserId(currentUser.getId())
+        // Only return active addresses
+        return addressRepository.findByUserIdAndActiveTrue(currentUser.getId())
                 .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -38,6 +44,7 @@ public class AddressService {
         Address address = new Address();
         mapDtoToEntity(requestDto, address); // Use renamed DTO
         address.setUser(currentUser);
+        address.setActive(true); // Set as active by default
         Address savedAddress = addressRepository.save(address);
         return convertToDto(savedAddress);
     }
@@ -46,6 +53,10 @@ public class AddressService {
     public AddressDto getAddressByIdForCurrentUser(Long addressId) {
         User currentUser = getCurrentAuthenticatedUserEntity();
         Address address = findAddressByIdAndCheckOwnership(addressId, currentUser);
+        // Check if address is active
+        if (!address.isActive()) {
+            throw new ResourceNotFoundException("Address not found with id: " + addressId);
+        }
         return convertToDto(address);
     }
 
@@ -53,6 +64,10 @@ public class AddressService {
     public AddressDto updateAddressForCurrentUser(Long addressId, AddressRequestDto requestDto) { // Use AddressRequestDto
         User currentUser = getCurrentAuthenticatedUserEntity();
         Address existingAddress = findAddressByIdAndCheckOwnership(addressId, currentUser);
+        // Check if address is active
+        if (!existingAddress.isActive()) {
+            throw new ResourceNotFoundException("Address not found with id: " + addressId);
+        }
         mapDtoToEntity(requestDto, existingAddress); // Use renamed DTO
         Address updatedAddress = addressRepository.save(existingAddress);
         return convertToDto(updatedAddress);
@@ -60,9 +75,21 @@ public class AddressService {
 
     @Transactional
     public void deleteAddressForCurrentUser(Long addressId) {
-        User currentUser = getCurrentAuthenticatedUserEntity();
-        Address address = findAddressByIdAndCheckOwnership(addressId, currentUser);
-        addressRepository.delete(address);
+        try {
+            User currentUser = getCurrentAuthenticatedUserEntity();
+            Address address = findAddressByIdAndCheckOwnership(addressId, currentUser);
+            
+            logger.info("Soft deleting address with ID: {} for user: {}", addressId, currentUser.getUsername());
+            
+            // Instead of physically deleting, mark as inactive
+            address.setActive(false);
+            addressRepository.save(address);
+            
+            logger.info("Successfully soft deleted (deactivated) address with ID: {}", addressId);
+        } catch (Exception e) {
+            logger.error("Error while soft deleting address with ID: {}", addressId, e);
+            throw e; // Rethrow the exception for global exception handler to handle
+        }
     }
 
     // --- Helper Methods ---
@@ -106,7 +133,8 @@ public class AddressService {
                 address.getCity(),
                 address.getPostalCode(),
                 address.getAddressText(),
-                (address.getUser() != null) ? address.getUser().getId() : null
+                (address.getUser() != null) ? address.getUser().getId() : null,
+                address.isActive()
         );
     }
 }

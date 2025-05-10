@@ -34,6 +34,15 @@ public class User implements UserDetails {
     @Column(unique = true, length = 80) // Specify length for email
     private String email;
 
+    @Column(length = 50)
+    private String firstName;
+
+    @Column(length = 50)
+    private String lastName;
+
+    @Column(length = 20) // Consider if it should be unique
+    private String phoneNumber;
+
     // ===> YENİ ALAN: Vergi Numarası (Sadece Satıcılar için anlamlı) <===
     @Column(name = "tax_id", length = 20) // Tax ID, nullable, specify length
     private String taxId;
@@ -62,6 +71,12 @@ public class User implements UserDetails {
     public void setPassword(String password) { this.password = password; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
     public String getTaxId() { return taxId; } // Getter for taxId
     public void setTaxId(String taxId) { this.taxId = taxId; } // Setter for taxId
     @Override public boolean isEnabled() { return enabled; } // From UserDetails

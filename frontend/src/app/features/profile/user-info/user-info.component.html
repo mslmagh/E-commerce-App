@@ -4,7 +4,14 @@
       <mat-card-title>Üyelik Bilgilerim</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="userInfoForm" (ngSubmit)="updateUserInfo()">
+      <div *ngIf="isLoadingProfile" class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+      </div>
+      <div *ngIf="profileError && !isLoadingProfile" class="error-message">
+        <p>{{ profileError }}</p>
+        <button mat-stroked-button (click)="loadUserInfo()">Tekrar Dene</button>
+      </div>
+      <form *ngIf="!isLoadingProfile && !profileError" [formGroup]="userInfoForm" (ngSubmit)="updateUserInfo()">
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>Ad</mat-label>
@@ -20,13 +27,27 @@
         <mat-form-field appearance="outline">
           <mat-label>E-posta</mat-label>
           <input matInput formControlName="email" required type="email">
-          </mat-form-field>
+          <!-- E-posta alanı genellikle backend'den geldiği gibi gösterilir ve düzenlenemez -->
+          <!-- <mat-error *ngIf="email?.errors?.['required']">E-posta zorunludur</mat-error> -->
+          <!-- <mat-error *ngIf="email?.errors?.['email']">Geçersiz e-posta formatı</mat-error> -->
+        </mat-form-field>
         <mat-form-field appearance="outline">
             <mat-label>Cep Telefonu</mat-label>
-            <input matInput formControlName="phone" required type="tel" placeholder="5xxxxxxxxx">
-             <mat-error *ngIf="phone?.errors?.['required']">Telefon zorunludur</mat-error>
-             <mat-error *ngIf="phone?.errors?.['pattern']">Geçersiz telefon formatı</mat-error>
+            <input matInput formControlName="phoneNumber" required type="tel" placeholder="5xxxxxxxxx">
+             <mat-error *ngIf="phoneNumber?.errors?.['required']">Telefon zorunludur</mat-error>
+             <!-- <mat-error *ngIf="phoneNumber?.errors?.['pattern']">Geçersiz telefon formatı</mat-error> -->
           </mat-form-field>
+
+        <!-- taxId alanı (Sadece satıcılar için) -->
+        <mat-form-field appearance="outline" *ngIf="isSeller">
+          <mat-label>Vergi Numarası</mat-label>
+          <input matInput formControlName="taxId" placeholder="Vergi kimlik numaranız">
+          <!-- İsteğe bağlı validasyonlar eklenebilir -->
+          <!-- <mat-error *ngIf="taxId?.errors?.['required']">Vergi numarası zorunludur</mat-error> -->
+        </mat-form-field>
+        
+        <!-- Doğum tarihi alanları kaldırıldı -->
+        <!-- 
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>Doğum Tarihi (Gün)</mat-label>
@@ -50,7 +71,9 @@
              <mat-error *ngIf="dobYear?.errors?.['required']">Yıl zorunludur</mat-error>
           </mat-form-field>
         </div>
-        <button mat-flat-button color="primary" type="submit" [disabled]="userInfoForm.invalid || !userInfoForm.dirty">
+        -->
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="userInfoForm.invalid || !userInfoForm.dirty || isLoadingProfile || isUpdatingProfile">
           Bilgileri Güncelle
         </button>
       </form>
@@ -75,7 +98,8 @@
           <input matInput formControlName="newPassword" required type="password">
            <mat-error *ngIf="newPassword?.invalid && (newPassword?.dirty || newPassword?.touched)">
               <span *ngIf="newPassword?.errors?.['required']">Yeni şifre zorunludur.</span>
-              </mat-error>
+              <span *ngIf="newPassword?.errors?.['minlength']">Şifre en az 6 karakter olmalıdır.</span>
+            </mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Yeni Şifre (Tekrar)</mat-label>

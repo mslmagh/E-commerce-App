@@ -25,6 +25,9 @@ public class Address {
     @Column(nullable = false, length = 255)
     private String addressText; // Full address details
 
+    @Column(nullable = false)
+    private boolean active = true; // Default to active when created
+
     // Relationship to User
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -45,4 +48,6 @@ public class Address {
     public void setAddressText(String addressText) { this.addressText = addressText; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }

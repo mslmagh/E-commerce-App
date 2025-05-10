@@ -9,10 +9,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { AddressService, Address, AddressRequest } from '../../../core/services/address.service';
+import { AddressService } from '../../../core/services/address.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../../environment';
+import { AddressDto } from '../../../core/models/dto/address.dto';
+import { AddressRequestDto } from '../../../core/models/dto/address-request.dto';
 
 @Component({
   selector: 'app-address-form',
@@ -80,7 +81,7 @@ export class AddressFormComponent implements OnInit {
   error: string | null = null;
   formSubmitted = false;
   showDebug = false; // Set to true to show debug info in UI
-  originalAddress: Address | null = null;
+  originalAddress: AddressDto | null = null;
   apiUrl = environment.apiUrl; // Make apiUrl accessible in template
 
   constructor(
@@ -90,8 +91,7 @@ export class AddressFormComponent implements OnInit {
     private router: Router,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private authService: AuthService,
-    private http: HttpClient  // Inject HttpClient for direct requests
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
@@ -198,7 +198,7 @@ export class AddressFormComponent implements OnInit {
       return;
     }
 
-    const addressData: AddressRequest = this.addressForm.value;
+    const addressData: AddressRequestDto = this.addressForm.value;
 
     for (const [key, value] of Object.entries(addressData)) {
       if (value === null || value === undefined || String(value).trim() === '') {
@@ -213,11 +213,30 @@ export class AddressFormComponent implements OnInit {
     this.error = null;
 
     if (this.isEditMode && this.addressId) {
-      this.updateAddressDirectly(this.addressId, addressData);
+      this.addressService.updateAddress(this.addressId, addressData).subscribe({
+        next: (response) => {
+          console.log('Address update successful via service:', response);
+          this.isSubmitting = false;
+          this.snackBar.open('Adres başarıyla güncellendi.', 'Tamam', { 
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+          this.router.navigate(['/profile/addresses']);
+        },
+        error: (err) => { 
+          console.error('Error updating address via service:', err);
+          this.isSubmitting = false;
+          this.error = err.message || 'Adres güncellenirken bir hata oluştu.';
+          this.snackBar.open(this.error ?? 'Adres güncellenirken bir sorun oluştu. Lütfen tekrar deneyin.', 'Kapat', {
+            duration: 7000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
     } else {
       this.addressService.createAddress(addressData).subscribe({
         next: (response) => {
-          console.log('Server response:', response);
+          console.log('Server response (create):', response);
           this.isSubmitting = false;
           this.snackBar.open('Yeni adres başarıyla eklendi.', 'Tamam', { 
             duration: 3000,
@@ -226,7 +245,7 @@ export class AddressFormComponent implements OnInit {
           this.router.navigate(['/profile/addresses']);
         },
         error: (err) => {
-          console.error('Error saving address:', err);
+          console.error('Error saving address (create):', err);
           this.isSubmitting = false;
           this.error = err.message || 'Adres kaydedilirken bir hata oluştu.';
           this.snackBar.open('Adres kaydedilirken bir hata oluştu. Detay: ' + this.error, 'Kapat', {
@@ -236,67 +255,6 @@ export class AddressFormComponent implements OnInit {
         }
       });
     }
-  }
-
-  updateAddressDirectly(id: number, addressData: AddressRequest): void {
-    const token = this.authService.getToken();
-    const apiUrl = `${environment.apiUrl}/my-addresses/${id}`;
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-    
-    const jsonData = JSON.stringify(addressData);
-    console.log(`[AddressForm] Attempting DIRECT update for address ${id}`);
-    console.log(`[AddressForm]   URL: ${apiUrl}`);
-    console.log(`[AddressForm]   Request Headers:`, headers.keys().map(key => `${key}: ${headers.get(key)}`));
-    console.log(`[AddressForm]   Request Body (JSON string):`, jsonData);
-    console.log(`[AddressForm]   Request Body (object):`, addressData); // Log the object one last time
-    
-    this.http.put<Address>(apiUrl, jsonData, { headers, observe: 'response' }).subscribe({
-      next: (response) => {
-        console.log('[AddressForm] Direct update successful. Full response:', response);
-        this.isSubmitting = false;
-        this.snackBar.open('Adres başarıyla güncellendi.', 'Tamam', { 
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        this.router.navigate(['/profile/addresses']);
-      },
-      error: (err: HttpErrorResponse) => {
-        console.error('[AddressForm] DIRECT update HTTP error object:', err);
-        this.isSubmitting = false;
-        
-        let userFriendlyMessage = 'Adres güncellenirken bir hata oluştu.';
-        if (err.error) {
-          console.error('[AddressForm] Backend error response body (from DIRECT update):', JSON.stringify(err.error, null, 2));
-          if (typeof err.error === 'string') {
-            userFriendlyMessage = err.error;
-          } else if (err.error.message && typeof err.error.message === 'string') {
-            userFriendlyMessage = err.error.message;
-          } else if (err.error.detail && typeof err.error.detail === 'string') {
-            userFriendlyMessage = err.error.detail;
-          } else if (Array.isArray(err.error.errors)) {
-            const validationErrors = err.error.errors.map((e: any) => e.defaultMessage || JSON.stringify(e)).join(', ');
-            userFriendlyMessage = `Doğrulama hataları: ${validationErrors}`;
-          } else if (typeof err.error === 'object') {
-            const messages = Object.values(err.error).filter(v => typeof v === 'string');
-            if (messages.length > 0) userFriendlyMessage = messages.join(', ');
-          }
-        } else {
-          console.error('[AddressForm] No error.error body in HttpErrorResponse from DIRECT update.');
-        }
-
-        if (err.status === 400 && userFriendlyMessage === 'Adres güncellenirken bir hata oluştu.') {
-            userFriendlyMessage = 'Gönderilen bilgilerde hata var. Lütfen tüm alanları kontrol edin.';
-        } else if (err.status === 0) {
-            userFriendlyMessage = 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.';
-        }
-
-        this.error = userFriendlyMessage; // Set the component's error property for display
-        this.snackBar.open(userFriendlyMessage, 'Kapat', { duration: 7000 });
-      }
-    });
   }
 
   cancel(): void {

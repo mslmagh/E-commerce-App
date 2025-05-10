@@ -1,6 +1,8 @@
 package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.AdminUserViewDto;
+import com.example.ecommerce.dto.UserProfileDto;
+import com.example.ecommerce.dto.UpdateUserProfileRequestDto;
 import com.example.ecommerce.entity.Role;
 import com.example.ecommerce.entity.User;
 import com.example.ecommerce.exception.ResourceNotFoundException;
@@ -9,6 +11,8 @@ import com.example.ecommerce.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 // import org.springframework.security.crypto.password.PasswordEncoder; // İleride şifre reset için
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,45 @@ public class UserService {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         // this.passwordEncoder = passwordEncoder; // İleride şifre reset için
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileDto getCurrentUserProfile() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        return convertToUserProfileDto(user);
+    }
+
+    @Transactional
+    public UserProfileDto updateCurrentUserProfile(UpdateUserProfileRequestDto requestDto) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        user.setFirstName(requestDto.getFirstName());
+        user.setLastName(requestDto.getLastName());
+        user.setPhoneNumber(requestDto.getPhoneNumber());
+
+        // Update taxId only if the user is a seller and the taxId is provided in the request
+        // The DTO allows taxId to be null, so we check for that too.
+        boolean isSeller = user.getRoles().stream().anyMatch(role -> "ROLE_SELLER".equals(role.getName()));
+        if (isSeller) {
+            // If taxId is explicitly provided in the DTO (even if it's an empty string to clear it),
+            // update it. If it's null in the DTO, it means no change was intended by the client for this field.
+            if (requestDto.getTaxId() != null) { 
+                user.setTaxId(StringUtils.hasText(requestDto.getTaxId()) ? requestDto.getTaxId() : null);
+            }
+        } else {
+            // If user is not a seller, ensure taxId is null to prevent non-sellers from having one.
+            user.setTaxId(null);
+        }
+
+        User updatedUser = userRepository.save(user);
+        logger.info("User profile updated for user: {}", username);
+        return convertToUserProfileDto(updatedUser);
     }
 
     @Transactional(readOnly = true)
@@ -95,6 +138,22 @@ public class UserService {
                 user.isEnabled(),
                 roleNames,
                 user.getTaxId()
+        );
+    }
+
+    private UserProfileDto convertToUserProfileDto(User user) {
+        Set<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+        return new UserProfileDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getTaxId(),
+                roleNames
         );
     }
 }

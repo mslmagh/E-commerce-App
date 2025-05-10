@@ -1,4 +1,3 @@
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -9,6 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { ProfileService } from '../../../core/services/profile.service';
+import { UserProfile } from '../../../core/models/user-profile.model';
+import { UpdateUserProfileRequest } from '../../../core/models/update-user-profile-request.model';
 
 @Component({
   selector: 'app-user-info',
@@ -22,7 +26,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     MatButtonModule,
     MatSelectModule,
     MatDividerModule,
-    MatSnackBarModule // Gerekli tüm modüller burada
+    MatSnackBarModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './user-info.component.html',
   styles: [`
@@ -68,31 +73,157 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
       margin-top: -15px; /* Şifre Tekrar alanına yaklaştır */
       margin-bottom: 15px;
     }
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
   `]
 })
 export class UserInfoComponent implements OnInit {
   userInfoForm!: FormGroup;
   passwordChangeForm!: FormGroup;
-  days: number[] = Array.from({length: 31}, (_, i) => i + 1);
-  months: {value: number, viewValue: string}[] = [
-    {value: 1, viewValue: 'Ocak'}, {value: 2, viewValue: 'Şubat'}, {value: 3, viewValue: 'Mart'},
-    {value: 4, viewValue: 'Nisan'}, {value: 5, viewValue: 'Mayıs'}, {value: 6, viewValue: 'Haziran'},
-    {value: 7, viewValue: 'Temmuz'}, {value: 8, viewValue: 'Ağustos'}, {value: 9, viewValue: 'Eylül'},
-    {value: 10, viewValue: 'Ekim'}, {value: 11, viewValue: 'Kasım'}, {value: 12, viewValue: 'Aralık'}
-  ];
-  years: number[] = Array.from({length: 100}, (_, i) => new Date().getFullYear() - i - 18);
+  
+  currentUserProfile: UserProfile | null = null;
+  isLoadingProfile = false;
+  profileError: string | null = null;
+  isUpdatingProfile = false;
 
   constructor(
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private profileService: ProfileService
   ) { }
 
-  ngOnInit(): void { this.initUserInfoForm(); this.initPasswordChangeForm(); this.loadUserInfo(); }
-  initUserInfoForm(): void { this.userInfoForm = new FormGroup({ email: new FormControl({ value: '', disabled: true }, Validators.required), firstName: new FormControl('', Validators.required), lastName: new FormControl('', Validators.required), phone: new FormControl('', Validators.required), dobDay: new FormControl('', Validators.required), dobMonth: new FormControl('', Validators.required), dobYear: new FormControl('', Validators.required) }); }
-  initPasswordChangeForm(): void { this.passwordChangeForm = new FormGroup({ currentPassword: new FormControl('', Validators.required), newPassword: new FormControl('', [Validators.required]), confirmNewPassword: new FormControl('', Validators.required) }, { validators: this.passwordsMatchValidator }); }
-  loadUserInfo(): void { const mockUser = { email: 'arda@ornek.com', firstName: 'Arda', lastName: 'Akıncı', phone: '5551234567', dobDay: 15, dobMonth: 6, dobYear: 1995 }; this.userInfoForm.patchValue(mockUser); }
-  passwordsMatchValidator(control: AbstractControl): ValidationErrors | null { const password = control.get('newPassword'); const confirmPassword = control.get('confirmNewPassword'); if (!password || !confirmPassword || !password.value || !confirmPassword.value) { return null; } return password.value === confirmPassword.value ? null : { passwordsDontMatch: true }; };
-  updateUserInfo(): void { if (this.userInfoForm.invalid) { this.userInfoForm.markAllAsTouched(); this.snackBar.open('Lütfen üyelik bilgilerindeki hataları düzeltin.', 'Kapat', { duration: 3000 }); return; } console.log('Updating User Info:', this.userInfoForm.getRawValue()); this.snackBar.open('Üyelik bilgileri güncellendi (Simülasyon).', 'Tamam', { duration: 3000 }); }
-  updatePassword(): void { if (this.passwordChangeForm.invalid) { this.passwordChangeForm.markAllAsTouched(); this.snackBar.open('Lütfen şifre güncelleme formundaki hataları düzeltin.', 'Kapat', { duration: 3000 }); return; } console.log('Updating Password Data:', { currentPassword: this.passwordChangeForm.value.currentPassword, newPassword: this.passwordChangeForm.value.newPassword }); this.snackBar.open('Şifre güncellendi (Simülasyon).', 'Tamam', { duration: 3000 }); this.passwordChangeForm.reset(); }
-  get firstName() { return this.userInfoForm.get('firstName'); } get lastName() { return this.userInfoForm.get('lastName'); } get phone() { return this.userInfoForm.get('phone'); } get dobDay() { return this.userInfoForm.get('dobDay'); } get dobMonth() { return this.userInfoForm.get('dobMonth'); } get dobYear() { return this.userInfoForm.get('dobYear'); }
-  get currentPassword() { return this.passwordChangeForm.get('currentPassword'); } get newPassword() { return this.passwordChangeForm.get('newPassword'); } get confirmNewPassword() { return this.passwordChangeForm.get('confirmNewPassword'); }
+  ngOnInit(): void {
+    this.initUserInfoForm();
+    this.initPasswordChangeForm();
+    this.loadUserInfo();
+  }
+
+  initUserInfoForm(): void {
+    this.userInfoForm = new FormGroup({
+      email: new FormControl({ value: '', disabled: true }, [Validators.required, Validators.email]),
+      firstName: new FormControl('', Validators.required),
+      lastName: new FormControl('', Validators.required),
+      phoneNumber: new FormControl('', Validators.required),
+      taxId: new FormControl('')
+    });
+  }
+
+  initPasswordChangeForm(): void {
+    this.passwordChangeForm = new FormGroup({
+      currentPassword: new FormControl('', Validators.required),
+      newPassword: new FormControl('', [Validators.required, Validators.minLength(6)]),
+      confirmNewPassword: new FormControl('', Validators.required)
+    }, { validators: this.passwordsMatchValidator });
+  }
+
+  loadUserInfo(): void {
+    this.isLoadingProfile = true;
+    this.profileError = null;
+    this.profileService.getCurrentUserProfile().subscribe({
+      next: (profile: UserProfile) => {
+        this.currentUserProfile = profile;
+        this.userInfoForm.patchValue({
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          phoneNumber: profile.phoneNumber,
+          taxId: profile.taxId
+        });
+        this.isLoadingProfile = false;
+      },
+      error: (err) => {
+        console.error('Error loading user profile:', err);
+        this.profileError = err.message || 'Profil bilgileri yüklenirken bir hata oluştu.';
+        this.snackBar.open(this.profileError!, 'Kapat', { duration: 5000 });
+        this.isLoadingProfile = false;
+      }
+    });
+  }
+
+  passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.get('newPassword');
+    const confirmPassword = control.get('confirmNewPassword');
+    if (!password || !confirmPassword || !password.value || !confirmPassword.value) {
+      return null;
+    }
+    return password.value === confirmPassword.value ? null : { passwordsDontMatch: true };
+  };
+
+  updateUserInfo(): void {
+    if (this.userInfoForm.invalid) {
+      this.userInfoForm.markAllAsTouched();
+      this.snackBar.open('Lütfen üyelik bilgilerindeki hataları düzeltin.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    if (!this.userInfoForm.dirty) {
+        this.snackBar.open('Değişiklik yapılmadı.', 'Kapat', { duration: 3000 });
+        return;
+    }
+
+    this.isUpdatingProfile = true;
+    const rawValue = this.userInfoForm.getRawValue();
+    const requestData: UpdateUserProfileRequest = {
+      firstName: rawValue.firstName,
+      lastName: rawValue.lastName,
+      phoneNumber: rawValue.phoneNumber
+    };
+
+    // Only include taxId if the user is a seller
+    if (this.isSeller) {
+      requestData.taxId = rawValue.taxId;
+    }
+
+    this.profileService.updateCurrentUserProfile(requestData).subscribe({
+      next: (updatedProfile) => {
+        this.currentUserProfile = updatedProfile; // Update local profile data
+        this.userInfoForm.patchValue({
+            email: updatedProfile.email, // Email is not updated but good to keep form consistent
+            firstName: updatedProfile.firstName,
+            lastName: updatedProfile.lastName,
+            phoneNumber: updatedProfile.phoneNumber,
+            taxId: updatedProfile.taxId
+        });
+        this.userInfoForm.markAsPristine(); // Reset dirty state after successful update
+        this.snackBar.open('Üyelik bilgileri başarıyla güncellendi.', 'Tamam', { duration: 4000 });
+        this.isUpdatingProfile = false;
+      },
+      error: (err) => {
+        console.error('Error updating user profile:', err);
+        this.snackBar.open(err.message || 'Profil güncellenirken bir hata oluştu.', 'Kapat', { duration: 5000 });
+        this.isUpdatingProfile = false;
+      }
+    });
+  }
+
+  updatePassword(): void {
+    if (this.passwordChangeForm.invalid) {
+      this.passwordChangeForm.markAllAsTouched();
+      this.snackBar.open('Lütfen şifre güncelleme formundaki hataları düzeltin.', 'Kapat', { duration: 3000 });
+      return;
+    }
+    console.log('Updating Password Data:', {
+      currentPassword: this.passwordChangeForm.value.currentPassword,
+      newPassword: this.passwordChangeForm.value.newPassword
+    });
+    this.snackBar.open('Şifre güncellendi (Simülasyon - Backend entegrasyonu gerekiyor).', 'Tamam', { duration: 4000 });
+    this.passwordChangeForm.reset();
+  }
+
+  get email() { return this.userInfoForm.get('email'); }
+  get firstName() { return this.userInfoForm.get('firstName'); }
+  get lastName() { return this.userInfoForm.get('lastName'); }
+  get phoneNumber() { return this.userInfoForm.get('phoneNumber'); }
+  get taxId() { return this.userInfoForm.get('taxId'); }
+
+  get currentPassword() { return this.passwordChangeForm.get('currentPassword'); }
+  get newPassword() { return this.passwordChangeForm.get('newPassword'); }
+  get confirmNewPassword() { return this.passwordChangeForm.get('confirmNewPassword'); }
+
+  get isSeller(): boolean {
+    return !!this.currentUserProfile && this.currentUserProfile.roles.includes('ROLE_SELLER');
+  }
 }

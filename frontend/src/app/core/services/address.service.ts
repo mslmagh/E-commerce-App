@@ -3,25 +3,8 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Observable, catchError, throwError, tap } from 'rxjs';
 import { environment } from '../../../environment';
 import { AuthService } from './auth.service';
-
-// This must match exactly what the backend expects
-export interface AddressRequest {
-  phoneNumber: string;
-  country: string;
-  city: string;
-  postalCode: string;
-  addressText: string;
-}
-
-export interface Address {
-  id: number;
-  userId: number;
-  phoneNumber: string;
-  country: string;
-  city: string;
-  postalCode: string;
-  addressText: string;
-}
+import { AddressDto } from '../models/dto/address.dto';
+import { AddressRequestDto } from '../models/dto/address-request.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -45,38 +28,40 @@ export class AddressService {
     };
   }
 
-  getUserAddresses(): Observable<Address[]> {
+  getUserAddresses(): Observable<AddressDto[]> {
     console.log('AddressService: Fetching user addresses from API');
-    return this.http.get<Address[]>(this.apiUrl, this.getHttpOptions()).pipe(
+    return this.http.get<AddressDto[]>(this.apiUrl, this.getHttpOptions()).pipe(
       tap(addresses => console.log(`AddressService: Fetched ${addresses.length} addresses`)),
-      catchError(this.handleError<Address[]>('getUserAddresses', []))
+      catchError(this.handleError<AddressDto[]>('getUserAddresses', []))
     );
   }
 
-  getAddressById(id: number): Observable<Address> {
+  getAddressById(id: number): Observable<AddressDto> {
     console.log(`AddressService: Fetching address with ID: ${id}`);
-    return this.http.get<Address>(`${this.apiUrl}/${id}`, this.getHttpOptions()).pipe(
+    return this.http.get<AddressDto>(`${this.apiUrl}/${id}`, this.getHttpOptions()).pipe(
       tap(address => console.log(`AddressService: Fetched address for ID ${id}:`, address)),
-      catchError(this.handleError<Address>(`getAddressById id=${id}`))
+      catchError(this.handleError<AddressDto>(`getAddressById id=${id}`))
     );
   }
 
-  createAddress(address: AddressRequest): Observable<Address> {
+  createAddress(address: AddressRequestDto): Observable<AddressDto> {
     console.log('AddressService: Creating new address', address);
     const formattedAddress = this.formatAddressRequest(address);
     console.log('AddressService: Formatted address for API (create):', formattedAddress);
-    return this.http.post<Address>(this.apiUrl, formattedAddress, this.getHttpOptions()).pipe(
+    console.log('AddressService: JSON payload:', JSON.stringify(formattedAddress));
+    return this.http.post<AddressDto>(this.apiUrl, formattedAddress, this.getHttpOptions()).pipe(
       tap(newAddress => console.log(`AddressService: Created new address with ID: ${newAddress.id}`)),
       catchError(error => this.handleGenericError(error, 'createAddress'))
     );
   }
 
-  updateAddress(id: number, address: AddressRequest): Observable<Address> {
+  updateAddress(id: number, address: AddressRequestDto): Observable<AddressDto> {
     console.log(`AddressService: Updating address with ID: ${id}`, address);
     const formattedAddress = this.formatAddressRequest(address);
     console.log(`AddressService: Formatted address for API (update ID: ${id}):`, formattedAddress);
+    console.log('AddressService: JSON payload:', JSON.stringify(formattedAddress));
     const updateUrl = `${this.apiUrl}/${id}`;
-    return this.http.put<Address>(updateUrl, formattedAddress, this.getHttpOptions()).pipe(
+    return this.http.put<AddressDto>(updateUrl, formattedAddress, this.getHttpOptions()).pipe(
       tap(updatedAddress => console.log(`AddressService: Updated address with ID: ${id}`, updatedAddress)),
       catchError(error => this.handleGenericError(error, `updateAddress id=${id}`))
     );
@@ -90,7 +75,7 @@ export class AddressService {
     );
   }
 
-  private formatAddressRequest(address: AddressRequest): AddressRequest {
+  private formatAddressRequest(address: AddressRequestDto): AddressRequestDto {
     return {
       phoneNumber: address.phoneNumber?.trim() || '',
       country: address.country?.trim() || '',

@@ -8,7 +8,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule, MatDialogConfig } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AddressService, Address } from '../../../core/services/address.service';
+import { AddressService } from '../../../core/services/address.service';
+import { AddressDto } from '../../../core/models/dto/address.dto';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -110,7 +111,7 @@ import { AuthService } from '../../../core/services/auth.service';
   `]
 })
 export class AddressListComponent implements OnInit {
-  addresses: Address[] = [];
+  addresses: AddressDto[] = [];
   isLoading = true;
   error = false;
   errorMessage = '';
@@ -185,7 +186,7 @@ export class AddressListComponent implements OnInit {
     this.router.navigate(['/profile/address-form']);
   }
 
-  editAddress(address: Address): void {
+  editAddress(address: AddressDto): void {
     if (!this.authService.isLoggedIn()) {
       this.snackBar.open('Adres düzenlemek için giriş yapmalısınız.', 'Giriş Yap', {
         duration: 5000,
@@ -199,7 +200,7 @@ export class AddressListComponent implements OnInit {
     this.router.navigate(['/profile/address-form', address.id]);
   }
 
-  deleteAddress(address: Address): void {
+  deleteAddress(address: AddressDto): void {
     if (!this.authService.isLoggedIn()) {
       this.snackBar.open('Adres silmek için giriş yapmalısınız.', 'Giriş Yap', {
         duration: 5000,
@@ -218,7 +219,7 @@ export class AddressListComponent implements OnInit {
     if (confirm(confirmMessage)) {
       this.deleteInProgress = true;
       
-      this.addressService.deleteAddress(address.id).subscribe({
+      this.addressService.deleteAddress(address.id!).subscribe({
         next: () => {
           this.deleteInProgress = false;
           this.snackBar.open('Adres başarıyla silindi.', 'Tamam', {
