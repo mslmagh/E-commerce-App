@@ -1,5 +1,4 @@
-
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core'; // ViewChild ve AfterViewInit eklendi
+import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core'; // inject eklendi
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router'; // RouterLink eklendi
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // MatTableDataSource eklendi
@@ -14,15 +13,34 @@ import { MatSort, MatSortModule } from '@angular/material/sort'; // Sort eklendi
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // Snackbar için
+import { EMPTY, Observable } from 'rxjs'; // EMPTY ve Observable eklendi
+import { catchError, map, tap } from 'rxjs/operators'; // rxjs operatörleri eklendi
+
+// OrderService ve DTO'lar import edildi
+import { OrderService, BackendOrderDto } from '../../../../core/services/order.service';
 
 export interface SellerOrder {
   orderId: string;
   orderDate: Date;
   customerName: string; // Veya customerId
   totalAmount: number;
-  status: 'Yeni Sipariş' | 'Hazırlanıyor' | 'Kargoya Verildi' | 'Teslim Edildi' | 'İptal Edildi' | 'İade Edildi';
+  status: 'Yeni Sipariş' | 'Hazırlanıyor' | 'Kargoya Verildi' | 'Teslim Edildi' | 'İptal Edildi' | 'İade Bekliyor' | 'İade Edildi'; // 'İade Bekliyor' eklendi
   itemCount: number; // Siparişteki ürün sayısı
 }
+
+// Backend status'lerini frontend status'lerine map'lemek için helper
+const orderStatusMap: { [key: string]: SellerOrder['status'] } = {
+  PENDING: 'Yeni Sipariş',
+  CONFIRMED: 'Yeni Sipariş', // Veya 'Onaylandı' gibi ayrı bir durum
+  PROCESSING: 'Hazırlanıyor',
+  PREPARING: 'Hazırlanıyor',
+  SHIPPED: 'Kargoya Verildi',
+  DELIVERED: 'Teslim Edildi',
+  CANCELLED: 'İptal Edildi',
+  REFUND_PENDING: 'İade Bekliyor',
+  REFUNDED: 'İade Edildi',
+  // Backend'den gelebilecek diğer statüler buraya eklenebilir
+};
 
 @Component({
   selector: 'app-seller-order-list',
@@ -56,6 +74,7 @@ export interface SellerOrder {
     .status-kargoya-verildi { background-color: #E0F2F1; color: #00695C; }
     .status-teslim-edildi { background-color: #C8E6C9; color: #2E7D32; }
     .status-iptal-edildi { background-color: #FFCDD2; color: #C62828; }
+    .status-iade-bekliyor { background-color: #FFCCBC; color: #D84315; } /* Turuncu tonu */
     .status-iade-edildi { background-color: #D1C4E9; color: #4527A0; }
      /* Tablo hücrelerinde içeriğin taşmasını engelle */
      .mat-mdc-cell, .mat-mdc-header-cell {
@@ -77,10 +96,12 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(
-    private router: Router,
-    private snackBar: MatSnackBar // Snackbar inject edildi
-  ) {}
+  // Servisler inject edildi
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private orderService = inject(OrderService);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadOrders();
@@ -99,19 +120,37 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
 
   loadOrders(): void {
     this.isLoading = true;
-    setTimeout(() => { // Simülasyon
-      const mockData: SellerOrder[] = [
-        {orderId: 'ORD-001', orderDate: new Date(2025, 4, 6, 10, 30), customerName: 'Ali Veli Uzunİsimlioğlu', itemCount: 2, totalAmount: 570.99, status: 'Yeni Sipariş'},
-        {orderId: 'ORD-002', orderDate: new Date(2025, 4, 5, 15, 0), customerName: 'Ayşe Yılmaz', itemCount: 1, totalAmount: 120.00, status: 'Hazırlanıyor'},
-        {orderId: 'ORD-003', orderDate: new Date(2025, 4, 5, 9, 15), customerName: 'Mehmet Öztürk', itemCount: 3, totalAmount: 1250.50, status: 'Kargoya Verildi'},
-        {orderId: 'ORD-004', orderDate: new Date(2025, 4, 3, 11, 45), customerName: 'Fatma Kaya', itemCount: 1, totalAmount: 75.00, status: 'Teslim Edildi'},
-        {orderId: 'ORD-005', orderDate: new Date(2025, 4, 2, 18, 20), customerName: 'Hasan Demir', itemCount: 5, totalAmount: 850.00, status: 'İptal Edildi'},
-        {orderId: 'ORD-006', orderDate: new Date(2025, 4, 7, 8, 0), customerName: 'Zeynep Can', itemCount: 1, totalAmount: 300.00, status: 'Yeni Sipariş'},
-        {orderId: 'ORD-007', orderDate: new Date(2025, 4, 7, 11, 10), customerName: 'Mustafa Şahin', itemCount: 4, totalAmount: 980.00, status: 'Hazırlanıyor'},
-      ];
-      this.dataSourceMat.data = mockData;
-      this.isLoading = false;
-    }, 1000);
+    this.orderService.getOrdersForSeller().pipe(
+      map((backendOrders: BackendOrderDto[]): SellerOrder[] => {
+        return backendOrders.map(bo => {
+          const frontendStatus = orderStatusMap[bo.status.toUpperCase()] || bo.status as SellerOrder['status']; // Eşleşme yoksa orijinal status
+          return {
+            orderId: bo.id.toString(),
+            orderDate: new Date(bo.orderDate),
+            customerName: bo.customerUsername,
+            totalAmount: bo.totalAmount,
+            status: frontendStatus,
+            itemCount: bo.items.length
+          };
+        });
+      }),
+      tap(mappedOrders => {
+        this.dataSourceMat.data = mappedOrders;
+        this.isLoading = false;
+        if (!mappedOrders || mappedOrders.length === 0) {
+          this.snackBar.open('Henüz hiç siparişiniz bulunmuyor.', 'Tamam', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        this.isLoading = false;
+        console.error('Error loading seller orders:', error);
+        this.snackBar.open(`Siparişler yüklenirken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+        return EMPTY; // Hata durumunda observable'ı sonlandır
+      })
+    ).subscribe();
   }
 
   applyFilter(event: Event): void {
@@ -135,7 +174,8 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
       case 'Kargoya Verildi': return 'status-kargoya-verildi';
       case 'Teslim Edildi': return 'status-teslim-edildi';
       case 'İptal Edildi': return 'status-iptal-edildi';
-      case 'İade Edildi': return 'status-iade-edildi'; // İade durumu eklendi
+      case 'İade Bekliyor': return 'status-iade-bekliyor';
+      case 'İade Edildi': return 'status-iade-edildi';
       default: return '';
     }
   }

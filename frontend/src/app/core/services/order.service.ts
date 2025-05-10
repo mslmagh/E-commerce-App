@@ -57,6 +57,36 @@ export interface CancelOrderItemsRequest {
   reason: string;
 }
 
+export interface BackendOrderItemDto {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  priceAtPurchase: number;
+  imageUrl?: string;
+}
+
+export interface BackendAddressDto {
+  id: number;
+  street: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+}
+
+export interface BackendOrderDto {
+  id: number;
+  orderDate: string;
+  status: string;
+  totalAmount: number;
+  customerId: number;
+  customerUsername: string;
+  items: BackendOrderItemDto[];
+  shippingAddress: BackendAddressDto;
+  stripePaymentIntentId?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -69,7 +99,7 @@ export class OrderService {
   getUserOrders(): Observable<Order[]> {
     return this.http.get<Order[]>(this.apiUrl)
       .pipe(
-        catchError(this.handleError<Order[]>('getUserOrders'))
+        catchError(this.handleError<Order[]>('getUserOrders', []))
       );
   }
 
@@ -113,10 +143,17 @@ export class OrderService {
       );
   }
 
+  getOrdersForSeller(): Observable<BackendOrderDto[]> {
+    return this.http.get<BackendOrderDto[]>(`${this.apiUrl}/seller`)
+      .pipe(
+        catchError(this.handleError<BackendOrderDto[]>('getOrdersForSeller', []))
+      );
+  }
+
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
-      console.error(`${operation} failed: ${error.message}`);
-      return throwError(() => error);
+      console.error(`${operation} failed: ${JSON.stringify(error.error) || error.message}`);
+      return throwError(() => new Error(error.error?.message || `${operation} failed`));
     };
   }
 } 
