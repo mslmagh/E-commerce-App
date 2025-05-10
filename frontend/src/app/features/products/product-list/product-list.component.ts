@@ -9,7 +9,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CategoryService } from '../../../core/services/category.service';
+import { CategoryService, Category } from '../../../core/services/category.service';
 import { CartItemRequest } from '../../../core/models/cart-item-request.model';
 
 @Component({
@@ -41,51 +41,76 @@ export class ProductListComponent implements OnInit {
     private snackBar: MatSnackBar
   ) { }
 
+  generateSlug(name: string): string {
+    if (!name) return '';
+    const turkishMap: { [key: string]: string } = {
+      'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+      'Ç': 'C', 'Ğ': 'G', 'İ': 'I', 'Ö': 'O', 'Ş': 'S', 'Ü': 'U'
+    };
+
+    return name
+      .toLowerCase()
+      .replace(/[çğıöşüÇĞİÖŞÜ]/g, match => turkishMap[match] || match)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, '-')
+      .replace(/&/g, 've')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-');
+  }
+
   ngOnInit(): void {
     console.log('ProductListComponent ngOnInit');
     this.isLoading = true;
     this.products$ = this.route.paramMap.pipe(
       switchMap(params => {
-        const categorySlug = params.get('categorySlug');
-        console.log('ProductListComponent: categorySlug from route:', categorySlug);
+        const categorySlugFromRoute = params.get('categorySlug');
+        console.log('ProductListComponent: categorySlug from route:', categorySlugFromRoute);
         
-        if (categorySlug) {
-          this.categoryTitle = this.formatCategoryTitle(categorySlug);
+        if (categorySlugFromRoute) {
+          this.categoryTitle = this.formatCategoryTitle(categorySlugFromRoute); 
           
-          // Önce kategorileri getirerek slug'a göre filtreleme yapacağız
           return this.categoryService.getAllCategories().pipe(
-            switchMap(categories => {
-              // Slug'ı kategori adına (kebab-case'den normale) dönüştür ve eşleşen kategoriyi bul
+            switchMap((categories: Category[]) => {
               const category = categories.find(cat => 
-                cat.name.toLowerCase().replace(/\s+/g, '-') === categorySlug.toLowerCase()
+                this.generateSlug(cat.name) === categorySlugFromRoute.toLowerCase()
               );
               
               if (category) {
-                // Kategori ID'si ile ürünleri getir
+                this.categoryTitle = category.name; 
+                console.log(`ProductListComponent: Found category by slug: ${category.name}, ID: ${category.id}`);
                 return this.productService.getProductsByCategory(category.id).pipe(
                   tap(() => this.isLoading = false),
                   catchError(err => {
                     this.isLoading = false;
                     this.snackBar.open('Ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
-                    console.error(err);
+                    console.error('Error fetching products by category ID ' + category.id, err);
                     return of([]);
                   })
                 );
               } else {
-                // Kategori bulunamadıysa tüm ürünleri getir ve istemci tarafında filtreleme yap
+                console.warn(`ProductListComponent: Category not found for slug '${categorySlugFromRoute}'. Displaying all products or implementing specific logic.`);
+                this.categoryTitle = 'Kategori Bulunamadı';
+                this.isLoading = false;
                 return this.productService.getProducts().pipe(
                   map(products => products.filter(product => 
-                    product.categoryName?.toLowerCase().replace(/\s+/g, '-') === categorySlug.toLowerCase()
+                    product.categoryName ? this.generateSlug(product.categoryName) === categorySlugFromRoute.toLowerCase() : false
                   )),
                   tap(() => this.isLoading = false),
                   catchError(err => {
                     this.isLoading = false;
-                    this.snackBar.open('Ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
+                    this.snackBar.open('Ürünler yüklenirken hata oluştu (fallback).', 'Kapat', {duration: 3000});
                     console.error(err);
                     return of([]);
                   })
                 );
               }
+            }),
+            catchError(err => {
+                this.isLoading = false;
+                this.snackBar.open('Kategoriler yüklenirken bir hata oluştu.', 'Kapat', {duration: 3000});
+                console.error('Error fetching categories in ProductListComponent', err);
+                return of([]);
             })
           );
         } else {
@@ -94,7 +119,7 @@ export class ProductListComponent implements OnInit {
             tap(() => this.isLoading = false),
             catchError(err => {
               this.isLoading = false;
-              this.snackBar.open('Ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
+              this.snackBar.open('Tüm ürünler yüklenirken hata oluştu.', 'Kapat', {duration: 3000});
               console.error(err);
               return of([]);
             })
@@ -124,7 +149,6 @@ export class ProductListComponent implements OnInit {
         quantity: 1 // Default quantity to add
       };
 
-      // Call the updated CartService method
       this.cartService.addItem(itemRequest, product).subscribe({
         next: (cart) => {
           this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {

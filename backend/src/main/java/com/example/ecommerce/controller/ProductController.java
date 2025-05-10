@@ -37,12 +37,27 @@ public class ProductController {
         this.productService = productService;
     }
 
-    // GET All Products
-    @Operation(summary = "Get All Products", security = {}) // Override global security for public endpoints
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))) })
+    // GET All Products (Optionally filtered by categoryId)
+    @Operation(summary = "Get All Products",
+               description = "Retrieves a list of all products. Can be filtered by categoryId.",
+               security = {}) 
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))) 
+    })
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<ProductDto> products = productService.getAllProducts();
+    public ResponseEntity<List<ProductDto>> getAllProducts(
+            @Parameter(description = "Optional Category ID to filter products")
+            @RequestParam(required = false) Long categoryId) {
+        List<ProductDto> products;
+        if (categoryId != null) {
+            // Assuming ProductService has a method like getProductsByCategoryId
+            // If not, this will need to be created in ProductService
+            products = productService.getProductsByCategoryId(categoryId); 
+        } else {
+            products = productService.getAllProducts();
+        }
         return ResponseEntity.ok(products);
     }
 

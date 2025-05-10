@@ -6,17 +6,30 @@
 
   <section class="category-navbar-section mb-4">
     <nav class="category-nav">
-      <ul class="category-nav-list">
-        <li><a [routerLink]="['/products', 'category', 'kadin-giyim']" class="nav-link">Kadın</a></li>
-        <li><a [routerLink]="['/products', 'category', 'erkek-giyim']" class="nav-link">Erkek</a></li>
-        <li><a [routerLink]="['/products', 'category', 'anne-cocuk']" class="nav-link">Anne & Çocuk</a></li>
-        <li><a [routerLink]="['/products', 'category', 'ev-yasam']" class="nav-link">Ev & Yaşam</a></li>
-        <li><a [routerLink]="['/products', 'category', 'supermarket']" class="nav-link">Süpermarket</a></li>
-        <li><a [routerLink]="['/products', 'category', 'kozmetik']" class="nav-link">Kozmetik</a></li>
-        <li><a [routerLink]="['/products', 'category', 'ayakkabi-canta']" class="nav-link">Ayakkabı & Çanta</a></li>
-        <li><a [routerLink]="['/products', 'category', 'elektronik']" class="nav-link">Elektronik</a></li>
-        <li><a [routerLink]="['/products', 'category', 'cok-satanlar']" class="nav-link">Çok Satanlar <span class="badge new-badge">Yeni</span></a></li>
+      <ul class="category-nav-list" *ngIf="(displayedCategories$ | async) as categories; else categoryLoading">
+        <li *ngFor="let category of categories">
+          <a [routerLink]="['/products', 'category', generateSlug(category.name)]" class="nav-link">
+            {{ category.name }}
+          </a>
+        </li>
+        <!-- İsteğe bağlı olarak "Çok Satanlar" gibi özel linkler buraya eklenebilir -->
+        <!-- 
+        <li>
+          <a [routerLink]="['/products', 'featured', 'cok-satanlar']" class="nav-link">
+            Çok Satanlar <span class="badge new-badge">Yeni</span>
+          </a>
+        </li>
+        -->
       </ul>
+      <ng-template #categoryLoading>
+        <div *ngIf="isLoadingCategories" style="text-align: center; padding: 10px;">
+          <mat-progress-spinner mode="indeterminate" diameter="30" strokeWidth="3"></mat-progress-spinner>
+          <span style="margin-left: 10px; vertical-align: middle;">Kategoriler yükleniyor...</span>
+        </div>
+        <div *ngIf="!isLoadingCategories && !(displayedCategories$ | async)?.length">
+          <!-- Kategoriler yüklenemedi veya boş geldiğinde bir mesaj gösterilebilir -->
+        </div>
+      </ng-template>
     </nav>
   </section>
 

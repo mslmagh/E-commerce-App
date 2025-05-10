@@ -45,6 +45,21 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    public List<ProductDto> getProductsByCategoryId(Long categoryId) {
+        if (categoryId == null) {
+            // If categoryId is null, it might be better to return all products or handle as an error based on requirements.
+            // For now, returning all products if categoryId is null.
+            logger.debug("categoryId is null, returning all products.");
+            return getAllProducts(); 
+        }
+        logger.debug("Fetching products for category ID: {}", categoryId);
+        List<Product> products = productRepository.findByCategoryId(categoryId);
+        return products.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public ProductDto getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));

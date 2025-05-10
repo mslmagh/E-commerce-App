@@ -15,4 +15,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Custom query methods can be added here later if needed.
     // Example: List<Product> findByNameContainingIgnoreCase(String keyword);
     List<Product> findBySellerUsername(String username);
+    List<Product> findByCategoryId(Long categoryId);
 }
