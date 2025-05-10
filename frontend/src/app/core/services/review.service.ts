@@ -14,13 +14,26 @@ export interface Review {
   date: Date;
 }
 
+export interface UserReview extends Review {
+  productName: string;
+  productImageUrl?: string;
+}
+
 export interface ReviewRequest {
   rating: number;
   comment: string;
 }
 
-export interface ReviewPage {
+export interface ProductReviewPage {
   content: Review[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+export interface UserReviewPage {
+  content: UserReview[];
   totalElements: number;
   totalPages: number;
   size: number;
@@ -31,11 +44,12 @@ export interface ReviewPage {
   providedIn: 'root'
 })
 export class ReviewService {
-  private apiUrl = `${environment.apiUrl}/products`;
+  private productApiUrl = `${environment.apiUrl}/products`;
+  private reviewsApiUrl = `${environment.apiUrl}/reviews`;
 
   constructor(private http: HttpClient) { }
 
-  getProductReviews(productId: number, page: number = 0, size: number = 5): Observable<ReviewPage> {
+  getProductReviews(productId: number, page: number = 0, size: number = 5): Observable<ProductReviewPage> {
     console.log(`ReviewService: Fetching reviews for product ID: ${productId}`);
     
     let params = new HttpParams()
@@ -43,16 +57,43 @@ export class ReviewService {
       .set('size', size.toString())
       .set('sort', 'reviewDate,desc');
 
-    return this.http.get<ReviewPage>(`${this.apiUrl}/${productId}/reviews`, { params }).pipe(
+    return this.http.get<ProductReviewPage>(`${this.productApiUrl}/${productId}/reviews`, { params }).pipe(
+      map(pageData => ({
+        ...pageData,
+        content: pageData.content.map(review => ({
+          ...review,
+          date: new Date(review.date)
+        }))
+      })),
       tap(response => console.log(`ReviewService: Fetched ${response.content.length} reviews for product ID ${productId}`)),
-      catchError(this.handleError<ReviewPage>('getProductReviews'))
+      catchError(this.handleError<ProductReviewPage>('getProductReviews'))
+    );
+  }
+
+  getMyReviews(page: number = 0, size: number = 10): Observable<UserReviewPage> {
+    console.log(`ReviewService: Fetching current user's reviews`);
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+
+    return this.http.get<UserReviewPage>(`${this.reviewsApiUrl}/my`, { params }).pipe(
+      map(pageData => ({
+        ...pageData,
+        content: pageData.content.map(review => ({
+          ...review,
+          date: new Date(review.date)
+        }))
+      })),
+      tap(response => console.log(`ReviewService: Fetched ${response.content.length} reviews for current user.`)),
+      catchError(this.handleError<UserReviewPage>('getMyReviews'))
     );
   }
 
   createReview(productId: number, reviewData: ReviewRequest): Observable<Review> {
     console.log(`ReviewService: Creating review for product ID: ${productId}`, reviewData);
     
-    return this.http.post<Review>(`${this.apiUrl}/${productId}/reviews`, reviewData).pipe(
+    return this.http.post<Review>(`${this.productApiUrl}/${productId}/reviews`, reviewData).pipe(
+      map(review => ({ ...review, date: new Date(review.date) })),
       tap(review => console.log(`ReviewService: Created review with ID: ${review.id}`)),
       catchError(this.handleError<Review>('createReview'))
     );
@@ -61,7 +102,8 @@ export class ReviewService {
   updateReview(reviewId: number, reviewData: ReviewRequest): Observable<Review> {
     console.log(`ReviewService: Updating review ID: ${reviewId}`, reviewData);
     
-    return this.http.put<Review>(`${environment.apiUrl}/reviews/${reviewId}`, reviewData).pipe(
+    return this.http.put<Review>(`${this.reviewsApiUrl}/${reviewId}`, reviewData).pipe(
+      map(review => ({ ...review, date: new Date(review.date) })),
       tap(_ => console.log(`ReviewService: Updated review ID: ${reviewId}`)),
       catchError(this.handleError<Review>('updateReview'))
     );
@@ -70,7 +112,7 @@ export class ReviewService {
   deleteReview(reviewId: number): Observable<void> {
     console.log(`ReviewService: Deleting review ID: ${reviewId}`);
     
-    return this.http.delete<void>(`${environment.apiUrl}/reviews/${reviewId}`).pipe(
+    return this.http.delete<void>(`${this.reviewsApiUrl}/${reviewId}`).pipe(
       tap(_ => console.log(`ReviewService: Deleted review ID: ${reviewId}`)),
       catchError(this.handleError<void>('deleteReview'))
     );

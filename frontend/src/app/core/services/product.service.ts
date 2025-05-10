@@ -14,6 +14,7 @@ export interface Product {
   categoryName?: string;
   imageUrl?: string;
   averageRating?: number;
+  reviewCount?: number;
   sellerId?: number;
 }
 

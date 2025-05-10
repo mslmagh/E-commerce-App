@@ -62,6 +62,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   totalReviews: number = 0;
   totalReviewPages: number = 0;
 
+  // Düzenleme modu için değişkenler
+  editingReview: Review | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
@@ -259,47 +262,65 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   submitReview(): void {
-      if (!this.isLoggedIn) {
-          this.snackBar.open('Değerlendirme göndermek için lütfen giriş yapın.', 'Kapat', { duration: 3000 });
-          return;
-      }
-      if (this.newReviewRating === 0 || !this.newReviewComment.trim()) {
-           this.snackBar.open('Lütfen puan verin ve yorum yazın.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
-           return;
-      }
+    if (!this.isLoggedIn) {
+      this.snackBar.open('Değerlendirme göndermek için lütfen giriş yapın.', 'Kapat', { duration: 3000 });
+      return;
+    }
+    if (this.newReviewRating === 0 || !this.newReviewComment.trim()) {
+      this.snackBar.open('Lütfen puan verin ve yorum yazın.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
+      return;
+    }
 
-       let currentProductId: number | undefined;
-       this.product$.pipe(take(1)).subscribe(product => {
-           currentProductId = product?.id;
-       });
+    let currentProductId: number | undefined;
+    this.product$.pipe(take(1)).subscribe(product => {
+      currentProductId = product?.id;
+    });
 
-       if (!currentProductId) {
-            this.snackBar.open('Ürün bilgisi alınamadı, yorum gönderilemiyor.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
-            console.error('Cannot submit review: Product ID is missing.');
-            return;
-       }
+    if (!currentProductId) {
+      this.snackBar.open('Ürün bilgisi alınamadı, yorum gönderilemiyor.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+      console.error('Cannot submit review: Product ID is missing.');
+      return;
+    }
 
-      const reviewRequest: ReviewRequest = {
-          rating: this.newReviewRating,
-          comment: this.newReviewComment.trim()
-      };
+    const reviewRequest: ReviewRequest = {
+      rating: this.newReviewRating,
+      comment: this.newReviewComment.trim()
+    };
 
-      console.log('Submitting new review:', reviewRequest);
-
-      this.reviewService.createReview(currentProductId, reviewRequest).subscribe(
-        newReview => {
-          // Refresh reviews to show the new review
-          this.loadReviews(currentProductId!);
-          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
-          this.newReviewRating = 0;
-          this.newReviewComment = '';
-          this.hoveredRating = 0;
+    if (this.editingReview) {
+      // Düzenleme Modu
+      this.reviewService.updateReview(this.editingReview.id, reviewRequest).subscribe({
+        next: updatedReview => {
+          this.snackBar.open('Değerlendirmeniz başarıyla güncellendi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          this.resetReviewFormAndState();
+          if (currentProductId) this.loadReviews(currentProductId);
         },
-        error => {
-          console.error('Error submitting review:', error);
-          this.snackBar.open('Değerlendirme gönderilirken bir hata oluştu', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        error: err => {
+          console.error('Error updating review:', err);
+          this.snackBar.open(err.message || 'Değerlendirme güncellenirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
         }
-      );
+      });
+    } else {
+      // Yeni Yorum Ekleme Modu
+      this.reviewService.createReview(currentProductId, reviewRequest).subscribe({
+        next: newReview => {
+          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          this.resetReviewFormAndState();
+          if (currentProductId) this.loadReviews(currentProductId);
+        },
+        error: err => {
+          console.error('Error submitting review:', err);
+          this.snackBar.open(err.message || 'Değerlendirme gönderilirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      });
+    }
+  }
+
+  resetReviewFormAndState(): void {
+    this.newReviewRating = 0;
+    this.newReviewComment = '';
+    this.hoveredRating = 0;
+    this.editingReview = null;
   }
 
   get isLoggedIn(): boolean {
@@ -310,7 +331,62 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return this.authService.getUsername();
   }
 
+  get currentUserId(): number | null {
+    const userIdStr = this.authService.getUserId();
+    return userIdStr ? parseInt(userIdStr, 10) : null;
+  }
+
   get currentUrl(): string {
     return this.router.url;
+  }
+
+  startEditReview(review: Review): void {
+    this.editingReview = { ...review }; 
+    this.newReviewRating = review.rating;
+    this.newReviewComment = review.comment;
+    
+    const reviewFormElement = document.getElementById('reviewFormArea'); // HTML'e bu ID'yi ekleyeceğiz
+    if (reviewFormElement) {
+      reviewFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    this.snackBar.open('Yorumu düzenliyorsunuz. Formu güncelleyip gönderin.', 'Tamam', { duration: 3500 });
+  }
+  
+  cancelEditReview(): void {
+    this.editingReview = null;
+    this.newReviewRating = 0; 
+    this.newReviewComment = ''; 
+    this.hoveredRating = 0;
+    this.snackBar.open('Düzenleme iptal edildi.', 'Tamam', { duration: 2000 });
+  }
+
+  promptDeleteReview(review: Review): void {
+    let currentProductId: number | undefined;
+    // product$ observable'ından anlık değeri almak için take(1) kullanılır.
+    this.product$.pipe(take(1)).subscribe(product => {
+      currentProductId = product?.id;
+    });
+
+    if (!currentProductId) {
+        console.error('Cannot delete review: Product ID is missing for context.');
+        this.snackBar.open('İşlem için ürün bilgisi bulunamadı.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        return;
+    }
+
+    if (confirm(`'${review.comment.substring(0, 50).trim()}...' yorumunu silmek istediğinizden emin misiniz?`)) {
+      this.reviewService.deleteReview(review.id).subscribe({
+        next: () => {
+          this.snackBar.open('Yorum başarıyla silindi.', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          if (currentProductId) {
+              this.loadReviews(currentProductId); 
+          }
+        },
+        error: (err) => {
+          console.error('Error deleting review:', err);
+          this.snackBar.open(err.message || 'Yorum silinirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      });
+    }
   }
 }

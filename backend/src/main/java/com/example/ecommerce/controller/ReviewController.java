@@ -2,6 +2,7 @@ package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.CreateReviewRequestDto;
 import com.example.ecommerce.dto.ReviewDto;
+import com.example.ecommerce.dto.UserReviewDto;
 import com.example.ecommerce.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -132,5 +133,24 @@ public class ReviewController {
                                   .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
         reviewService.deleteReview(reviewId, username, isAdmin);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get all reviews for the current authenticated user",
+               description = "Retrieves a paginated list of reviews written by the currently logged-in user. Sorted by review date descending.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved user's reviews",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token is missing or invalid")
+    })
+    @GetMapping("/api/reviews/my")
+    @PreAuthorize("isAuthenticated()")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<Page<UserReviewDto>> getMyReviews(
+            @PageableDefault(size = 10, sort = "reviewDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        
+        Page<UserReviewDto> myReviewsPage = reviewService.getReviewsForUser(username, pageable);
+        return ResponseEntity.ok(myReviewsPage);
     }
 }

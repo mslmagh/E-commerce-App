@@ -27,4 +27,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT r.rating FROM Review r WHERE r.product.id = :productId")
     List<Integer> findRatingsByProductId(@Param("productId") Long productId);
+
+    // Mevcut kullanıcı adına göre yorumları getir, tarihe göre tersten sırala
+    Page<Review> findByUserUsernameOrderByReviewDateDesc(String username, Pageable pageable);
 }

@@ -1,0 +1,46 @@
+.product-rating-summary {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+  color: #616161; /* Gri tonu */
+  margin-bottom: 4px; /* Fiyatla arasında boşluk */
+  margin-top: 4px; /* Başlıkla arasında boşluk */
+}
+
+.rating-star {
+  font-size: 18px; /* Yıldız boyutu */
+  width: 18px;
+  height: 18px;
+  color: #fdd835; /* Sarı yıldız rengi */
+}
+
+.review-count-display {
+  margin-left: 4px;
+}
+
+.no-reviews-yet {
+  font-style: italic;
+  color: #757575;
+  font-size: 0.85em;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+/* Kart içeriğindeki başlık ve fiyat için stiller (mevcutsa üzerine yazılabilir veya ayarlanabilir) */
+/* Bunlar ProductCardComponent.ts içindeki inline stillerle çakışabilir veya ayarlanabilir */
+/* component.ts içindeki stiller daha öncelikli olabilir. */
+
+/* Aşağıdakiler .ts içindeki stillerle uyumlu hale getirilmeye çalışıldı */
+:host ::ng-deep .product-name {
+  font-size: 1rem !important; 
+  line-height: 1.3 !important;
+  margin-bottom: 4px !important; /* Yıldızlarla hizalamak için */
+  /* min-height, overflow, text-overflow, display -webkit-box vs. .ts'den geliyor */
+}
+
+:host ::ng-deep .product-price {
+  font-size: 1.1rem !important;
+  font-weight: bold !important;
+  color: #3f51b5 !important; /* .ts'deki renkle aynı */
+  margin-top: 4px !important; /* Puan gösterimi ile arasında boşluk bırakmak için */
+}
