@@ -135,6 +135,15 @@ export class OrderService {
     );
   }
 
+  // New method for admin to update order status
+  updateOrderStatusForAdmin(orderId: string, newStatus: string): Observable<Order> {
+    const requestBody: UpdateOrderStatusRequest = { newStatus: newStatus }; // newStatus doğrudan backend uyumlu olmalı
+    // Admin endpoint'i /admin/orders/... şeklinde olmalı
+    return this.http.put<Order>(`${environment.apiUrl}/admin/orders/${orderId}/status`, requestBody).pipe(
+      catchError(this.handleError<Order>(`updateOrderStatusForAdmin orderId=${orderId}, newStatus=${newStatus}`))
+    );
+  }
+
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
       console.error(`${operation} failed: ${JSON.stringify(error.error) || error.message}`);

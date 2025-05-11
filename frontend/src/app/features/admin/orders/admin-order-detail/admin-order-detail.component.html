@@ -54,34 +54,34 @@
           <mat-card-title>Müşteri ve Teslimat Bilgileri</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-           <p><strong>Müşteri Adı:</strong> {{ order.customer.name }}</p>
-          <p *ngIf="order.customer.email"><strong>E-posta:</strong> {{ order.customer.email }}</p>
-          <p *ngIf="order.shippingAddress.phone"><strong>Telefon:</strong> {{ order.shippingAddress.phone }}</p>
+           <p><strong>Müşteri Adı:</strong> {{ order.customer?.name || 'N/A' }}</p>
+          <p *ngIf="order.customer?.email"><strong>E-posta:</strong> {{ order.customer?.email }}</p>
+          <p *ngIf="order.shippingAddress?.phone"><strong>Telefon:</strong> {{ order.shippingAddress?.phone }}</p>
 
           <mat-divider style="margin: 12px 0;"></mat-divider>
 
           <p><strong>Teslimat Adresi:</strong></p>
-          <address style="font-style: normal;">
-            <p>{{ order.shippingAddress.recipientName }}</p>
-            <p>{{ order.shippingAddress.addressLine }}</p>
-            <p>{{ order.shippingAddress.city }}<span *ngIf="order.shippingAddress.postalCode">, {{ order.shippingAddress.postalCode }}</span></p>
-            <p>{{ order.shippingAddress.country }}</p>
+          <address style="font-style: normal;" *ngIf="order.shippingAddress">
+            <p>{{ order.shippingAddress?.recipientName || order.customer?.name || 'N/A' }}</p>
+            <p>{{ order.shippingAddress?.addressLine }}</p>
+            <p>{{ order.shippingAddress?.city }}<span *ngIf="order.shippingAddress?.postalCode">, {{ order.shippingAddress?.postalCode }}</span></p>
+            <p>{{ order.shippingAddress?.country }}</p>
           </address>
 
            <ng-container *ngIf="order.billingAddress && order.billingAddress !== order.shippingAddress">
                <mat-divider style="margin: 12px 0;"></mat-divider>
                <p><strong>Fatura Adresi:</strong></p>
-               <address style="font-style: normal;">
-                   <p>{{ order.billingAddress.recipientName }}</p>
-                   <p>{{ order.billingAddress.addressLine }}</p>
-                   <p>{{ order.billingAddress.city }}<span *ngIf="order.billingAddress.postalCode">, {{ order.billingAddress.postalCode }}</span></p>
-                   <p>{{ order.billingAddress.country }}</p>
+               <address style="font-style: normal;" *ngIf="order.billingAddress">
+                   <p>{{ order.billingAddress?.recipientName || order.customer?.name || 'N/A' }}</p>
+                   <p>{{ order.billingAddress?.addressLine }}</p>
+                   <p>{{ order.billingAddress?.city }}<span *ngIf="order.billingAddress?.postalCode">, {{ order.billingAddress?.postalCode }}</span></p>
+                   <p>{{ order.billingAddress?.country }}</p>
                 </address>
            </ng-container>
         </mat-card-content>
       </mat-card>
 
-       <mat-card class="actions-card">
+       <mat-card class="actions-card" *ngIf="order">
            <mat-card-header><mat-card-title>Sipariş İşlemleri</mat-card-title></mat-card-header>
            <mat-card-content>
               <p>TODO: Sipariş durumunu güncelleme, iptal etme, vb. aksiyonlar buraya gelecek.</p>
@@ -117,6 +117,32 @@
             <div class="info-row"><span>Kargo Ücreti:</span> <strong>{{order.shippingCost | currency:'TRY':'symbol':'1.2-2'}}</strong></div>
             <div class="info-row" style="font-size: 1.2em; font-weight: bold; border-bottom: none; padding-bottom: 0;"><span>Genel Toplam:</span> <strong>{{order.totalAmount | currency:'TRY':'symbol':'1.2-2'}}</strong></div>
           </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Sipariş Durumu Güncelleme Kartı -->
+    <div class="right-column" *ngIf="order">
+      <mat-card class="actions-card">
+        <mat-card-header>
+          <mat-card-title>Sipariş İşlemleri</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Sipariş Durumunu Değiştir</mat-label>
+            <mat-select [(ngModel)]="selectedStatusForUpdate" [disabled]="isUpdatingStatus">
+              <mat-option *ngFor="let statusOption of allOrderStatuses" [value]="statusOption">
+                {{ statusOption }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary"
+                  (click)="onUpdateOrderStatus()"
+                  [disabled]="isUpdatingStatus || !selectedStatusForUpdate || order?.status === selectedStatusForUpdate"
+                  style="width: 100%; margin-top: 10px;">
+            <span *ngIf="!isUpdatingStatus">Durumu Güncelle</span>
+            <mat-progress-spinner *ngIf="isUpdatingStatus" mode="indeterminate" diameter="24" style="margin: 0 auto;"></mat-progress-spinner>
+          </button>
         </mat-card-content>
       </mat-card>
     </div>
