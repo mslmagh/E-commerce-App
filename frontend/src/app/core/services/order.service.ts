@@ -42,7 +42,7 @@ export interface PaymentIntent {
 
 export interface CancelOrderItemsRequest {
   orderItemIds: number[];
-  reason: string;
+  reason?: string;
 }
 
 // Added for updating order status
@@ -141,6 +141,26 @@ export class OrderService {
     // Admin endpoint'i /admin/orders/... şeklinde olmalı
     return this.http.put<Order>(`${environment.apiUrl}/admin/orders/${orderId}/status`, requestBody).pipe(
       catchError(this.handleError<Order>(`updateOrderStatusForAdmin orderId=${orderId}, newStatus=${newStatus}`))
+    );
+  }
+
+  // New method for admin to cancel an order
+  cancelOrderForAdmin(orderId: string, reason?: string): Observable<Order> {
+    // The backend error message "Admin should use the /cancel endpoint" suggests a specific endpoint.
+    // We'll assume a POST request.
+    // Backend controller path is /api/orders/{id}/cancel and it takes a reason as @RequestParam.
+    // Frontend was sending itemIds in body to /admin/orders/{id}/cancel.
+    // Correcting URL and request method to match backend.
+    // `this.apiUrl` is already `${environment.apiUrl}/orders`.
+    let url = `${this.apiUrl}/${orderId}/cancel`;
+    if (reason) {
+      // Backend expects 'reason' as a request parameter.
+      url += `?reason=${encodeURIComponent(reason)}`;
+    }
+    // Backend's cancelEntireOrder expects POST, but doesn't have a @RequestBody.
+    // Sending an empty object as body for POST, as reason is a query param.
+    return this.http.post<Order>(url, {}).pipe(
+      catchError(this.handleError<Order>(`cancelOrderForAdmin orderId=${orderId}`))
     );
   }
 

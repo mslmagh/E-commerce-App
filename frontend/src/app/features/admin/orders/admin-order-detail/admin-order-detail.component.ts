@@ -28,6 +28,7 @@ type OrderStatus = 'PENDING' | 'PROCESSING' | 'PAYMENT_FAILED' | 'PREPARING' | '
 // REFUNDED durumu admin listesinde yoktu, gerekirse eklenebilir veya backend'den gelenlere göre şekillenir.
 
 export interface AdminOrderDetailItem {
+  orderItemId: number;
   productId: string | number;
   productName: string;
   imageUrl?: string;
@@ -118,12 +119,9 @@ type AdminOrderSummary = {
 export class AdminOrderDetailComponent implements OnInit, OnDestroy {
   order: AdminOrderDetail | null = null;
   isLoading = true;
-  isUpdatingStatus = false;
+  isCancellingOrder = false;
   orderId: string | null = null;
   private routeSub!: Subscription;
-
-  allOrderStatuses: OrderStatus[] = ['PENDING', 'PROCESSING', 'PREPARING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED'];
-  selectedStatusForUpdate: OrderStatus | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -155,7 +153,6 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
         if (data) {
           this.order = data;
           console.log('Admin Order Detail: Order data loaded from API:', this.order);
-          this.selectedStatusForUpdate = this.order.status;
         } else if (this.orderId) {
            const errorMsg = `Sipariş (${this.orderId}) yüklenirken bir hata oluştu veya bulunamadı.`;
            this.snackBar.open(errorMsg, 'Kapat', { duration: 4000 });
@@ -172,64 +169,64 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  onUpdateOrderStatus(): void {
-    console.log('AdminOrderDetailComponent: onUpdateOrderStatus called with orderId:', this.orderId, 'and selectedStatusForUpdate:', this.selectedStatusForUpdate);
-    if (!this.order || !this.selectedStatusForUpdate || this.order.status === this.selectedStatusForUpdate) {
-      this.snackBar.open('Güncellenecek yeni bir durum seçilmedi veya durum zaten aynı.', 'Kapat', { duration: 3000 });
-      console.log('AdminOrderDetailComponent: Update condition not met or status is the same.');
+  onCancelOrder(): void {
+    console.log('AdminOrderDetailComponent: onCancelOrder called with orderId:', this.orderId);
+    if (!this.order || !this.order.items || this.order.items.length === 0 || this.order.status === 'CANCELLED') {
+      this.snackBar.open('Sipariş zaten iptal edilmiş, iptal edilemiyor veya ürün içermiyor.', 'Kapat', { duration: 3000 });
+      console.log('AdminOrderDetailComponent: Order already cancelled, not cancellable, or has no items.');
       return;
     }
     if (!this.orderId) {
-        this.snackBar.open('Sipariş ID bulunamadı, durum güncellenemiyor.', 'Kapat', { duration: 3000 });
-        console.error('AdminOrderDetailComponent: Order ID is missing, cannot update status.');
+        this.snackBar.open('Sipariş ID bulunamadı, sipariş iptal edilemiyor.', 'Kapat', { duration: 3000 });
+        console.error('AdminOrderDetailComponent: Order ID is missing, cannot cancel order.');
         return;
     }
 
-    this.isUpdatingStatus = true;
-    console.log('AdminOrderDetailComponent: Calling orderService.updateOrderStatusForAdmin');
-    this.orderService.updateOrderStatusForAdmin(this.orderId, this.selectedStatusForUpdate).subscribe({
-      next: (updatedOrderData: Order) => {
-        console.log('AdminOrderDetailComponent: updateOrderStatusForAdmin successful, response:', updatedOrderData);
+    this.isCancellingOrder = true;
+    const cancellationReason = 'Cancelled by Admin';
+    this.orderService.cancelOrderForAdmin(this.orderId, cancellationReason).subscribe({
+      next: (cancelledOrderData: Order) => {
+        console.log('AdminOrderDetailComponent: cancelOrderForAdmin successful, response:', cancelledOrderData);
         if (this.order) {
-            const mappedOrderData = {
-                ...updatedOrderData,
-                orderId: updatedOrderData.id.toString(),
-                orderDate: new Date(updatedOrderData.orderDate),
-                status: updatedOrderData.status as OrderStatus,
+            const mappedOrderData: Partial<AdminOrderDetail> = {
+                orderId: cancelledOrderData.id.toString(),
+                orderDate: new Date(cancelledOrderData.orderDate),
+                status: cancelledOrderData.status as OrderStatus,
                 customer: {
-                    id: updatedOrderData.customerId,
-                    name: updatedOrderData.customerUsername,
-                    email: (this.order && this.order.customer) ? this.order.customer.email : undefined
+                    id: cancelledOrderData.customerId,
+                    name: cancelledOrderData.customerUsername,
+                    email: (this.order.customer) ? this.order.customer.email : undefined
                 },
                 shippingAddress: {
-                    recipientName: updatedOrderData.customerUsername,
-                    addressLine: updatedOrderData.shippingAddress.addressText,
-                    city: updatedOrderData.shippingAddress.city,
-                    postalCode: updatedOrderData.shippingAddress.postalCode,
-                    country: updatedOrderData.shippingAddress.country,
-                    phone: updatedOrderData.shippingAddress.phoneNumber
+                    recipientName: cancelledOrderData.customerUsername,
+                    addressLine: cancelledOrderData.shippingAddress.addressText,
+                    city: cancelledOrderData.shippingAddress.city,
+                    postalCode: cancelledOrderData.shippingAddress.postalCode,
+                    country: cancelledOrderData.shippingAddress.country,
+                    phone: cancelledOrderData.shippingAddress.phoneNumber
                 },
-                items: updatedOrderData.items.map(item => ({
+                items: cancelledOrderData.items.map(item => ({ 
+                    orderItemId: item.id, 
                     productId: item.productId,
                     productName: item.productName,
                     quantity: item.quantity,
                     unitPrice: item.priceAtPurchase,
                     totalPrice: item.priceAtPurchase * item.quantity,
-                    imageUrl: undefined,
-                    sku: undefined,
-                    sellerName: undefined
+                    imageUrl: undefined, 
+                    sku: undefined,      
+                    sellerName: undefined 
                 })),
+                totalAmount: cancelledOrderData.totalAmount,
             };
-            this.order = { ...this.order, ...mappedOrderData };
+            this.order = { ...this.order, ...mappedOrderData, status: 'CANCELLED' };
         }
-        this.selectedStatusForUpdate = updatedOrderData.status as OrderStatus;
-        this.snackBar.open(`Sipariş durumu başarıyla ${updatedOrderData.status} olarak güncellendi.`, 'Kapat', { duration: 3000 });
-        this.isUpdatingStatus = false;
+        this.snackBar.open(`Sipariş (${this.orderId}) başarıyla iptal edildi ve iade işlemi başlatıldı.`, 'Kapat', { duration: 4000 });
+        this.isCancellingOrder = false;
       },
       error: (err: HttpErrorResponse) => {
-        console.error('AdminOrderDetailComponent: Error updating order status from API:', err);
-        this.snackBar.open(`Sipariş durumu güncellenirken bir hata oluştu: ${err.error?.message || err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
-        this.isUpdatingStatus = false;
+        console.error('AdminOrderDetailComponent: Error cancelling order via API:', err);
+        this.snackBar.open(`Sipariş iptal edilirken bir hata oluştu: ${err.error?.message || err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
+        this.isCancellingOrder = false;
       }
     });
   }

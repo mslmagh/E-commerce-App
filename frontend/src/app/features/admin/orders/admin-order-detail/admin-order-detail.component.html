@@ -81,13 +81,6 @@
         </mat-card-content>
       </mat-card>
 
-       <mat-card class="actions-card" *ngIf="order">
-           <mat-card-header><mat-card-title>Sipariş İşlemleri</mat-card-title></mat-card-header>
-           <mat-card-content>
-              <p>TODO: Sipariş durumunu güncelleme, iptal etme, vb. aksiyonlar buraya gelecek.</p>
-               </mat-card-content>
-       </mat-card>
-
     </div>
 
     <div class="right-column">
@@ -121,28 +114,24 @@
       </mat-card>
     </div>
 
-    <!-- Sipariş Durumu Güncelleme Kartı -->
+    <!-- Sipariş İptal Etme Kartı -->
     <div class="right-column" *ngIf="order">
       <mat-card class="actions-card">
         <mat-card-header>
           <mat-card-title>Sipariş İşlemleri</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <mat-form-field appearance="outline" style="width: 100%;">
-            <mat-label>Sipariş Durumunu Değiştir</mat-label>
-            <mat-select [(ngModel)]="selectedStatusForUpdate" [disabled]="isUpdatingStatus">
-              <mat-option *ngFor="let statusOption of allOrderStatuses" [value]="statusOption">
-                {{ statusOption }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          <button mat-raised-button color="primary"
-                  (click)="onUpdateOrderStatus()"
-                  [disabled]="isUpdatingStatus || !selectedStatusForUpdate || order?.status === selectedStatusForUpdate"
-                  style="width: 100%; margin-top: 10px;">
-            <span *ngIf="!isUpdatingStatus">Durumu Güncelle</span>
-            <mat-progress-spinner *ngIf="isUpdatingStatus" mode="indeterminate" diameter="24" style="margin: 0 auto;"></mat-progress-spinner>
+          <p *ngIf="order.status === 'CANCELLED'" style="color: grey;">Bu sipariş zaten iptal edilmiş.</p>
+          <button mat-raised-button color="warn" 
+                  (click)="onCancelOrder()"
+                  [disabled]="isCancellingOrder || order.status === 'CANCELLED'"
+                  style="width: 100%;">
+            <span *ngIf="!isCancellingOrder">Siparişi İptal Et ve İade Yap</span>
+            <mat-progress-spinner *ngIf="isCancellingOrder" mode="indeterminate" diameter="24" style="margin: 0 auto;"></mat-progress-spinner>
           </button>
+          <p *ngIf="order.status !== 'CANCELLED'" style="font-size: 0.8em; color: grey; margin-top: 8px;">
+            Bu işlem siparişi iptal edecek ve müşteriye tam para iadesi başlatacaktır.
+          </p>
         </mat-card-content>
       </mat-card>
     </div>
