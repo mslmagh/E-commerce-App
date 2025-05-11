@@ -185,7 +185,7 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
   }
 
   getDerivedStatus(product: BackendProduct): 'Pasif' | 'Yayında' | 'Stok Tükendi' {
-    if (product.active === true) {
+    if (product.isActive === true) {
       return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';
     }
     return 'Pasif';

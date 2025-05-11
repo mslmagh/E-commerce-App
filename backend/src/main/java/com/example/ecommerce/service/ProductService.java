@@ -86,7 +86,21 @@ public class ProductService {
 
     @Transactional
     public ProductDto createProduct(ProductRequestDto requestDto) {
-        User seller = getCurrentAuthenticatedUserEntity();
+        User seller;
+        if (requestDto.getSellerId() != null) {
+            seller = userRepository.findById(requestDto.getSellerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + requestDto.getSellerId()));
+        } else {
+            User currentUser = getCurrentAuthenticatedUserEntity();
+            if (currentUser.getRoles().stream().anyMatch(role -> role.getName().equals("ROLE_SELLER"))) {
+                seller = currentUser;
+            } else if (currentUser.getRoles().stream().anyMatch(role -> role.getName().equals("ROLE_ADMIN"))){
+                 throw new IllegalArgumentException("Admin must specify a sellerId to create a product.");
+            } else {
+                throw new ResourceNotFoundException("Seller ID is required or current user is not a seller.");
+            }
+        }
+
         Category category = findCategoryById(requestDto.getCategoryId());
 
         Product newProduct = new Product();
@@ -103,7 +117,19 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         Category category = findCategoryById(requestDto.getCategoryId());
 
-        mapDtoToEntity(requestDto, existingProduct, existingProduct.getSeller(), category);
+        User sellerToUpdate = existingProduct.getSeller();
+        if (requestDto.getSellerId() != null) {
+            User currentUser = getCurrentAuthenticatedUserEntity();
+            boolean isAdmin = currentUser.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_ADMIN"));
+            if (isAdmin) {
+                 sellerToUpdate = userRepository.findById(requestDto.getSellerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + requestDto.getSellerId()));
+            } else if (!existingProduct.getSeller().getId().equals(requestDto.getSellerId())){
+                logger.warn("Non-admin user {} attempted to change sellerId for product {}. Denied.", currentUser.getUsername(), id);
+            }
+        }
+
+        mapDtoToEntity(requestDto, existingProduct, sellerToUpdate, category);
 
         Product updatedProduct = productRepository.save(existingProduct);
         logger.info("Product updated with ID: {}", updatedProduct.getId());
@@ -222,6 +248,20 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductDto> getProductsBySellerUsername(String username) {
+        logger.debug("Fetching active products for seller username: {}", username);
+        List<Product> products = productRepository.findBySellerUsernameAndIsActiveTrue(username);
+        if (products.isEmpty()) {
+            // Optional: Check if seller exists to differentiate no products vs. no seller
+            userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with username: " + username));
+        }
+        return products.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     private User getCurrentAuthenticatedUserEntity() {
          Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
          String username;
@@ -255,22 +295,22 @@ public class ProductService {
     }
 
     private ProductDto convertToDto(Product product) {
-        Long categoryId = (product.getCategory() != null) ? product.getCategory().getId() : null;
-        String categoryName = (product.getCategory() != null) ? product.getCategory().getName() : null;
         return new ProductDto(
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
                 product.getStockQuantity(),
-                categoryId,
-                categoryName,
+                product.getCategory() != null ? product.getCategory().getId() : null,
+                product.getCategory() != null ? product.getCategory().getName() : null,
                 product.getImageUrl(),
                 product.getAverageRating(),
                 product.getReviewCount(),
                 product.isActive(),
                 product.getDeactivationReason(),
-                product.getDeactivatedAt()
+                product.getDeactivatedAt(),
+                product.getSeller() != null ? product.getSeller().getId() : null,
+                product.getSeller() != null ? product.getSeller().getUsername() : null
         );
     }
 }

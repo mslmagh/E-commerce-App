@@ -47,7 +47,14 @@ public class ProductDto {
     @Schema(description = "Timestamp when the product was deactivated", nullable = true)
     private LocalDateTime deactivatedAt;
 
-    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl, BigDecimal averageRating, Integer reviewCount, boolean isActive, String deactivationReason, LocalDateTime deactivatedAt) {
+    @Schema(description = "ID of the seller of the product", example = "2")
+    private Long sellerId;
+
+    @Schema(description = "Username of the seller of the product", example = "seller_username")
+    private String sellerName;
+
+    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl, BigDecimal averageRating, Integer reviewCount, boolean isActive, String deactivationReason, LocalDateTime deactivatedAt,
+                        Long sellerId, String sellerName) {
         this.imageUrl = imageUrl;
         this.id = id;
         this.name = name;
@@ -61,6 +68,8 @@ public class ProductDto {
         this.isActive = isActive;
         this.deactivationReason = deactivationReason;
         this.deactivatedAt = deactivatedAt;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName;
     }
     public ProductDto() {} // Default constructor
 
@@ -109,5 +118,22 @@ public class ProductDto {
 
     public void setDeactivatedAt(LocalDateTime deactivatedAt) {
         this.deactivatedAt = deactivatedAt;
+    }
+
+    // sellerId ve sellerName için Getter ve Setterlar
+    public Long getSellerId() {
+        return sellerId;
+    }
+
+    public void setSellerId(Long sellerId) {
+        this.sellerId = sellerId;
+    }
+
+    public String getSellerName() {
+        return sellerName;
+    }
+
+    public void setSellerName(String sellerName) {
+        this.sellerName = sellerName;
     }
 }

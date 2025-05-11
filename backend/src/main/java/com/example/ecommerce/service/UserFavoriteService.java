@@ -125,7 +125,9 @@ public class UserFavoriteService {
             0,
             product.isActive(),
             product.getDeactivationReason(),
-            product.getDeactivatedAt()
+            product.getDeactivatedAt(),
+            product.getSeller().getId(),
+            product.getSeller().getUsername()
         );
     }
 

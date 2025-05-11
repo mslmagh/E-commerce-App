@@ -63,5 +63,14 @@ export const routes: Routes = [
     path: 'seller',
     loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES),
     canActivate: [authGuard, sellerGuard]
-  }
+  },
+  // { path: 'orders', loadChildren: () => import('./features/orders/orders.routes').then(m => m.ORDER_ROUTES), canActivate: [authGuard] },
+  { 
+    path: 'products/seller/:username', 
+    loadComponent: () => import('./features/products/seller-public-product-list/seller-public-product-list.component').then(m => m.SellerPublicProductListComponent) 
+  },
+  { path: 'products/:id', loadComponent: () => import('./features/products/product-detail/product-detail.component').then(m => m.ProductDetailComponent) }, 
+  { path: 'products', loadComponent: () => import('./features/products/product-list/product-list.component').then(m => m.ProductListComponent) },
+  { path: 'categories/:categoryId', loadComponent: () => import('./features/products/product-list/product-list.component').then(m => m.ProductListComponent) },
+  // { path: 'orders', loadChildren: () => import('./features/orders/orders.routes').then(m => m.ORDER_ROUTES), canActivate: [authGuard] },
 ];

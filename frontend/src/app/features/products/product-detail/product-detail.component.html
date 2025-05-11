@@ -18,7 +18,10 @@
         <h1 class="product-title">{{ product.name }}</h1>
 
         <div class="product-meta">
-          <span class="seller">Satıcı: <a href="#">Örnek Satıcı</a></span>
+          <span class="seller">Satıcı: 
+            <a *ngIf="product.sellerName" [routerLink]="['/products/seller', product.sellerName]">{{ product.sellerName }}</a>
+            <span *ngIf="!product.sellerName">N/A</span>
+          </span>
           <span class="rating" *ngIf="product.averageRating && product.reviewCount && product.reviewCount > 0">
             <i class="fa-solid fa-star" style="color: #ffc107;"></i>
             {{ product.averageRating | number:'1.1-1' }} 
@@ -49,11 +52,16 @@
 
       <div class="sidebar-column">
 
-        <div class="sidebar-box seller-box">
-          <strong>Satıcı: Örnek Satıcı</strong>
-          <p>Puan: 9.5</p>
-          <a href="#">Mağazaya Git ></a>
+        <div class="sidebar-box seller-box" *ngIf="product.sellerName">
+          <strong>Satıcı: {{ product.sellerName }}</strong>
+          <!-- Seller Puan might come from a different source or be part of seller details -->
+          <!-- <p>Puan: 9.5</p> --> 
+          <a [routerLink]="['/products/seller', product.sellerName]">Mağazaya Git ></a>
         </div>
+        <div class="sidebar-box seller-box" *ngIf="!product.sellerName">
+          <strong>Satıcı Bilgisi Yok</strong>
+        </div>
+
       </div>
 
     </section><section class="product-tabs-section mt-4">

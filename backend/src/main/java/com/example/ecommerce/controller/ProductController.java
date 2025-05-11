@@ -105,6 +105,22 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    // GET Products by Seller Username
+    @Operation(summary = "Get Active Products by Seller Username",
+               description = "Retrieves a list of active products for a specific seller username.",
+               security = {}) // Public endpoint
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+            @ApiResponse(responseCode = "404", description = "Seller not found or seller has no active products")
+    })
+    @GetMapping("/by-seller/{username}")
+    public ResponseEntity<List<ProductDto>> getProductsBySellerUsername(@Parameter(description = "Username of the seller") @PathVariable String username) {
+        List<ProductDto> products = productService.getProductsBySellerUsername(username);
+        return ResponseEntity.ok(products);
+    }
+
     // CREATE Product
     @Operation(summary = "Create a New Product")
     @RequestBody(description = "Product data to create", required = true, content = @Content(schema = @Schema(implementation = ProductRequestDto.class))) // Use Save DTO

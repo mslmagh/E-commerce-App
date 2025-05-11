@@ -16,9 +16,10 @@ export interface Product {
   averageRating?: number;
   reviewCount?: number;
   sellerId?: number;
+  sellerName?: string;
 
   // Soft delete ve durum bilgisi alanları
-  active?: boolean;
+  isActive?: boolean;
   deactivationReason?: string;
   deactivatedAt?: string | Date; // Backend LocalDateTime gönderir, frontend Date olarak işleyebilir.
 }
@@ -30,6 +31,7 @@ export interface ProductRequest {
   stockQuantity: number;
   categoryId: number;
   imageUrl?: string;
+  sellerId?: number;
 }
 
 @Injectable({
@@ -156,6 +158,14 @@ export class ProductService {
     return this.httpClient.put<Product>(`${this.apiUrl}/${id}/reactivate`, {}).pipe(
       tap(reactivatedProduct => console.log(`ProductService: Reactivated product with ID: ${id}`, reactivatedProduct)),
       catchError(this.handleError<Product>('reactivateProduct'))
+    );
+  }
+
+  getProductsBySellerUsername(username: string): Observable<Product[]> {
+    console.log(`ProductService: Fetching products for seller username: ${username} from API`);
+    return this.httpClient.get<Product[]>(`${this.apiUrl}/by-seller/${username}`).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products for seller ${username}.`)),
+      catchError(this.handleError<Product[]>(`getProductsBySellerUsername username=${username}`, []))
     );
   }
 

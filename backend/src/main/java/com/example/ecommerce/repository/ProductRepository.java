@@ -3,6 +3,7 @@ package com.example.ecommerce.repository; // Make sure this package declaration 
 import com.example.ecommerce.entity.Product; // Import the Product entity
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository; // Import JpaRepository
 // import org.springframework.stereotype.Repository; // This annotation is optional
@@ -21,4 +22,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findAllByIsActiveTrue();
     List<Product> findByCategoryIdAndIsActiveTrue(Long categoryId);
     java.util.Optional<Product> findByIdAndIsActiveTrue(Long id);
+
+    List<Product> findBySellerUsernameAndIsActiveTrue(String username);
 }

@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { Subscription, of, Observable } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { Subscription, of, Observable, throwError } from 'rxjs';
+import { delay, catchError, tap, map } from 'rxjs/operators';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -19,6 +19,10 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { CategoryService, Category } from '../../../../core/services/category.service';
+import { ProductService, Product, ProductRequest } from '../../../../core/services/product.service';
+import { AdminUserService, AdminUserView } from '../../services/admin-user.service';
+
 export interface AdminProductFormData {
   id?: string | number; // Düzenleme modunda olacak
   name: string;
@@ -33,12 +37,7 @@ export interface AdminProductFormData {
   isActive: boolean; // Ürünün yayında olup olmadığı
   sellerId?: string | number | null; // Hangi satıcıya ait olduğu
   adminStatus: 'Onay Bekliyor' | 'Yayında' | 'Reddedildi'; // Admin onay durumu
-}
-
-export interface Category {
-  id: string | number;
-  name: string;
-  slug?: string;
+  imageUrl: string;
 }
 
 @Component({
@@ -82,8 +81,6 @@ export class AdminProductFormComponent implements OnInit, OnDestroy {
   sellers$: Observable<{ id: string | number, name: string }[]> = of([]); // Admin'e özel
   private routeSubscription!: Subscription;
   private productSubscription!: Subscription;
-  selectedFile: File | null = null;
-  imagePreviewUrl: string | ArrayBuffer | null = null;
 
   adminStatuses: ('Onay Bekliyor' | 'Yayında' | 'Reddedildi')[] = ['Onay Bekliyor', 'Yayında', 'Reddedildi'];
 
@@ -93,6 +90,9 @@ export class AdminProductFormComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
+    private categoryService: CategoryService,
+    private productService: ProductService,
+    private adminUserService: AdminUserService
   ) {}
 
   ngOnInit(): void {
@@ -114,19 +114,25 @@ export class AdminProductFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  initForm(productData?: AdminProductFormData): void {
+  initForm(productData?: AdminProductFormData | Product): void {
+    const isProductType = productData && typeof (productData as Product).isActive !== 'undefined';
+    const initialIsActive = isProductType ? (productData as Product).isActive : (productData as AdminProductFormData)?.isActive;
+    const initialSellerId = (isProductType ? (productData as Product).sellerId : (productData as AdminProductFormData)?.sellerId) || null;
+    const initialImageUrl = (isProductType ? (productData as Product).imageUrl : (productData as AdminProductFormData)?.imageUrl) || '';
+
     this.productForm = this.fb.group({
       name: [productData?.name || '', Validators.required],
       description: [productData?.description || '', Validators.required],
-      sku: [productData?.sku || ''],
+      sku: [(productData as AdminProductFormData)?.sku || ''],
       price: [productData?.price || null, [Validators.required, Validators.min(0.01)]],
-      discountedPrice: [productData?.discountedPrice || null, [Validators.min(0)]], // İndirimli fiyat
+      discountedPrice: [(productData as AdminProductFormData)?.discountedPrice || null, [Validators.min(0)]],
       stockQuantity: [productData?.stockQuantity || 0, [Validators.required, Validators.min(0)]],
       categoryId: [productData?.categoryId || null, Validators.required],
-      brand: [productData?.brand || ''],
-      sellerId: [productData?.sellerId || null, Validators.required], // Ürünü bir satıcıya ata
-      adminStatus: [productData?.adminStatus || 'Onay Bekliyor', Validators.required], // Ürün onay durumu
-      isActive: [productData ? productData.isActive : true, Validators.required], // Ürünün yayında olup olmadığı
+      brand: [(productData as AdminProductFormData)?.brand || ''],
+      sellerId: [initialSellerId, Validators.required],
+      adminStatus: [(productData as AdminProductFormData)?.adminStatus || 'Onay Bekliyor', Validators.required],
+      isActive: [initialIsActive !== undefined ? initialIsActive : true, Validators.required],
+      imageUrl: [initialImageUrl, [Validators.pattern('(https?://.*\\.(?:png|jpg|jpeg|gif|svg|webp))')]]
     });
 
     this.productForm.get('discountedPrice')?.setValidators([
@@ -148,91 +154,146 @@ export class AdminProductFormComponent implements OnInit, OnDestroy {
   }
 
   loadCategories(): void {
-    this.categories$ = of([ // Mock kategoriler
-      { id: 'cat1', name: 'Elektronik' }, { id: 'cat2', name: 'Giyim' },
-      { id: 'cat3', name: 'Ev & Yaşam' }, { id: 'cat4', name: 'Kozmetik' },
-      { id: 'cat5', name: 'Kitap' }
-    ]).pipe(delay(500));
+    this.isLoading = true; // Kategori yüklenirken de spinner gösterilebilir
+    this.categories$ = this.categoryService.getAllCategories().pipe(
+      tap(categories => {
+        console.log('Admin Product Form: Kategoriler yüklendi', categories);
+        this.isLoading = false;
+      }),
+      catchError(error => {
+        console.error('Admin Product Form: Kategori yüklenirken hata:', error);
+        this.snackBar.open('Kategoriler yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
+        this.isLoading = false;
+        return of([]); // Hata durumunda boş dizi döndür
+      })
+    );
   }
 
   loadSellers(): void {
-     this.sellers$ = of([ // Mock satıcılar
-       { id: 'seller1', name: 'Örnek Satıcı A' },
-       { id: 'seller2', name: 'Diğer Mağaza' },
-       { id: 'seller3', name: 'Butik Dükkan' },
-     ]).pipe(delay(700));
+    this.isLoading = true; // Satıcılar yüklenirken de spinner gösterilebilir
+    this.sellers$ = this.adminUserService.getUsers().pipe(
+      map(users => users.filter(user => user.roles && user.roles.has('ROLE_SELLER')) // ROLE_SELLER varsayımıyla filtreleme
+        .map(sellerUser => ({ id: sellerUser.id, name: sellerUser.username })) // Forma uygun hale getirme
+      ),
+      tap(sellers => {
+        console.log('Admin Product Form: Satıcılar yüklendi (filtrelenmiş):', sellers);
+        this.isLoading = false;
+        if (sellers.length === 0) {
+          this.snackBar.open('Uygun rol (ROLE_SELLER) ile satıcı bulunamadı.', 'Kapat', { duration: 3500 });
+        }
+      }),
+      catchError(error => {
+        console.error('Admin Product Form: Satıcılar yüklenirken hata:', error);
+        this.snackBar.open('Satıcılar yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
+        this.isLoading = false;
+        return of([]); // Hata durumunda boş dizi döndür
+      })
+    );
   }
 
   loadProductForEdit(id: string | number): void {
     this.isLoading = true;
-
-    setTimeout(() => {
-      const mockProduct: AdminProductFormData = {
-        id: id, name: `Admin Tarafından Düzenlenen Ürün ${id}`, description: 'Bu ürün admin tarafından yönetiliyor.',
-        sku: `ADM-${id}-SKU`, price: 300.50, discountedPrice: 270.00, stockQuantity: 55, categoryId: 'cat1',
-        brand: 'Global Marka', isActive: true, sellerId: 'seller1', adminStatus: 'Yayında'
-      };
-      this.initForm(mockProduct); // Formu yüklenen veriyle başlat/güncelle
-      this.isLoading = false;
-       console.log('Admin Product Form: Düzenleme için mock ürün yüklendi:', mockProduct);
-    }, 1000);
+    this.productSubscription = this.productService.getProductById(id).subscribe({
+      next: (product) => {
+        if (product) {
+          const formData: AdminProductFormData = {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            sku: '',
+            price: product.price,
+            discountedPrice: null,
+            stockQuantity: product.stockQuantity,
+            categoryId: product.categoryId,
+            brand: '',
+            sellerId: product.sellerId || null,
+            adminStatus: 'Yayında',
+            isActive: product.isActive !== undefined ? product.isActive : true,
+            imageUrl: product.imageUrl || ''
+          };
+          this.initForm(formData);
+          console.log('Admin Product Form: Product loaded for edit from DTO:', product);
+        } else {
+          this.snackBar.open(`Ürün ID ${id} bulunamadı.`, 'Kapat', { duration: 3000 });
+          this.router.navigate(['/admin/products']); // Ürün bulunamazsa listeye dön
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Admin Product Form: Ürün yüklenirken hata:', error);
+        this.snackBar.open('Ürün yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
+        this.isLoading = false;
+        this.router.navigate(['/admin/products']);
+      }
+    });
   }
-
-  onFileSelected(event: Event): void {
-    const fileInput = event.target as HTMLInputElement;
-    if (fileInput.files && fileInput.files.length > 0) {
-      this.selectedFile = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = () => { this.imagePreviewUrl = reader.result; };
-      reader.readAsDataURL(this.selectedFile);
-      console.log('Admin Product Form: Seçilen dosya:', this.selectedFile.name);
-    } else {
-      this.selectedFile = null;
-      this.imagePreviewUrl = null;
-    }
-  }
-
 
   onSubmit(): void {
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
       this.snackBar.open('Lütfen formdaki tüm zorunlu alanları doğru doldurun.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
-      console.warn('Admin Product Form: Form is invalid', this.productForm.errors);
+      console.warn('Admin Product Form: Form is invalid', this.productForm.errors, this.productForm.value);
+      Object.keys(this.productForm.controls).forEach(key => {
+        const controlErrors = this.productForm.get(key)?.errors;
+        if (controlErrors != null) {
+          console.warn('Hatalı kontrol:', key, controlErrors);
+        }
+      });
       return;
     }
 
     this.isLoading = true;
-    const formValues: AdminProductFormData = this.productForm.value;
+    const formValues = this.productForm.value;
+
+    const productRequestData: ProductRequest = {
+      name: formValues.name,
+      description: formValues.description,
+      price: formValues.price,
+      stockQuantity: formValues.stockQuantity,
+      categoryId: formValues.categoryId,
+      sellerId: formValues.sellerId,
+      imageUrl: formValues.imageUrl || undefined
+    };
 
     console.log('Admin Product Form: Form submitted. Values:', formValues);
-    if (this.selectedFile) {
-       console.log('Admin Product Form: Selected file:', this.selectedFile.name);
-    }
+    console.log('Admin Product Form: ProductRequest Data (backend uyumlu):', productRequestData);
 
-
-    let apiCall: Observable<any>;
+    let apiCall: Observable<Product | undefined>;
 
     if (this.isEditMode && this.productId) {
-      formValues.id = this.productId; // Düzenleme modunda ID'yi ekle
-      console.log('Admin Product Form: Ürün Güncelleniyor (Simülasyon):', formValues);
-      apiCall = of({ success: true, message: 'Ürün başarıyla güncellendi (simülasyon)!' }).pipe(delay(1000));
+      console.log('Admin Product Form: Ürün Güncelleniyor:', this.productId, productRequestData);
+      const numProductId = typeof this.productId === 'string' ? parseInt(this.productId, 10) : this.productId;
+      if (isNaN(numProductId)) {
+         this.snackBar.open('Geçersiz Ürün ID.', 'Kapat', { duration: 3000 });
+         this.isLoading = false;
+         return;
+      }
+      apiCall = this.productService.updateProduct(numProductId, productRequestData);
     } else {
-      console.log('Admin Product Form: Yeni Ürün Ekleniyor (Simülasyon):', formValues);
-      apiCall = of({ success: true, message: 'Yeni ürün başarıyla eklendi (simülasyon)!' }).pipe(delay(1000));
+      console.log('Admin Product Form: Yeni Ürün Ekleniyor:', productRequestData);
+      apiCall = this.productService.createProduct(productRequestData);
     }
 
-    apiCall.subscribe({
-      next: (response: any) => {
+    this.productSubscription = apiCall.pipe(
+      catchError((error: HttpErrorResponse) => {
         this.isLoading = false;
-        this.snackBar.open(response?.message || (this.isEditMode ? 'Ürün güncellendi!' : 'Ürün eklendi!'), 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
-        this.router.navigate(['/admin/products']); // Başarılı olunca ürün listesine dön
-      },
-      error: (error: HttpErrorResponse) => {
-        this.isLoading = false;
-        const errorMsg = error.error?.message || (this.isEditMode ? 'Ürün güncellenirken hata oluştu.' : 'Ürün eklenirken hata oluştu.');
+        const errorMsg = error.error?.message || error.message || (this.isEditMode ? 'Ürün güncellenirken hata oluştu.' : 'Ürün eklenirken hata oluştu.');
         this.snackBar.open(errorMsg, 'Kapat', { duration: 4000, panelClass: ['error-snackbar'] });
         console.error('Admin Product Form: Submission error:', error);
-      }
+        return throwError(() => new Error(errorMsg));
+      })
+    ).subscribe({
+      next: (response: Product | undefined) => {
+        this.isLoading = false;
+        if (response) {
+            const successMsg = this.isEditMode ? `Ürün "${response.name}" başarıyla güncellendi!` : `Yeni ürün "${response.name}" başarıyla eklendi!`;
+            this.snackBar.open(successMsg, 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+            this.router.navigate(['/admin/products']);
+        } else if (!this.isEditMode) {
+             this.snackBar.open('Yeni ürün başarıyla eklendi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+             this.router.navigate(['/admin/products']);
+        }
+      },
     });
   }
 
@@ -260,7 +321,8 @@ export class AdminProductFormComponent implements OnInit, OnDestroy {
   get stockQuantity() { return this.productForm.get('stockQuantity'); }
   get categoryId() { return this.productForm.get('categoryId'); }
   get brand() { return this.productForm.get('brand'); }
-  get sellerId() { return this.productForm.get('sellerId'); } // Admin'e özel
-  get adminStatus() { return this.productForm.get('adminStatus'); } // Admin'e özel
+  get sellerId() { return this.productForm.get('sellerId'); }
+  get adminStatus() { return this.productForm.get('adminStatus'); }
   get isActive() { return this.productForm.get('isActive'); }
+  get imageUrl() { return this.productForm.get('imageUrl'); }
 }
