@@ -59,6 +59,14 @@ export class ProductService {
     );
   }
 
+  getProductsForAdmin(): Observable<Product[]> {
+    console.log('ProductService: Fetching ALL products for ADMIN from API (using main /products endpoint, backend handles role check)...');
+    return this.httpClient.get<Product[]>(this.apiUrl).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products (admin view).`)),
+      catchError(this.handleError<Product[]>('getProductsForAdmin', []))
+    );
+  }
+
   getMyProducts(): Observable<Product[]> {
     console.log('ProductService: Fetching products for current seller from API...');
     return this.httpClient.get<Product[]>(`${this.apiUrl}/my`).pipe(
