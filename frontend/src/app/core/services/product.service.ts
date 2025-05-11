@@ -126,7 +126,22 @@ export class ProductService {
     console.log(`ProductService: Deleting product with ID: ${id}`);
     return this.httpClient.delete<void>(`${this.apiUrl}/${id}`).pipe(
       tap(_ => console.log(`ProductService: Deleted product with ID: ${id}`)),
-      catchError(this.handleError<void>('deleteProduct'))
+      catchError(error => {
+        let userMessage = `Ürün silinirken bir hata oluştu: ${error.message || 'Bilinmeyen bir sunucu hatası'}`;
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 409) {
+            // Backend'den gelen daha spesifik bir mesaj varsa onu kullanabiliriz veya genel bir mesaj verebiliriz.
+            // Örnek: error.error?.message backend'den gelen JSON response'taki message alanı olabilir.
+            userMessage = error.error?.message || 'Bu ürün, aktif siparişlerde veya başka kayıtlarla ilişkili olduğu için silinemiyor. Lütfen önce bu ilişkileri kaldırın veya ürünü pasife almayı deneyin.';
+          } else if (error.status === 403) {
+            userMessage = 'Bu ürünü silme yetkiniz bulunmuyor.';
+          } else if (error.status === 404) {
+            userMessage = 'Silinmek istenen ürün bulunamadı.';
+          }
+        }
+        console.error(`deleteProduct failed for ID ${id}:`, error);
+        return throwError(() => new Error(userMessage));
+      })
     );
   }
 

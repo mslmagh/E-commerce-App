@@ -116,7 +116,7 @@ public class ProductController {
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Product not found")})
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('SELLER') and @productSecurityService.isOwner(principal, #id))")
+    @PreAuthorize("hasRole('SELLER') and @productSecurityService.isOwner(principal, #id)")
     public ResponseEntity<ProductDto> updateProduct(
             @Parameter(description = "ID of product to update") @PathVariable Long id,
             @Valid @org.springframework.web.bind.annotation.RequestBody ProductRequestDto requestDto) { // Use Save DTO

@@ -11,19 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-
-export interface AdminProduct {
-  id: string | number;
-  name: string;
-  sku?: string;
-  price: number;
-  stockQuantity: number;
-  status: 'Yayında' | 'Taslak' | 'Onay Bekliyor' | 'Reddedildi' | 'Stok Tükendi';
-  imageUrl?: string;
-  sellerName?: string;
-  category?: string;
-  createdAt?: Date;
-}
+import { ProductService, Product as BackendProduct } from '../../../../core/services/product.service';
 
 @Component({
   selector: 'app-admin-product-list',
@@ -75,8 +63,8 @@ export interface AdminProduct {
   `]
 })
 export class AdminProductListComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['imageUrl', 'name', 'sellerName', 'category', 'price', 'stockQuantity', 'status', 'createdAt', 'actions'];
-  dataSource = new MatTableDataSource<AdminProduct>([]);
+  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'actions'];
+  dataSource = new MatTableDataSource<BackendProduct>([]);
   isLoading = false;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -84,7 +72,8 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
 
   constructor(
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private productService: ProductService
   ) {}
 
   ngOnInit(): void {
@@ -95,18 +84,16 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
-    this.dataSource.sortingDataAccessor = (item: AdminProduct, property: string) => {
+    this.dataSource.sortingDataAccessor = (item: BackendProduct, property: string) => {
         switch (property) {
-          case 'createdAt': return item.createdAt ? item.createdAt.getTime() : 0;
           case 'name': return item.name.toLowerCase();
-          case 'sellerName': return item.sellerName?.toLowerCase() || '';
-          case 'category': return item.category?.toLowerCase() || '';
+          case 'categoryName': return item.categoryName?.toLowerCase() || '';
           default: return (item as any)[property];
         }
      };
 
-     this.dataSource.filterPredicate = (data: AdminProduct, filter: string): boolean => {
-         const searchString = (data.name + data.sku + data.sellerName + data.category + data.status)
+     this.dataSource.filterPredicate = (data: BackendProduct, filter: string): boolean => {
+         const searchString = (data.name + (data.categoryName || '') + data.price + data.stockQuantity)
                                 .toLowerCase();
          return searchString.includes(filter.toLowerCase());
      };
@@ -114,20 +101,19 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
 
   loadProducts(): void {
     this.isLoading = true;
-
-    setTimeout(() => {
-      const mockProducts: AdminProduct[] = [
-        { id: 1, name: 'Kablosuz Kulaklık Pro X', price: 899, stockQuantity: 50, status: 'Yayında', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün1', sellerName: 'Ses Dünyası', category: 'Elektronik', createdAt: new Date(2024, 0, 10) },
-        { id: 2, name: 'Akıllı Saat Fit+', price: 1450, stockQuantity: 0, status: 'Stok Tükendi', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün2', sellerName: 'Tekno Moda', category: 'Elektronik', createdAt: new Date(2024, 1, 15) },
-        { id: 3, name: 'Mekanik Klavye RGB', price: 650, stockQuantity: 15, status: 'Onay Bekliyor', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün3', sellerName: 'Oyun Ekipmanları', category: 'Elektronik', createdAt: new Date(2024, 2, 20) },
-        { id: 4, name: 'Yoga Matı Kaymaz', price: 250, stockQuantity: 30, status: 'Yayında', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün4', sellerName: 'Sağlıklı Yaşam', category: 'Spor & Outdoor', createdAt: new Date(2024, 3, 5) },
-        { id: 5, name: 'El Yapımı Seramik Kupa', price: 75, stockQuantity: 10, status: 'Taslak', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün5', sellerName: 'Butik Seramik', category: 'Ev & Yaşam', createdAt: new Date(2024, 4, 1) },
-        { id: 6, name: 'Organik Pamuk Tişört', price: 120, stockQuantity: 5, status: 'Reddedildi', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün6', sellerName: 'Doğa Giyim', category: 'Giyim', createdAt: new Date(2024, 4, 6) },
-      ];
-      this.dataSource.data = mockProducts;
-      this.isLoading = false;
-      console.log('Mock ürünler yüklendi:', mockProducts);
-    }, 1000); // 1 saniye gecikme ile yükleme simülasyonu
+    this.productService.getProducts().subscribe({
+      next: (products: BackendProduct[]) => {
+        this.dataSource.data = products;
+        this.isLoading = false;
+        console.log(`Backend'den ürünler yüklendi:`, products);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.dataSource.data = [];
+        this.snackBar.open(`Ürünler yüklenirken hata oluştu: ${err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 3000 });
+        console.error('Ürünler yüklenirken hata:', err);
+      }
+    });
   }
 
   applyFilter(event: Event) {
@@ -144,35 +130,21 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/admin/products/new']);
   }
 
-  editProduct(product: AdminProduct): void {
-    console.log('AdminProductListComponent: Navigating to edit product ID:', product.id);
-    this.router.navigate(['/admin/products/edit', product.id]);
-  }
-
-  deleteProduct(product: AdminProduct): void {
-    console.log('TODO: Implement delete product backend call for ID:', product.id);
+  deleteProduct(product: BackendProduct): void {
     if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
       this.isLoading = true;
-
-      setTimeout(() => {
-        this.dataSource.data = this.dataSource.data.filter(p => p.id !== product.id);
-        this.snackBar.open(`'${product.name}' silindi (simülasyon).`, 'Tamam', { duration: 2000 });
-        this.isLoading = false;
-         if (this.dataSource.paginator) { // Silme sonrası paginator state'ini kontrol et
-             this.dataSource.paginator.pageIndex = 0;
-         }
-      }, 1000);
-    }
-  }
-
-   getStatusClass(status: AdminProduct['status']): string {
-    switch (status) {
-      case 'Yayında': return 'status-yayinda';
-      case 'Taslak': return 'status-taslak';
-      case 'Onay Bekliyor': return 'status-onay-bekliyor';
-      case 'Reddedildi': return 'status-reddedildi';
-      case 'Stok Tükendi': return 'status-stok-tukendi';
-      default: return '';
+      this.productService.deleteProduct(product.id).subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.snackBar.open(`'${product.name}' başarıyla silindi.`, 'Tamam', { duration: 3000 });
+          this.loadProducts();
+        },
+        error: (err) => {
+          this.isLoading = false;
+          this.snackBar.open(`Ürün silinirken hata oluştu: ${err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 3000 });
+          console.error('Ürün silinirken hata:', err);
+        }
+      });
     }
   }
 }
