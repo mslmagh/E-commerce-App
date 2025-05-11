@@ -190,6 +190,49 @@ export class SellerProductListComponent implements OnInit {
     }
   }
 
+  deactivateProduct(product: Product): void {
+    if (!product || product.id === undefined) {
+      this.snackBar.open('Geçersiz ürün bilgisi.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    const reason = prompt(`Lütfen '${product.name}' adlı ürünü neden pasife almak istediğinizi belirtin:`, "Satıcı tarafından isteğe bağlı olarak pasife alındı.");
+
+    if (reason === null) { // Kullanıcı prompt'u iptal etti
+      this.snackBar.open('Pasife alma işlemi iptal edildi.', 'Tamam', { duration: 3000 });
+      return;
+    }
+
+    if (reason.trim() === "") { // Kullanıcı boş bir neden girdi
+      this.snackBar.open('Pasife alma nedeni boş bırakılamaz.', 'Kapat', { duration: 4000, panelClass: ['warning-snackbar'] });
+      // İsteğe bağlı: kullanıcıyı tekrar prompt'a yönlendirebilir veya işlemi sonlandırabilirsiniz.
+      // Şimdilik işlemi sonlandırıyoruz.
+      return;
+    }
+
+    if (confirm(`'${product.name}' adlı ürünü '${reason}' nedeniyle pasife almak istediğinizden emin misiniz?`)) {
+      this.isLoading = true;
+      this.productService.deactivateProduct(product.id, reason).pipe(
+        tap((deactivatedProduct) => {
+          this.isLoading = false;
+          this.snackBar.open(`'${deactivatedProduct.name}' başarıyla pasife alındı.`, 'Tamam', { duration: 3000 });
+          this.loadSellerProducts(); // Listeyi yenile
+        }),
+        catchError(error => {
+          this.isLoading = false;
+          console.error('Error deactivating product:', error);
+          this.snackBar.open(`Ürün pasife alınırken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          return EMPTY;
+        })
+      ).subscribe();
+    } else {
+      this.snackBar.open('Pasife alma işlemi iptal edildi.', 'Tamam', { duration: 3000 });
+    }
+  }
+
   getDerivedStatus(product: Product): 'Pasif' | 'Yayında' | 'Stok Tükendi' {
     if (product.active === true) {
       return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';

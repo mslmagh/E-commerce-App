@@ -138,12 +138,14 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + ". Cannot reactivate."));
 
-        // Check if the current user is the seller of the product
-        if (!product.getSeller().getId().equals(currentUser.getId())) {
-            logger.warn("User {} attempted to reactivate product ID: {} owned by another seller ({}).",
+        // Check if the current user is an Admin
+        boolean isAdmin = currentUser.getRoles().stream()
+                                     .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+
+        // Allow if admin OR current user is the seller of the product
+        if (!isAdmin && !product.getSeller().getId().equals(currentUser.getId())) {
+            logger.warn("User {} (not admin or owner) attempted to reactivate product ID: {} owned by another seller ({}).",
                     currentUser.getUsername(), productId, product.getSeller().getUsername());
-            // Consider throwing an AccessDeniedException or similar
-            // For now, let's throw a generic exception or return an appropriate response if using ResponseEntity directly in service
             throw new org.springframework.security.access.AccessDeniedException("You are not authorized to reactivate this product.");
         }
 

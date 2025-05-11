@@ -158,15 +158,15 @@ public class ProductController {
         return ResponseEntity.ok(deactivatedProduct);
     }
 
-    // REACTIVATE Product (by Seller)
-    @Operation(summary = "Reactivate a Product by ID (Seller Only)", description = "Marks a product as active. Requires SELLER role for their own product.")
+    // REACTIVATE Product
+    @Operation(summary = "Reactivate a Product by ID", description = "Marks a product as active. Requires ADMIN role, or SELLER role for their own product.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Product reactivated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class))),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "403", description = "Forbidden (not owner or not seller)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not owner or not authorized role)"),
             @ApiResponse(responseCode = "404", description = "Product not found")})
     @PutMapping("/{id}/reactivate")
-    @PreAuthorize("hasRole('SELLER') and @productSecurityService.isOwner(principal, #id)")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('SELLER') and @productSecurityService.isOwner(principal, #id))")
     public ResponseEntity<ProductDto> reactivateProduct(@Parameter(description = "ID of product to reactivate") @PathVariable Long id) {
         ProductDto reactivatedProduct = productService.reactivateProduct(id);
         return ResponseEntity.ok(reactivatedProduct);

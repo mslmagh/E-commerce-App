@@ -12,6 +12,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProductService, Product as BackendProduct } from '../../../../core/services/product.service';
+import { catchError, tap } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
 
 @Component({
   selector: 'app-admin-product-list',
@@ -63,7 +65,7 @@ import { ProductService, Product as BackendProduct } from '../../../../core/serv
   `]
 })
 export class AdminProductListComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'isActive', 'deactivationReason', 'deactivatedAt', 'actions'];
+  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'derivedStatus', 'deactivationReason', 'deactivatedAt', 'actions'];
   dataSource = new MatTableDataSource<BackendProduct>([]);
   isLoading = false;
 
@@ -152,6 +154,50 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
           console.error('Ürün pasife alınırken hata:', err);
         }
       });
+    }
+  }
+
+  reactivateProduct(product: BackendProduct): void {
+    if (!product || product.id === undefined) {
+      this.snackBar.open('Geçersiz ürün bilgisi.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    if (confirm(`'${product.name}' adlı ürünü tekrar yayına almak istediğinizden emin misiniz?`)) {
+      this.isLoading = true;
+      this.productService.reactivateProduct(product.id).pipe(
+        tap((updatedProduct) => {
+          this.isLoading = false;
+          this.snackBar.open(`'${updatedProduct.name}' başarıyla yayına alındı.`, 'Tamam', { duration: 3000 });
+          this.loadProducts();
+        }),
+        catchError(error => {
+          this.isLoading = false;
+          console.error('Error reactivating product:', error);
+          this.snackBar.open(`Ürün yayına alınırken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          return EMPTY;
+        })
+      ).subscribe();
+    }
+  }
+
+  getDerivedStatus(product: BackendProduct): 'Pasif' | 'Yayında' | 'Stok Tükendi' {
+    if (product.active === true) {
+      return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';
+    }
+    return 'Pasif';
+  }
+
+  getStatusClass(product: BackendProduct): string {
+    const status = this.getDerivedStatus(product);
+    switch (status) {
+      case 'Pasif': return 'status-reddedildi';
+      case 'Yayında': return 'status-yayinda';
+      case 'Stok Tükendi': return 'status-stok-tukendi';
+      default: return '';
     }
   }
 }

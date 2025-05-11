@@ -74,22 +74,23 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef> İşlemler </th>
         <td mat-cell *matCellDef="let product" class="actions-cell">
-          <button mat-icon-button color="primary" (click)="editProduct(product)" matTooltip="Ürünü Düzenle">
+          <button mat-icon-button (click)="editProduct(product)" matTooltip="Ürünü Düzenle">
             <mat-icon>edit</mat-icon>
           </button>
 
-          <!-- Aktif Et Butonu: Sadece ürün pasif ise gösterilir -->
-          <button *ngIf="!product.isActive" mat-icon-button color="accent" (click)="reactivateProduct(product)" matTooltip="Ürünü Tekrar Yayına Al">
-            <mat-icon>visibility</mat-icon> <!-- Veya check_circle, play_arrow gibi ikonlar -->
+          <button mat-icon-button
+                  *ngIf="getDerivedStatus(product) === 'Pasif'"
+                  (click)="reactivateProduct(product)"
+                  matTooltip="Ürünü Tekrar Yayına Al">
+            <mat-icon>visibility</mat-icon>
           </button>
 
-          <!-- Not: Satıcının kendi ürününü pasife alma butonu kaldırıldı, sadece admin pasife alabiliyor ve satıcı bunu görüp tekrar aktif edebiliyor. -->
-          <!-- Eğer satıcının da pasife alabilmesi istenirse, product.isActive kontrolü ile aşağıdaki buton eklenebilir ve farklı bir metod çağrılabilir. -->
-          <!-- 
-          <button *ngIf="product.isActive" mat-icon-button color="warn" (click)="someSellerDeactivateMethod(product)" matTooltip="Ürünü Pasife Al (Satıcı)">
+          <button mat-icon-button
+                  *ngIf="getDerivedStatus(product) === 'Yayında' || getDerivedStatus(product) === 'Stok Tükendi'"
+                  (click)="deactivateProduct(product)"
+                  matTooltip="Ürünü Pasife Al">
             <mat-icon>visibility_off</mat-icon>
-          </button> 
-          -->
+          </button>
         </td>
       </ng-container>
 
