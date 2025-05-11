@@ -9,8 +9,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule, MatDialogConfig } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AddressService } from '../../../core/services/address.service';
-import { AddressDto } from '../../../core/models/dto/address.dto';
+import { Address } from '../../../core/models/address.model';
 import { AuthService } from '../../../core/services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-address-list',
@@ -111,7 +112,7 @@ import { AuthService } from '../../../core/services/auth.service';
   `]
 })
 export class AddressListComponent implements OnInit {
-  addresses: AddressDto[] = [];
+  addresses: Address[] = [];
   isLoading = true;
   error = false;
   errorMessage = '';
@@ -147,12 +148,12 @@ export class AddressListComponent implements OnInit {
     this.error = false;
     this.errorMessage = '';
     
-    this.addressService.getUserAddresses().subscribe({
-      next: (addresses) => {
+    this.addressService.getAddresses().subscribe({
+      next: (addresses: Address[]) => {
         this.addresses = addresses;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Error loading addresses:', err);
         this.error = true;
         this.errorMessage = err.message || 'Adres bilgileri yüklenirken bir hata oluştu.';
@@ -186,7 +187,7 @@ export class AddressListComponent implements OnInit {
     this.router.navigate(['/profile/address-form']);
   }
 
-  editAddress(address: AddressDto): void {
+  editAddress(address: Address): void {
     if (!this.authService.isLoggedIn()) {
       this.snackBar.open('Adres düzenlemek için giriş yapmalısınız.', 'Giriş Yap', {
         duration: 5000,
@@ -200,7 +201,7 @@ export class AddressListComponent implements OnInit {
     this.router.navigate(['/profile/address-form', address.id]);
   }
 
-  deleteAddress(address: AddressDto): void {
+  deleteAddress(address: Address): void {
     if (!this.authService.isLoggedIn()) {
       this.snackBar.open('Adres silmek için giriş yapmalısınız.', 'Giriş Yap', {
         duration: 5000,

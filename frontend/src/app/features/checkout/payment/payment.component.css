@@ -1,6 +1,6 @@
 .payment-container {
   max-width: 750px; /* Genişliği biraz artırabiliriz */
-  margin: 30px auto;
+  margin: 20px;
   padding: 20px;
 }
 
@@ -20,11 +20,10 @@ mat-card-title {
 
 /* Sipariş Özeti Stilleri */
 .order-summary {
+  margin-bottom: 20px;
   padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 30px;
-  background-color: #f9f9f9;
+  border-radius: 8px;
+  background-color: #f8f9fa;
 }
 
 .order-summary h3 {
@@ -37,178 +36,155 @@ mat-card-title {
   padding-bottom: 10px;
 }
 
-.order-summary .summary-item,
-.order-summary .summary-total {
+.summary-item {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  font-size: 0.95rem;
+  margin-bottom: 10px;
 }
 
-.order-summary .summary-item span:first-child {
-  color: #555;
-}
-.order-summary .summary-item span:last-child {
-  font-weight: 500;
-}
-
-.order-summary .summary-total {
-  font-size: 1.1rem;
-  margin-top: 10px;
-  padding-top: 10px;
-  /* border-top: 1px solid #ccc; */ /* Zaten mat-divider var */
-}
-.order-summary .summary-total strong {
-  color: #222;
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  font-size: 1.1em;
 }
 
 .payment-method-group {
   display: flex;
-  flex-direction: column; /* Radyo butonları alt alta */
-  gap: 18px; /* Butonlar arası boşluk */
-  margin-bottom: 25px;
-  padding: 10px;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
+  flex-direction: column;
+  margin: 15px 0;
 }
 
 .payment-method-group mat-radio-button {
-  font-size: 1.05rem; /* Yazı boyutu */
-  padding: 8px 0; /* İç boşluk */
+  margin-bottom: 10px;
 }
 
-.payment-details-accordion {
-  margin-bottom: 30px;
-}
-
-.mat-expansion-panel {
+/* Yeni ödeme metodu detayları stilleri */
+.payment-method-details {
+  margin: 15px 0;
+  padding: 15px;
   border: 1px solid #e0e0e0;
-  margin-bottom: 10px !important; /* Paneller arası boşluk */
-  border-radius: 4px !important;
-}
-.mat-expansion-panel:last-child {
-    margin-bottom: 0 !important;
+  border-radius: 8px;
+  background-color: #f9f9f9;
 }
 
-
-.mat-expansion-panel-header {
-  font-size: 1.1em; /* Panel başlık boyutu */
+.method-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 1.1em;
   font-weight: 500;
 }
 
-.mat-expansion-panel-header mat-icon {
-  margin-right: 12px; /* İkon ve başlık arası boşluk */
-  color: #3f51b5; /* Material primary rengi */
+.method-header mat-icon {
+  margin-right: 8px;
+  color: #3f51b5;
 }
 
-/* Aktif panel başlığı için farklı stil (isteğe bağlı) */
-.mat-expansion-panel-header[aria-expanded="true"] {
-  background-color: rgba(63, 81, 181, 0.04);
-}
-.mat-expansion-panel-header[aria-expanded="true"] mat-icon {
-  /* color: #ff4081; */ /* Vurgu rengi */
+.stripe-card-element-container {
+  margin: 20px 0;
+  min-height: 40px;
+  position: relative;
 }
 
-.payment-info {
-  font-size: 0.9em;
-  color: #444;
-  margin-bottom: 15px;
-  padding: 12px 15px; /* Daha iyi padding */
-  background-color: #f9f9f9;
-  border-left: 4px solid #3f51b5; /* Sol kenarda belirgin çizgi */
-  border-radius: 0 4px 4px 0; /* Köşe yuvarlaklığı */
+.stripe-card-element {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 40px;
+  transition: box-shadow 0.3s ease;
 }
 
-/* Kredi Kartı Formu Stilleri */
-.credit-card-form {
-  padding-top: 10px;
-}
-.credit-card-form mat-form-field {
-  width: 100%;
-  margin-bottom: 12px; /* Alanlar arası boşluk */
+.stripe-card-element:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.credit-card-form .form-row {
+.stripe-card-element iframe {
+  opacity: 1 !important; /* Ensures iframe is visible */
+  z-index: 1 !important; /* Ensures iframe is on top */
+}
+
+.stripe-loading-spinner {
   display: flex;
-  gap: 15px; /* Yan yana alanlar arası boşluk */
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  margin: 15px 0;
 }
 
-.credit-card-form .form-row .expiry-field {
-  flex: 1; /* Esnek genişlik */
+.stripe-loading-spinner span {
+  margin-left: 10px;
 }
-.credit-card-form .form-row .cvc-field {
-  flex-basis: 110px; /* CVC alanı için daha iyi bir genişlik */
-  flex-grow: 0; /* Büyümesin */
+
+.stripe-error-message {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.stripe-error-message mat-icon {
+  margin-right: 8px;
+  color: #f44336;
 }
 
 .secure-payment-info {
   display: flex;
   align-items: center;
-  font-size: 0.85em;
-  color: #2e7d32; /* Yeşil tonu, güveni temsil eder */
-  margin-top: 20px; /* Formdan sonra boşluk */
-  padding: 8px;
-  background-color: #e8f5e9;
-  border-radius: 4px;
-}
-.secure-payment-info mat-icon {
-  font-size: 1.1em; /* İkon boyutu */
-  height: auto; width: auto; /* İkonun kendi boyutunu almasını sağla */
-  margin-right: 8px; /* İkonla yazı arası boşluk */
+  margin-top: 10px;
+  color: #4caf50;
 }
 
-.paypal-button {
-  min-width: 220px; /* Buton genişliği */
-  padding: 12px 25px !important; /* Buton iç boşluğu */
-  font-size: 1.05rem !important;
-  /* PayPal mavisi kullanılabilir: background-color: #0070ba; color: white; */
+.secure-payment-info mat-icon {
+  margin-right: 5px;
 }
 
 .cod-warning {
-  font-size: 0.9em;
-  color: #c62828; /* Koyu kırmızı uyarı */
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #ffebee;
-  border: 1px solid #ffcdd2;
-  border-radius: 4px;
-}
-.cod-warning strong {
-    font-weight: 600;
+  color: #ff9800;
 }
 
 .form-actions {
-  margin-top: 30px;
   display: flex;
   justify-content: space-between;
+  margin-top: 20px;
+}
+
+.spinner-icon {
+  margin-right: 5px;
+}
+
+/* Adaptive design */
+@media (max-width: 600px) {
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    margin-bottom: 10px;
+  }
+}
+
+/* General loading shade for the whole form */
+.form-loading-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding-top: 25px; /* Ayırıcı çizgi ile butonlar arası boşluk */
-  border-top: 1px solid #e0e0e0; /* Butonlar üstüne çizgi */
+  justify-content: center;
+  min-height: 200px;
 }
 
-.form-actions button {
-  padding: 0.6rem 1.2rem; /* Buton iç boşluğu */
-  font-size: 1rem; /* Buton yazı boyutu */
-}
-
-.form-actions button mat-icon {
-  vertical-align: middle;
-}
-/* Geri butonu ikonu */
-.form-actions button:first-child mat-icon {
-  margin-right: 6px;
-}
-/* İleri butonu ikonu */
-.form-actions button:last-child mat-icon {
-  margin-left: 6px;
-}
-
-/* Yükleniyor (spinner) ikonu için */
-.spinner-icon .mat-mdc-progress-spinner {
-    /* margin-right: 8px; */ /* Eğer yazı ile yan yana ise */
-    /* stroke: white !important; */ /* Buton içindeyse spinner rengi */
-}
-.form-actions button:last-child .mat-mdc-progress-spinner circle { /* Buton içindeki spinner için */
-    stroke: white !important;
+.form-loading-shade p {
+  margin-top: 10px;
+  font-size: 1rem;
+  color: #333;
 }

@@ -12,8 +12,9 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { AddressService } from '../../../core/services/address.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environment';
-import { AddressDto } from '../../../core/models/dto/address.dto';
-import { AddressRequestDto } from '../../../core/models/dto/address-request.dto';
+import { Address } from '../../../core/models/address.model';
+import { AddressRequest } from '../../../core/models/address-request.model';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-address-form',
@@ -81,7 +82,7 @@ export class AddressFormComponent implements OnInit {
   error: string | null = null;
   formSubmitted = false;
   showDebug = false; // Set to true to show debug info in UI
-  originalAddress: AddressDto | null = null;
+  originalAddress: Address | null = null;
   apiUrl = environment.apiUrl; // Make apiUrl accessible in template
 
   constructor(
@@ -198,7 +199,7 @@ export class AddressFormComponent implements OnInit {
       return;
     }
 
-    const addressData: AddressRequestDto = this.addressForm.value;
+    const addressData: AddressRequest = this.addressForm.value;
 
     for (const [key, value] of Object.entries(addressData)) {
       if (value === null || value === undefined || String(value).trim() === '') {
@@ -214,7 +215,7 @@ export class AddressFormComponent implements OnInit {
 
     if (this.isEditMode && this.addressId) {
       this.addressService.updateAddress(this.addressId, addressData).subscribe({
-        next: (response) => {
+        next: (response: Address) => {
           console.log('Address update successful via service:', response);
           this.isSubmitting = false;
           this.snackBar.open('Adres başarıyla güncellendi.', 'Tamam', { 
@@ -223,7 +224,7 @@ export class AddressFormComponent implements OnInit {
           });
           this.router.navigate(['/profile/addresses']);
         },
-        error: (err) => { 
+        error: (err: HttpErrorResponse) => { 
           console.error('Error updating address via service:', err);
           this.isSubmitting = false;
           this.error = err.message || 'Adres güncellenirken bir hata oluştu.';
@@ -234,8 +235,8 @@ export class AddressFormComponent implements OnInit {
         }
       });
     } else {
-      this.addressService.createAddress(addressData).subscribe({
-        next: (response) => {
+      this.addressService.addAddress(addressData).subscribe({
+        next: (response: Address) => {
           console.log('Server response (create):', response);
           this.isSubmitting = false;
           this.snackBar.open('Yeni adres başarıyla eklendi.', 'Tamam', { 
@@ -244,7 +245,7 @@ export class AddressFormComponent implements OnInit {
           });
           this.router.navigate(['/profile/addresses']);
         },
-        error: (err) => {
+        error: (err: HttpErrorResponse) => {
           console.error('Error saving address (create):', err);
           this.isSubmitting = false;
           this.error = err.message || 'Adres kaydedilirken bir hata oluştu.';

@@ -1,0 +1,58 @@
+<div class="select-address-container">
+  <mat-card>
+    <mat-card-title>Teslimat Adresinizi Seçin</mat-card-title>
+    <mat-card-content>
+      <div *ngIf="isLoadingAddresses" class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Adresleriniz yükleniyor...</p>
+      </div>
+
+      <div *ngIf="error && !isLoadingAddresses" class="error-message">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </div>
+
+      <ng-container *ngIf="!isLoadingAddresses && !error">
+        <div *ngIf="addresses.length > 0; else noAddresses">
+          <p>Lütfen siparişiniz için bir teslimat adresi seçin veya yeni bir adres ekleyin.</p>
+          <mat-radio-group class="address-radio-group" [(ngModel)]="selectedAddressId" name="selectedAddress">
+            <mat-list role="list">
+              <mat-list-item *ngFor="let address of addresses" role="listitem" class="address-list-item">
+                <mat-radio-button [value]="address.id" class="address-radio-button">
+                  <strong>{{ address.country }}, {{ address.city }}</strong><br>
+                  <span>{{ address.addressText }}</span><br>
+                  <span>Posta Kodu: {{ address.postalCode }}</span><br>
+                  <span>Tel: {{ address.phoneNumber }}</span>
+                </mat-radio-button>
+                <!-- Opsiyonel: Adresi düzenle butonu eklenebilir -->
+                <!-- <button mat-icon-button (click)="editAddress(address.id)" title="Adresi Düzenle"><mat-icon>edit</mat-icon></button> -->
+              </mat-list-item>
+            </mat-list>
+          </mat-radio-group>
+        </div>
+
+        <ng-template #noAddresses>
+          <div class="no-addresses-message">
+            <mat-icon>location_off</mat-icon>
+            <p>Kayıtlı teslimat adresiniz bulunmuyor.</p>
+            <p>Lütfen devam etmek için yeni bir adres ekleyin.</p>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <mat-card-actions class="form-actions">
+        <button mat-stroked-button (click)="addNewAddress()">
+          <mat-icon>add_location_alt</mat-icon> Yeni Adres Ekle
+        </button>
+        <button mat-raised-button color="primary" 
+                (click)="onProceedToOrder()" 
+                [disabled]="!selectedAddressId || isLoadingAddresses || isCreatingOrder || addresses.length === 0">
+          <mat-icon *ngIf="!isCreatingOrder">shopping_cart_checkout</mat-icon>
+          <mat-spinner *ngIf="isCreatingOrder" diameter="20" strokeWidth="3" style="margin-right: 8px;"></mat-spinner>
+          {{ isCreatingOrder ? 'Sipariş Oluşturuluyor...' : 'Bu Adresle Devam Et' }}
+        </button>
+      </mat-card-actions>
+
+    </mat-card-content>
+  </mat-card>
+</div>

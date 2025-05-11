@@ -4,6 +4,11 @@ import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angula
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // MatSnackBarModule import edildiğinden emin olun
+import { AddressService } from '../../core/services/address.service';
+import { OrderService } from '../../core/services/order.service';
+import { AddressRequest } from '../../core/models/address-request.model';
+import { CreateOrderRequest } from '../../core/models/create-order-request.model';
+import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-checkout',
@@ -24,11 +29,14 @@ export class CheckoutComponent implements OnInit {
   };
   availableCities: string[] = [];
   checkoutMessage: string | null = null;
+  isLoading: boolean = false;
 
   constructor(
     private authService: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar // SnackBar eklendi
+    private snackBar: MatSnackBar,
+    private addressService: AddressService,
+    private orderService: OrderService
   ) { }
 
   ngOnInit(): void {
@@ -49,7 +57,8 @@ export class CheckoutComponent implements OnInit {
       'phone': new FormControl('', [Validators.required, Validators.pattern("^[0-9]{10,15}$")]),
       'email': new FormControl('', [Validators.required, Validators.email]),
       'city': new FormControl('', Validators.required),
-      'addressTitle': new FormControl('', Validators.required)
+      'postalCode': new FormControl('', Validators.required),
+      'addressText': new FormControl('', Validators.required)
     });
 
     this.addressForm.get('country')?.valueChanges.subscribe(selectedCountry => {
@@ -66,25 +75,59 @@ export class CheckoutComponent implements OnInit {
   onSubmit(): void {
     console.log('Address Form Submit triggered!');
     this.checkoutMessage = null;
+    this.addressForm.markAllAsTouched();
 
-
-    if (this.addressForm.valid) {
-      console.log('Address Form is valid.');
-      const addressData = this.addressForm.value;
-      console.log('Girilen Adres Bilgileri:', addressData);
-
-
-      this.snackBar.open('Adres bilgileri başarıyla alındı. Ödeme adımına yönlendiriliyorsunuz...', 'Tamam', {
-        duration: 2500,
-      });
-
-      this.router.navigate(['/checkout/payment']);
-
-    } else {
+    if (this.addressForm.invalid) {
       console.log('Address Form is invalid.');
       this.checkoutMessage = 'Lütfen formdaki tüm zorunlu (*) alanları doğru şekilde doldurun.';
-      this.addressForm.markAllAsTouched(); // Tüm alanlara dokunuldu yap (hataları göstermek için)
+      return;
     }
+
+    this.isLoading = true;
+
+    const addressRequestData: AddressRequest = {
+      phoneNumber: this.addressForm.value.phone,
+      country: this.addressForm.value.country,
+      city: this.addressForm.value.city,
+      postalCode: this.addressForm.value.postalCode,
+      addressText: this.addressForm.value.addressText
+    };
+
+    console.log('Attempting to save address:', addressRequestData);
+
+    this.addressService.addAddress(addressRequestData).pipe(
+      switchMap(savedAddress => {
+        if (!savedAddress || !savedAddress.id) {
+          throw new Error('Failed to save address or address ID is missing.');
+        }
+        console.log('Address saved successfully with ID:', savedAddress.id);
+        this.snackBar.open('Adres başarıyla kaydedildi.', 'Tamam', { duration: 2000 });
+
+        const orderRequest: CreateOrderRequest = {
+          shippingAddressId: savedAddress.id
+        };
+        console.log('Attempting to create order with shippingAddressId:', savedAddress.id);
+        return this.orderService.createOrder(orderRequest);
+      })
+    ).subscribe({
+      next: (createdOrder) => {
+        this.isLoading = false;
+        if (!createdOrder || !createdOrder.id) {
+          console.error('Order creation failed or order ID is missing.');
+          this.snackBar.open('Sipariş oluşturulamadı. Lütfen tekrar deneyin.', 'Kapat', { duration: 3000 });
+          return;
+        }
+        console.log('Order created successfully with ID:', createdOrder.id);
+        this.snackBar.open('Siparişiniz başarıyla oluşturuldu! Ödeme adımına yönlendiriliyorsunuz...', 'Harika!', { duration: 3500 });
+        this.router.navigate(['/checkout/payment', createdOrder.id]);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Error during address saving or order creation:', err);
+        this.checkoutMessage = `Bir hata oluştu: ${err.message || 'Lütfen daha sonra tekrar deneyin.'}`;
+        this.snackBar.open(this.checkoutMessage, 'Kapat', { duration: 5000 });
+      }
+    });
   }
 
   get country() { return this.addressForm.get('country'); }
@@ -93,5 +136,6 @@ export class CheckoutComponent implements OnInit {
   get phone() { return this.addressForm.get('phone'); }
   get email() { return this.addressForm.get('email'); }
   get city() { return this.addressForm.get('city'); }
-  get addressTitle() { return this.addressForm.get('addressTitle'); }
+  get postalCode() { return this.addressForm.get('postalCode'); }
+  get addressText() { return this.addressForm.get('addressText'); }
 }

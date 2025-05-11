@@ -2,89 +2,37 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environment';
+import { CreateOrderRequest } from '../models/create-order-request.model';
+import { Address } from '../models/address.model';
 
 export interface OrderItem {
   id: number;
   productId: number;
   productName: string;
   quantity: number;
-  price: number;
-  subtotal: number;
+  priceAtPurchase: number;
   status: string;
-  imageUrl?: string;
-}
-
-export interface Address {
-  id: number;
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  zipCode: string;
-  isDefault: boolean;
-}
-
-export interface CreateOrderRequest {
-  items: {
-    productId: number;
-    quantity: number;
-  }[];
-  shippingAddressId: number;
-  paymentMethod: string;
 }
 
 export interface Order {
-  id: number;
-  userId: number;
-  items: OrderItem[];
-  totalAmount: number;
-  status: string;
-  shippingAddress: Address;
-  createdAt: string;
-  updatedAt: string;
-  trackingNumber?: string;
-  paymentMethod: string;
-  paymentStatus: string;
-}
-
-export interface PaymentIntent {
-  clientSecret: string;
-  amount: number;
-}
-
-export interface CancelOrderItemsRequest {
-  orderItemIds: number[];
-  reason: string;
-}
-
-export interface BackendOrderItemDto {
-  id: number;
-  productId: number;
-  productName: string;
-  quantity: number;
-  priceAtPurchase: number;
-  imageUrl?: string;
-}
-
-export interface BackendAddressDto {
-  id: number;
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  zipCode: string;
-}
-
-export interface BackendOrderDto {
   id: number;
   orderDate: string;
   status: string;
   totalAmount: number;
   customerId: number;
   customerUsername: string;
-  items: BackendOrderItemDto[];
-  shippingAddress: BackendAddressDto;
+  items: OrderItem[];
+  shippingAddress: Address;
   stripePaymentIntentId?: string;
+}
+
+export interface PaymentIntent {
+  clientSecret: string;
+}
+
+export interface CancelOrderItemsRequest {
+  orderItemIds: number[];
+  reason: string;
 }
 
 @Injectable({
@@ -95,15 +43,13 @@ export class OrderService {
 
   constructor(private http: HttpClient) { }
 
-  // Get all orders for the current user
   getUserOrders(): Observable<Order[]> {
-    return this.http.get<Order[]>(this.apiUrl)
+    return this.http.get<Order[]>(`${this.apiUrl}/my-orders`)
       .pipe(
         catchError(this.handleError<Order[]>('getUserOrders', []))
       );
   }
 
-  // Get order details by order ID
   getOrderById(orderId: number): Observable<Order> {
     return this.http.get<Order>(`${this.apiUrl}/${orderId}`)
       .pipe(
@@ -111,7 +57,6 @@ export class OrderService {
       );
   }
 
-  // Create a new order
   createOrder(orderRequest: CreateOrderRequest): Observable<Order> {
     return this.http.post<Order>(this.apiUrl, orderRequest)
       .pipe(
@@ -119,41 +64,32 @@ export class OrderService {
       );
   }
 
-  // Cancel specific items in an order
   cancelOrderItems(orderId: number, cancelRequest: CancelOrderItemsRequest): Observable<Order> {
-    return this.http.post<Order>(`${this.apiUrl}/${orderId}/cancel-items`, cancelRequest)
+    return this.http.post<Order>(`${this.apiUrl}/${orderId}/items/cancel-refund`, cancelRequest)
       .pipe(
         catchError(this.handleError<Order>(`cancelOrderItems orderId=${orderId}`))
       );
   }
 
-  // Create payment intent for an order (for Stripe integration)
   createPaymentIntent(orderId: number): Observable<PaymentIntent> {
-    return this.http.post<PaymentIntent>(`${this.apiUrl}/${orderId}/payment-intent`, {})
+    return this.http.post<PaymentIntent>(`${this.apiUrl}/${orderId}/create-payment-intent`, {})
       .pipe(
         catchError(this.handleError<PaymentIntent>(`createPaymentIntent orderId=${orderId}`))
       );
   }
 
-  // Confirm payment for an order
-  confirmPayment(orderId: number, paymentIntentId: string): Observable<Order> {
-    return this.http.post<Order>(`${this.apiUrl}/${orderId}/confirm-payment`, { paymentIntentId })
+  getOrdersForSeller(): Observable<Order[]> {
+    return this.http.get<Order[]>(`${this.apiUrl}/seller`)
       .pipe(
-        catchError(this.handleError<Order>(`confirmPayment orderId=${orderId}`))
-      );
-  }
-
-  getOrdersForSeller(): Observable<BackendOrderDto[]> {
-    return this.http.get<BackendOrderDto[]>(`${this.apiUrl}/seller`)
-      .pipe(
-        catchError(this.handleError<BackendOrderDto[]>('getOrdersForSeller', []))
+        catchError(this.handleError<Order[]>('getOrdersForSeller', []))
       );
   }
 
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
       console.error(`${operation} failed: ${JSON.stringify(error.error) || error.message}`);
-      return throwError(() => new Error(error.error?.message || `${operation} failed`));
+      const errMessage = error.error?.message || error.message || `${operation} failed`;
+      return throwError(() => new Error(errMessage));
     };
   }
 } 

@@ -17,7 +17,7 @@ import { EMPTY, Observable } from 'rxjs'; // EMPTY ve Observable eklendi
 import { catchError, map, tap } from 'rxjs/operators'; // rxjs operatörleri eklendi
 
 // OrderService ve DTO'lar import edildi
-import { OrderService, BackendOrderDto } from '../../../../core/services/order.service';
+import { OrderService, Order } from '../../../../core/services/order.service';
 
 export interface SellerOrder {
   orderId: string;
@@ -121,7 +121,7 @@ export class SellerOrderListComponent implements OnInit, AfterViewInit {
   loadOrders(): void {
     this.isLoading = true;
     this.orderService.getOrdersForSeller().pipe(
-      map((backendOrders: BackendOrderDto[]): SellerOrder[] => {
+      map((backendOrders: Order[]): SellerOrder[] => {
         return backendOrders.map(bo => {
           const frontendStatus = orderStatusMap[bo.status.toUpperCase()] || bo.status as SellerOrder['status']; // Eşleşme yoksa orijinal status
           return {

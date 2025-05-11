@@ -17,71 +17,64 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*; // Import general annotations
 
 @RestController
-@RequestMapping("/api/webhooks") // Base path for webhooks
+@RequestMapping("/api/webhooks/stripe")
 public class StripeWebhookController {
-
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
 
-    @Value("${stripe.webhook.secret}") // Inject webhook secret from properties
-    private String endpointSecret;
+    @Value("${stripe.webhook.secret}")
+    private String webhookSecret;
 
     @Autowired
-    private OrderService orderService; // Inject OrderService to update order status
+    private OrderService orderService;
 
-    @PostMapping("/stripe") // Endpoint path Stripe will send events to
-    public ResponseEntity<String> handleStripeEvent(@RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String sigHeader) {
-        // Check if webhook secret is configured
-        if (endpointSecret == null) {
-            logger.error("Webhook error: Stripe webhook secret is not configured.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook secret not configured.");
-        }
+    /**
+     * Handle Stripe webhooks to process payment events
+     */
+    @PostMapping
+    public ResponseEntity<String> handleStripeWebhook(
+            @RequestBody String payload,
+            @RequestHeader("Stripe-Signature") String signatureHeader) {
+
+        logger.info("Received Stripe webhook");
 
         Event event;
-
         try {
-            // Verify the webhook signature and construct the event object
-            event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
-            logger.info("Stripe Webhook Event Received: ID: {}, Type: {}", event.getId(), event.getType());
-
+            // Verify and construct the Event from payload and signature
+            event = Webhook.constructEvent(payload, signatureHeader, webhookSecret);
+            logger.info("Verified webhook signature: {}", event.getId());
         } catch (SignatureVerificationException e) {
-            // Invalid signature
-            logger.warn("Webhook error while validating signature: {}", e.getMessage());
+            logger.error("Invalid Stripe webhook signature: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
-        } catch (Exception e) {
-            logger.error("Webhook error: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook processing error");
         }
 
-        // Deserialize the nested object inside the event
+        // Get the event type
+        logger.info("Processing Stripe event: {}", event.getType());
+
+        // Process the event based on its type
         EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
         StripeObject stripeObject = null;
+        PaymentIntent paymentIntent = null;
+
         if (dataObjectDeserializer.getObject().isPresent()) {
             stripeObject = dataObjectDeserializer.getObject().get();
+            logger.info("Stripe object type: {}", stripeObject.getClass().getName());
         } else {
-            // Deserialization failed, probably due to API version mismatch
-            logger.warn(
-                    "Webhook warning: Event data object deserialization failed for event type: {}. Check Stripe API version.",
-                    event.getType());
-            // We probably still received the event, so acknowledge it
-            return ResponseEntity.ok("Received but data deserialization failed.");
+            logger.warn("Couldn't deserialize event object: {}", event.getId());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Could not deserialize event data");
         }
 
-        // Handle the event based on its type
-        PaymentIntent paymentIntent = null;
+        // Handle each event type
         switch (event.getType()) {
             case "payment_intent.succeeded":
                 if (stripeObject instanceof PaymentIntent) {
                     paymentIntent = (PaymentIntent) stripeObject;
                     logger.info("PaymentIntent Succeeded: {}", paymentIntent.getId());
                     try {
-                        String targetPaymentIntentId = "pi_3RLjNhQQxJ0jyreu1BkSsiNl"; // <<<--- KENDİ SİPARİŞİNİZİN PI ID'SİNİ YAPIŞTIRIN
-                        logger.info("Attempting to update order status for hardcoded PI ID: {}", targetPaymentIntentId);
+                        // Call OrderService to update order status
                         orderService.handlePaymentSucceeded(paymentIntent.getId());
                     } catch (Exception e) {
-                        logger.error("Error handling payment_intent.succeeded for PI ID {}: {}", paymentIntent.getId(),
-                                e.getMessage(), e);
-                        // Return 500 but Stripe might retry if it doesn't get 200
+                        logger.error("Error handling payment_intent.succeeded for PI ID {}: {}",
+                                paymentIntent.getId(), e.getMessage(), e);
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                 .body("Error updating order status.");
                     }
