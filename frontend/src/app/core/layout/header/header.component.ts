@@ -28,6 +28,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   searchTerm: string = '';
   isLoggedIn$: Observable<boolean>;
   isSeller$: Observable<boolean>;
+  isAdmin$: Observable<boolean>;
   cartItemCount$: Observable<number>;
   private cartSubscription?: Subscription;
 
@@ -39,6 +40,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isLoggedIn$ = this.authService.isLoggedIn$;
     this.isSeller$ = this.authService.userRole$.pipe(
       map(role => role === 'ROLE_SELLER')
+    );
+    this.isAdmin$ = this.authService.userRole$.pipe(
+      map(role => role === 'ROLE_ADMIN')
     );
     this.cartItemCount$ = this.cartService.cart$.pipe(
       map((cart: Cart | null) => {
