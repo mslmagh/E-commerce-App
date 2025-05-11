@@ -1,1 +1,73 @@
-<p>order-list works!</p>
+<div class="order-list-container">
+  <mat-card-title class="page-title">Siparişlerim</mat-card-title>
+
+  <div *ngIf="isLoading" class="loading-spinner-container">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Siparişleriniz yükleniyor...</p>
+  </div>
+
+  <div *ngIf="error && !isLoading" class="error-message-container">
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon color="warn">error_outline</mat-icon>
+        <p>{{ error }}</p>
+        <button mat-stroked-button color="primary" (click)="ngOnInit()">Tekrar Dene</button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <ng-container *ngIf="orders$ | async as orders">
+    <div *ngIf="!isLoading && !error && orders.length === 0" class="no-orders-container">
+      <mat-card class="info-card">
+        <mat-card-content>
+          <mat-icon class="info-icon">info_outline</mat-icon>
+          <p>Henüz hiç sipariş vermediniz.</p>
+          <button mat-flat-button color="primary" routerLink="/">Alışverişe Başla</button>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div *ngIf="!isLoading && !error && orders.length > 0" class="orders-grid">
+      <mat-card *ngFor="let order of orders; trackBy: trackByOrderId" class="order-card">
+        <mat-card-header>
+          <mat-card-title>Sipariş #{{ order.id }}</mat-card-title>
+          <mat-card-subtitle>
+            Tarih: {{ order.orderDate | date:'dd/MM/yyyy HH:mm' }} | Durum: 
+            <span [ngClass]="{
+              'status-pending': order.status === 'PENDING' || order.status === 'PROCESSING',
+              'status-shipped': order.status === 'SHIPPED',
+              'status-delivered': order.status === 'DELIVERED',
+              'status-cancelled': order.status === 'CANCELLED' || order.status === 'REFUNDED',
+              'status-incomplete': order.status === 'INCOMPLETE'
+            }">{{ order.status }}</span>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p><strong>Toplam Tutar:</strong> {{ order.totalAmount | currency:'TRY':'symbol':'1.2-2' }}</p>
+          <p><strong>Müşteri:</strong> {{ order.customerUsername }}</p>
+          <p *ngIf="order.stripePaymentIntentId"><strong>Ödeme ID:</strong> {{ order.stripePaymentIntentId }}</p>
+          
+          <h4>Sipariş Kalemleri:</h4>
+          <mat-list dense>
+            <mat-list-item *ngFor="let item of order.items" class="order-item">
+              <span matListItemTitle>{{ item.productName }} (x{{ item.quantity }})</span>
+              <span matListItemLine>Fiyat: {{ item.priceAtPurchase | currency:'TRY':'symbol':'1.2-2' }}</span>
+              <span matListItemLine *ngIf="item.status">Durum: {{ item.status }}</span>
+            </mat-list-item>
+          </mat-list>
+
+          <div *ngIf="order.shippingAddress" class="shipping-address-details">
+            <h4>Teslimat Adresi:</h4>
+            <p>{{ order.shippingAddress.addressText }}</p>
+            <p>{{ order.shippingAddress.city }}, {{ order.shippingAddress.postalCode }}</p>
+            <p>{{ order.shippingAddress.country }}</p>
+          </div>
+        </mat-card-content>
+        <mat-card-actions *ngIf="order.status === 'PENDING' || order.status === 'PROCESSING'">
+          <!-- <button mat-button color="warn">Siparişi İptal Et</button> -->
+          <!-- <button mat-button color="primary" [routerLink]="['/profile/orders', order.id]">Detayları Gör</button> -->
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </ng-container>
+</div>
