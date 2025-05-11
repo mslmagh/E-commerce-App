@@ -533,18 +533,31 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderDto getOrderByIdForCurrentUser(Long orderId) {
-        User currentUser = getCurrentAuthenticatedUserEntity();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentAuthenticatedUserEntity(authentication);
+        Set<String> currentUserRoles = getUserRoles(authentication);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get
-                                                                                                                       // roles
+        boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
+        boolean isOwner = order.getCustomer().getId().equals(currentUser.getId());
+        boolean isSeller = currentUserRoles.contains("ROLE_SELLER");
 
-        // Allow owner OR admin to view
-        if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
-            throw new AccessDeniedException("You are not authorized to view this order.");
+        if (isOwner || isAdmin) {
+            return convertToDto(order);
         }
-        return convertToDto(order);
+
+        if (isSeller) {
+            boolean orderContainsSellersProduct = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
+            if (orderContainsSellersProduct) {
+                return convertToDto(order);
+            }
+        }
+
+        // If none of the above conditions are met, deny access
+        throw new AccessDeniedException("You are not authorized to view this order.");
     }
 
     @Transactional(readOnly = true)
