@@ -1,6 +1,6 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, tap, throwError, of } from 'rxjs';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Product } from './product.service';
 import { environment } from '../../../environment';
 import { AuthService } from './auth.service';
@@ -30,19 +30,6 @@ export class CartService {
     this.loadInitialCart();
   }
 
-  private getHttpOptions() {
-    const token = this.authService.getToken();
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    } else {
-      console.warn('CartService: No auth token found. API requests for protected cart endpoints might fail.');
-    }
-    return { headers };
-  }
-
   private loadInitialCart(): void {
     if (this.authService.isLoggedIn()) {
       this.fetchCartFromServer();
@@ -69,7 +56,7 @@ export class CartService {
   }
 
   private fetchCartFromServer(): void {
-    this.http.get<Cart>(`${this.apiUrl}`, this.getHttpOptions()).pipe(
+    this.http.get<Cart>(`${this.apiUrl}`).pipe(
       tap(cart => {
         console.log('CartService: Cart fetched from API', cart);
         this.cartSource.next(cart);
@@ -117,7 +104,7 @@ export class CartService {
     }
 
     if (this.authService.isLoggedIn()) {
-      return this.http.post<Cart>(`${this.apiUrl}/items`, itemRequest, this.getHttpOptions()).pipe(
+      return this.http.post<Cart>(`${this.apiUrl}/items`, itemRequest).pipe(
         tap(updatedCart => {
           console.log('CartService: Item added/updated via API', updatedCart);
           this.cartSource.next(updatedCart);
@@ -170,7 +157,7 @@ export class CartService {
     const itemUpdateRequest: CartItemRequest = { productId: itemToUpdate.productId, quantity: newQuantity };
 
     if (this.authService.isLoggedIn()) {
-      return this.http.put<Cart>(`${this.apiUrl}/items/${itemId}`, itemUpdateRequest, this.getHttpOptions()).pipe(
+      return this.http.put<Cart>(`${this.apiUrl}/items/${itemId}`, itemUpdateRequest).pipe(
         tap(updatedCart => {
           console.log(`CartService: Updated quantity for item ${itemId} via API`);
           this.cartSource.next(updatedCart);
@@ -200,7 +187,7 @@ export class CartService {
 
   removeItem(itemId: number): Observable<Cart> {
     if (this.authService.isLoggedIn()) {
-      return this.http.delete<Cart>(`${this.apiUrl}/items/${itemId}`, this.getHttpOptions()).pipe(
+      return this.http.delete<Cart>(`${this.apiUrl}/items/${itemId}`).pipe(
         tap(updatedCart => {
           console.log(`CartService: Removed item ${itemId} via API`);
           this.cartSource.next(updatedCart?.items?.length > 0 ? updatedCart : null);
@@ -247,10 +234,10 @@ export class CartService {
 
   clearCart(): Observable<Cart | null> { 
     if (this.authService.isLoggedIn()) {
-      return this.http.delete<Cart>(`${this.apiUrl}/items`, this.getHttpOptions()).pipe(
-        tap(emptyCart => { 
-          console.log('CartService: Cart cleared via API', emptyCart);
-          this.cartSource.next(emptyCart); 
+      return this.http.delete<Cart>(`${this.apiUrl}/items`).pipe(
+        tap((clearedCart: Cart) => { 
+          console.log('CartService: Cart cleared via API', clearedCart);
+          this.cartSource.next(clearedCart); 
         }),
         catchError(error => {
           console.error('Error clearing cart via API', error);

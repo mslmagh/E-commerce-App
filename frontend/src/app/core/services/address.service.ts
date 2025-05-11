@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, throwError, tap } from 'rxjs';
 import { environment } from '../../../environment';
 import { AuthService } from './auth.service';
@@ -18,17 +18,6 @@ export class AddressService {
     private http: HttpClient,
     private authService: AuthService
   ) { }
-
-  // Helper method to get HTTP options with auth headers
-  private getHttpOptions() {
-    const token = this.authService.getToken();
-    return {
-      headers: new HttpHeaders({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      })
-    };
-  }
 
   getAddresses(): Observable<Address[]> {
     return this.http.get<Address[]>(this.apiUrl)
