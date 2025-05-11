@@ -260,6 +260,11 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
   }
 
   updateOrderStatus(): void {
+    console.log('updateOrderStatus called with selectedNextStatus:', this.selectedNextStatus);
+    if (this.selectedNextStatus === 'İptal Edildi') {
+      console.warn('updateOrderStatus called with "İptal Edildi", skipping.');
+      return;
+    }
     if (!this.order || !this.selectedNextStatus || this.isLoading || this.currentStatusIsFinal) {
       return;
     }
