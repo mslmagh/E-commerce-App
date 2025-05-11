@@ -3,6 +3,7 @@ package com.example.ecommerce.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min; // For @Min
 import java.math.BigDecimal; // Import BigDecimal
+import java.time.LocalDateTime; // LocalDateTime import edildi
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +44,16 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    // Soft delete alanları
+    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private boolean isActive = true;
+
+    @Column(name = "deactivation_reason", length = 500)
+    private String deactivationReason;
+
+    @Column(name = "deactivated_at")
+    private LocalDateTime deactivatedAt;
 
     public Product() {
     }
@@ -126,5 +137,30 @@ public class Product {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    // Getter ve Setterlar yeni alanlar için
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public String getDeactivationReason() {
+        return deactivationReason;
+    }
+
+    public void setDeactivationReason(String deactivationReason) {
+        this.deactivationReason = deactivationReason;
+    }
+
+    public LocalDateTime getDeactivatedAt() {
+        return deactivatedAt;
+    }
+
+    public void setDeactivatedAt(LocalDateTime deactivatedAt) {
+        this.deactivatedAt = deactivatedAt;
     }
 }

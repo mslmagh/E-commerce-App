@@ -47,14 +47,6 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
-        path: 'products/edit/:productId', // <-- YENİ: Admin Ürün Düzenleme Rotası (parametre ile)
-         loadComponent: () =>
-          import('./products/admin-product-form/admin-product-form.component').then(
-            (m) => m.AdminProductFormComponent
-          ),
-      },
-
-      {
         path: 'orders', // Admin Sipariş Listesi
         loadComponent: () =>
           import('./orders/admin-order-list/admin-order-list.component').then(

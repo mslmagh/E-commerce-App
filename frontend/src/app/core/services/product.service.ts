@@ -16,6 +16,11 @@ export interface Product {
   averageRating?: number;
   reviewCount?: number;
   sellerId?: number;
+
+  // Soft delete ve durum bilgisi alanları
+  active?: boolean;
+  deactivationReason?: string;
+  deactivatedAt?: string | Date; // Backend LocalDateTime gönderir, frontend Date olarak işleyebilir.
 }
 
 export interface ProductRequest {
@@ -122,26 +127,35 @@ export class ProductService {
     );
   }
 
-  deleteProduct(id: number): Observable<void> {
-    console.log(`ProductService: Deleting product with ID: ${id}`);
-    return this.httpClient.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      tap(_ => console.log(`ProductService: Deleted product with ID: ${id}`)),
+  deactivateProduct(id: number, reason: string): Observable<Product> {
+    console.log(`ProductService: Deactivating product with ID: ${id}, Reason: ${reason}`);
+    const params = new HttpParams().set('reason', reason);
+    return this.httpClient.delete<Product>(`${this.apiUrl}/${id}`, { params }).pipe(
+      tap(deactivatedProduct => console.log(`ProductService: Deactivated product with ID: ${id}`, deactivatedProduct)),
       catchError(error => {
-        let userMessage = `Ürün silinirken bir hata oluştu: ${error.message || 'Bilinmeyen bir sunucu hatası'}`;
+        let userMessage = `Ürün pasife alınırken bir hata oluştu: ${error.message || 'Bilinmeyen bir sunucu hatası'}`;
         if (error instanceof HttpErrorResponse) {
           if (error.status === 409) {
-            // Backend'den gelen daha spesifik bir mesaj varsa onu kullanabiliriz veya genel bir mesaj verebiliriz.
-            // Örnek: error.error?.message backend'den gelen JSON response'taki message alanı olabilir.
-            userMessage = error.error?.message || 'Bu ürün, aktif siparişlerde veya başka kayıtlarla ilişkili olduğu için silinemiyor. Lütfen önce bu ilişkileri kaldırın veya ürünü pasife almayı deneyin.';
+            userMessage = error.error?.message || 'Bu ürün pasife alınamadı (belki zaten pasif veya başka bir sorun var).';
+          } else if (error.status === 400) {
+            userMessage = error.error?.message || 'Pasife alma sebebi belirtilmelidir.';
           } else if (error.status === 403) {
-            userMessage = 'Bu ürünü silme yetkiniz bulunmuyor.';
+            userMessage = 'Bu ürünü pasife alma yetkiniz bulunmuyor.';
           } else if (error.status === 404) {
-            userMessage = 'Silinmek istenen ürün bulunamadı.';
+            userMessage = 'Pasife alınmak istenen ürün bulunamadı.';
           }
         }
-        console.error(`deleteProduct failed for ID ${id}:`, error);
+        console.error(`deactivateProduct failed for ID ${id}:`, error);
         return throwError(() => new Error(userMessage));
       })
+    );
+  }
+
+  reactivateProduct(id: number): Observable<Product> {
+    console.log(`ProductService: Reactivating product with ID: ${id}`);
+    return this.httpClient.put<Product>(`${this.apiUrl}/${id}/reactivate`, {}).pipe(
+      tap(reactivatedProduct => console.log(`ProductService: Reactivated product with ID: ${id}`, reactivatedProduct)),
+      catchError(this.handleError<Product>('reactivateProduct'))
     );
   }
 

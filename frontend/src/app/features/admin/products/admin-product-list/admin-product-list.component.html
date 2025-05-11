@@ -61,10 +61,29 @@
         <td mat-cell *matCellDef="let product" style="text-align: center;"> {{product.stockQuantity}} </td>
       </ng-container>
 
+      <ng-container matColumnDef="isActive">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: center;"> Aktif Mi? </th>
+        <td mat-cell *matCellDef="let product" style="text-align: center;">
+          <mat-icon [color]="product.isActive ? 'primary' : 'warn'">
+            {{ product.isActive ? 'check_circle' : 'cancel' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="deactivationReason">
+        <th mat-header-cell *matHeaderCellDef> Pasife Alma Sebebi </th>
+        <td mat-cell *matCellDef="let product"> {{product.deactivationReason || '-'}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="deactivatedAt">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Pasife Alınma Tarihi </th>
+        <td mat-cell *matCellDef="let product"> {{(product.deactivatedAt | date:'dd.MM.yyyy HH:mm') || '-'}} </td>
+      </ng-container>
+
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef style="text-align: center;"> İşlemler </th>
         <td mat-cell *matCellDef="let product" class="actions-cell">
-          <button mat-icon-button color="warn" (click)="deleteProduct(product)" matTooltip="Ürünü Sil">
+          <button mat-icon-button color="warn" (click)="deactivateProduct(product)" matTooltip="Ürünü Pasife Al">
             <mat-icon>delete_outline</mat-icon>
           </button>
         </td>

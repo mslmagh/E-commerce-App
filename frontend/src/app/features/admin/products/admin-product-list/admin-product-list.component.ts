@@ -63,7 +63,7 @@ import { ProductService, Product as BackendProduct } from '../../../../core/serv
   `]
 })
 export class AdminProductListComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'actions'];
+  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'isActive', 'deactivationReason', 'deactivatedAt', 'actions'];
   dataSource = new MatTableDataSource<BackendProduct>([]);
   isLoading = false;
 
@@ -130,19 +130,26 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/admin/products/new']);
   }
 
-  deleteProduct(product: BackendProduct): void {
-    if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+  deactivateProduct(product: BackendProduct): void {
+    const reason = prompt(`'${product.name}' adlı ürünü neden pasife almak istiyorsunuz?\n(Bu bilgi satıcıya gösterilecektir)`);
+
+    if (reason === null || reason.trim() === '') {
+      this.snackBar.open('Pasife alma işlemi iptal edildi veya sebep belirtilmedi.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    if (confirm(`'${product.name}' adlı ürünü pasife almak istediğinizden emin misiniz?\nSebep: ${reason}`)) {
       this.isLoading = true;
-      this.productService.deleteProduct(product.id).subscribe({
-        next: () => {
+      this.productService.deactivateProduct(product.id, reason).subscribe({
+        next: (deactivatedProduct) => {
           this.isLoading = false;
-          this.snackBar.open(`'${product.name}' başarıyla silindi.`, 'Tamam', { duration: 3000 });
+          this.snackBar.open(`'${deactivatedProduct.name}' başarıyla pasife alındı.`, 'Tamam', { duration: 3000 });
           this.loadProducts();
         },
         error: (err) => {
           this.isLoading = false;
-          this.snackBar.open(`Ürün silinirken hata oluştu: ${err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 3000 });
-          console.error('Ürün silinirken hata:', err);
+          this.snackBar.open(`Ürün pasife alınırken hata oluştu: ${err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 4000 });
+          console.error('Ürün pasife alınırken hata:', err);
         }
       });
     }

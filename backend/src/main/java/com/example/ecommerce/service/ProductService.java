@@ -39,6 +39,13 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
+        return productRepository.findAllByIsActiveTrue().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductDto> getAllProductsForAdmin() {
         return productRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -47,13 +54,11 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductDto> getProductsByCategoryId(Long categoryId) {
         if (categoryId == null) {
-            // If categoryId is null, it might be better to return all products or handle as an error based on requirements.
-            // For now, returning all products if categoryId is null.
-            logger.debug("categoryId is null, returning all products.");
+            logger.debug("categoryId is null, returning all active products.");
             return getAllProducts(); 
         }
-        logger.debug("Fetching products for category ID: {}", categoryId);
-        List<Product> products = productRepository.findByCategoryId(categoryId);
+        logger.debug("Fetching active products for category ID: {}", categoryId);
+        List<Product> products = productRepository.findByCategoryIdAndIsActiveTrue(categoryId);
         return products.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -62,8 +67,21 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductDto getProductById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-        return convertToDto(product);
+                .orElseThrow(() -> new ResourceNotFoundException("Product (any status) not found with id: " + id));
+
+        if (!product.isActive()) {
+            // Ürün pasif ise sadece admin veya ürünün satıcısı görebilir.
+            // Bu kontrol normalde controller veya daha üst bir katmanda yapılmalı,
+            // ancak şimdilik burada temel bir kontrol ekleyebiliriz veya her zaman tüm bilgiyi dönüp controller'da filtreleyebiliriz.
+            // Güvenlik açısından, bu tür yetkilendirme @PostAuthorize ile veya controller'da yapılmalı.
+            // Şimdilik, her zaman ürünü döndüreceğiz ve DTO isActive bilgisini taşıyacak.
+            // Frontend, kullanıcının rolüne göre pasif ürünü gösterip göstermeyeceğine karar verebilir.
+            // Veya Controller seviyesinde yetkiye göre farklı servis metotları çağrılabilir.
+            // Örnek: AdminController -> productService.getProductDetailsForAdmin(id)
+            //        PublicController -> productService.getPublicProductDetails(id)
+            logger.warn("Product with ID: {} is inactive. Accessing details.", id);
+        }
+        return convertToDto(product); // Her zaman tüm detayları dön, isActive bilgisi DTO'da var.
     }
 
     @Transactional
@@ -93,12 +111,54 @@ public class ProductService {
     }
 
     @Transactional
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with id: " + id + ". Cannot delete.");
+    public ProductDto deactivateProduct(Long id, String reason) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id + ". Cannot deactivate."));
+
+        if (!product.isActive()) {
+            // İsteğe bağlı: Zaten pasif olan bir ürün tekrar pasife alınmaya çalışılırsa ne yapılmalı?
+            // Hata fırlatılabilir veya mevcut durum korunabilir.
+            // Şimdilik loglayıp ürünü olduğu gibi dönelim.
+            logger.warn("Product with ID: {} is already inactive. Deactivation attempt by admin with reason: {}.", id, reason);
+            return convertToDto(product); // Veya bir exception fırlat: throw new IllegalStateException("Product is already inactive.");
         }
-        productRepository.deleteById(id);
-        logger.info("Product deleted with ID: {}", id);
+
+        product.setActive(false);
+        product.setDeactivationReason(reason);
+        product.setDeactivatedAt(java.time.LocalDateTime.now()); // LocalDateTime importu zaten olmalı
+        
+        Product deactivatedProduct = productRepository.save(product);
+        logger.info("Product with ID: {} deactivated. Reason: {}", id, reason);
+        return convertToDto(deactivatedProduct);
+    }
+
+    @Transactional
+    public ProductDto reactivateProduct(Long productId) {
+        User currentUser = getCurrentAuthenticatedUserEntity();
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId + ". Cannot reactivate."));
+
+        // Check if the current user is the seller of the product
+        if (!product.getSeller().getId().equals(currentUser.getId())) {
+            logger.warn("User {} attempted to reactivate product ID: {} owned by another seller ({}).",
+                    currentUser.getUsername(), productId, product.getSeller().getUsername());
+            // Consider throwing an AccessDeniedException or similar
+            // For now, let's throw a generic exception or return an appropriate response if using ResponseEntity directly in service
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to reactivate this product.");
+        }
+
+        if (product.isActive()) {
+            logger.warn("Product with ID: {} is already active. Reactivation attempt by seller: {}.", productId, currentUser.getUsername());
+            return convertToDto(product); // Already active, no change needed
+        }
+
+        product.setActive(true);
+        product.setDeactivationReason(null); // Clear deactivation reason
+        product.setDeactivatedAt(null);      // Clear deactivation timestamp
+
+        Product reactivatedProduct = productRepository.save(product);
+        logger.info("Product with ID: {} reactivated by seller: {}", productId, currentUser.getUsername());
+        return convertToDto(reactivatedProduct);
     }
 
     @Transactional(readOnly = true)
@@ -205,7 +265,10 @@ public class ProductService {
                 categoryName,
                 product.getImageUrl(),
                 product.getAverageRating(),
-                product.getReviewCount()
+                product.getReviewCount(),
+                product.isActive(),
+                product.getDeactivationReason(),
+                product.getDeactivatedAt()
         );
     }
 }
