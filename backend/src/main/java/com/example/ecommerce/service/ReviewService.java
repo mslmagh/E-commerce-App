@@ -2,6 +2,7 @@ package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.CreateReviewRequestDto;
 import com.example.ecommerce.dto.ReviewDto;
+import com.example.ecommerce.dto.UserReviewDto;
 import com.example.ecommerce.entity.Product;
 import com.example.ecommerce.entity.Review;
 import com.example.ecommerce.entity.User;
@@ -14,9 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest; // PageRequest import edildi
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort; // Sort import edildi
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ReviewService {
@@ -70,7 +73,7 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ReviewDto> getReviewsForProduct(Long productId, Pageable pageableFromController) { // Parametre adı netlik için değiştirildi
+    public Page<ReviewDto> getReviewsForProduct(Long productId, Pageable pageableFromController) {
         if (!productRepository.existsById(productId)) {
             throw new ResourceNotFoundException("Product not found with id: " + productId);
         }
@@ -153,6 +156,50 @@ public class ReviewService {
         return convertToDtoSafe(updatedReview);
     }
 
+    @Transactional(readOnly = true)
+    public Page<UserReviewDto> getReviewsForUser(String username, Pageable pageable) {
+        logger.debug("Fetching reviews for user: {} with pageable: {}", username, pageable);
+
+        Page<Review> reviewsPage = reviewRepository.findByUserUsernameOrderByReviewDateDesc(username, pageable);
+        
+        List<UserReviewDto> userReviewDtos = reviewsPage.getContent().stream()
+                .map(this::convertToUserReviewDto)
+                .collect(Collectors.toList());
+
+        logger.debug("Found {} reviews for user {}. Page number: {}, Page size: {}, Sort: {}",
+                     reviewsPage.getTotalElements(), username, reviewsPage.getNumber(), reviewsPage.getSize(), reviewsPage.getSort());
+        
+        return new PageImpl<>(userReviewDtos, pageable, reviewsPage.getTotalElements());
+    }
+
+    private UserReviewDto convertToUserReviewDto(Review review) {
+        if (review == null) {
+            logger.error("Cannot convert null Review to UserReviewDto.");
+            return null; 
+        }
+
+        Product product = review.getProduct();
+        User user = review.getUser();
+
+        Long productId = (product != null) ? product.getId() : null;
+        String productName = (product != null) ? product.getName() : "N/A";
+        String productImageUrl = (product != null) ? product.getImageUrl() : null;
+        
+        Long reviewUserId = (user != null) ? user.getId() : null;
+        String reviewUsername = (user != null) ? user.getUsername() : "N/A";
+
+        return new UserReviewDto(
+                review.getId(),
+                productId,
+                productName,
+                productImageUrl,
+                reviewUserId,
+                reviewUsername,
+                review.getRating(),
+                review.getComment(),
+                review.getReviewDate()
+        );
+    }
 
     private void updateProductRatingStats(Product product) {
         if (product == null) {
@@ -208,7 +255,7 @@ public class ReviewService {
         String uName = null;
         if (review.getUser() != null) {
             uId = review.getUser().getId();
-            uName = review.getUser().getUsername(); // UserDetails'den gelen getUsername() değil, User entity'sindeki getUsername()
+            uName = review.getUser().getUsername();
             if (uName == null) {
                 logger.warn("User associated with Review ID {} has a null username.", review.getId());
             }

@@ -2,7 +2,7 @@ package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.CreateReviewRequestDto;
 import com.example.ecommerce.dto.ReviewDto;
-// import com.example.ecommerce.entity.User; // UserDetails için
+import com.example.ecommerce.dto.UserReviewDto;
 import com.example.ecommerce.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,9 +15,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest; // EKLENDİ
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort; // EKLENDİ
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +26,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Objects; // EKLENDİ
 
 @RestController
 @Tag(name = "Product Review API", description = "API endpoints for managing product reviews and ratings")
@@ -40,7 +38,6 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    // createReview, updateReview, deleteReview metotları aynı kalabilir...
     @Operation(summary = "Create a new review for a product",
                description = "Allows authenticated users (with ROLE_USER) to submit a rating and comment for a product. " +
                              "A user can typically review a product only once.")
@@ -68,34 +65,26 @@ public class ReviewController {
                description = "Retrieves a paginated list of reviews for a specific product. Publicly accessible. Sorted by review date descending by default.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved reviews",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))), // Schema Page<ReviewDto> olmalı
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))),
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
     @GetMapping("/api/products/{productId}/reviews")
     public ResponseEntity<Page<ReviewDto>> getReviewsForProduct(
             @Parameter(description = "ID of the product whose reviews are to be retrieved", required = true) @PathVariable Long productId,
-            // Varsayılan sıralamayı doğrudan @PageableDefault içinde belirtebiliriz.
-            // Bu, Swagger UI'dan gelen geçersiz "string" sıralamasını da bir nebze engelleyebilir
-            // veya en azından varsayılanın daha güçlü olmasını sağlar.
             @PageableDefault(size = 5, sort = "reviewDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Sort effectiveSort;
         Sort requestedSort = pageable.getSort();
 
-        // Gelen sıralama isteğini kontrol et
         if (requestedSort.isSorted() &&
             requestedSort.stream().anyMatch(order -> order.getProperty().equalsIgnoreCase("string"))) {
-            // Eğer sıralama "string" içeriyorsa, bunu varsayılan sıralama ile değiştir
             effectiveSort = Sort.by(Sort.Direction.DESC, "reviewDate");
         } else if (requestedSort.isUnsorted()) {
-            // Eğer hiç sıralama belirtilmemişse (ve @PageableDefault'taki sort da uygulanmadıysa), varsayılanı kullan
             effectiveSort = Sort.by(Sort.Direction.DESC, "reviewDate");
         } else {
-            // Geçerli bir sıralama isteği var, onu kullan
             effectiveSort = requestedSort;
         }
 
-        // Her zaman geçerli bir 'Sort' nesnesi ile yeni bir Pageable oluştur
         Pageable effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), effectiveSort);
 
         Page<ReviewDto> reviewsPage = reviewService.getReviewsForProduct(productId, effectivePageable);
@@ -144,5 +133,24 @@ public class ReviewController {
                                   .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
         reviewService.deleteReview(reviewId, username, isAdmin);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get all reviews for the current authenticated user",
+               description = "Retrieves a paginated list of reviews written by the currently logged-in user. Sorted by review date descending.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved user's reviews",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token is missing or invalid")
+    })
+    @GetMapping("/api/reviews/my")
+    @PreAuthorize("isAuthenticated()")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<Page<UserReviewDto>> getMyReviews(
+            @PageableDefault(size = 10, sort = "reviewDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        
+        Page<UserReviewDto> myReviewsPage = reviewService.getReviewsForUser(username, pageable);
+        return ResponseEntity.ok(myReviewsPage);
     }
 }

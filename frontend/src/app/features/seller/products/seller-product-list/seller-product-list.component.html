@@ -37,9 +37,9 @@
         <td mat-cell *matCellDef="let product"> {{product.name}} </td>
       </ng-container>
 
-      <ng-container matColumnDef="sku">
-        <th mat-header-cell *matHeaderCellDef> SKU </th>
-        <td mat-cell *matCellDef="let product"> {{product.sku || '-'}} </td>
+      <ng-container matColumnDef="categoryName">
+        <th mat-header-cell *matHeaderCellDef> Kategori </th>
+        <td mat-cell *matCellDef="let product"> {{product.categoryName || '-'}} </td>
       </ng-container>
 
       <ng-container matColumnDef="price">
@@ -52,11 +52,11 @@
         <td mat-cell *matCellDef="let product" style="text-align: center;"> {{product.stockQuantity}} </td>
       </ng-container>
 
-      <ng-container matColumnDef="status">
+      <ng-container matColumnDef="derivedStatus">
         <th mat-header-cell *matHeaderCellDef> Durum </th>
         <td mat-cell *matCellDef="let product">
-          <span class="status-chip" [ngClass]="getStatusClass(product.status)">
-            {{product.status}}
+          <span class="status-chip" [ngClass]="getStatusClass(product)">
+            {{ getDerivedStatus(product) }}
           </span>
         </td>
       </ng-container>

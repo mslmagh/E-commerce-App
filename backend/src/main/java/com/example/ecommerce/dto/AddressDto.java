@@ -18,12 +18,28 @@ public class AddressDto {
     private String addressText;
     @Schema(description = "ID of the user this address belongs to", example = "10")
     private Long userId; // Include user ID
+    @Schema(description = "Whether this address is active or soft-deleted", example = "true")
+    private boolean active;
 
     // Constructor
-    public AddressDto(Long id, String phoneNumber, String country, String city, String postalCode, String addressText, Long userId) {
-        this.id = id; this.phoneNumber = phoneNumber; this.country = country; this.city = city;
-        this.postalCode = postalCode; this.addressText = addressText; this.userId = userId;
+    public AddressDto(Long id, String phoneNumber, String country, String city, String postalCode, 
+                     String addressText, Long userId, boolean active) {
+        this.id = id; 
+        this.phoneNumber = phoneNumber; 
+        this.country = country; 
+        this.city = city;
+        this.postalCode = postalCode; 
+        this.addressText = addressText; 
+        this.userId = userId;
+        this.active = active;
     }
+    
+    // Backward compatibility constructor
+    public AddressDto(Long id, String phoneNumber, String country, String city, String postalCode, 
+                     String addressText, Long userId) {
+        this(id, phoneNumber, country, city, postalCode, addressText, userId, true);
+    }
+    
     public AddressDto() {}
 
     // Getters & Setters
@@ -41,4 +57,6 @@ public class AddressDto {
     public void setAddressText(String addressText) { this.addressText = addressText; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }

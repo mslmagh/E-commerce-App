@@ -1,13 +1,10 @@
-
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard'; // Bu satır olmalı
-
+import { authGuard } from './core/guards/auth.guard';
 import { HomepageComponent } from './features/homepage/homepage.component';
 import { adminGuard } from './core/guards/admin.guard';
+import { sellerGuard } from './core/guards/seller.guard';
 
 export const routes: Routes = [
-
-
   { path: '', component: HomepageComponent },
 
   {
@@ -15,37 +12,30 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then(r => r.AUTH_ROUTES)
   },
 
-  { // Mevcut Favorites Rotası
+  {
     path: 'favorites',
     loadChildren: () => import('./features/favorites/favorites.routes').then(r => r.FAVORITES_ROUTES)
-
   },
   {
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.routes').then(r => r.ADMIN_ROUTES),
-    canActivate: [authGuard , adminGuard ] // Hem giriş kontrolü hem de admin rolü kontrolü
+    canActivate: [authGuard , adminGuard ]
   },
 
   {
     path: 'cart',
-    // './features/cart/cart.routes' dosyasını ve içindeki CART_ROUTES'u yükle
     loadChildren: () => import('./features/cart/cart.routes').then(r => r.CART_ROUTES)
-    // , canActivate: [authGuardFn] // Belki giriş gerektirir
   },
   {
     path: 'products',
-    // './features/products/products.routes' dosyasını ve içindeki PRODUCT_ROUTES'u yükle
     loadChildren: () => import('./features/products/products.routes').then(r => r.PRODUCT_ROUTES)
   },
   {
-    path: 'checkout', // '/checkout' adresi için
+    path: 'checkout',
     loadChildren: () => import('./features/checkout/checkout.routes').then(r => r.CHECKOUT_ROUTES)
-    // TODO: Bu rota kesinlikle giriş yapmış olmayı gerektirir! AuthGuard eklenecek.
-    // , canActivate: [authGuardFn]
   },
   {
     path: 'about',
-
     loadChildren: () => import('./pages/about-us/about-us.routes').then(r => r.ABOUT_US_ROUTES)
   },
   { path: 'contact', loadChildren: () => import('./pages/contact/contact.routes').then(r => r.CONTACT_ROUTES) },
@@ -65,17 +55,13 @@ export const routes: Routes = [
     loadChildren: () => import('./features/search/search.routes').then(r => r.SEARCH_ROUTES)
   },
   {
-    path: 'profile', // Adres /profile olacak
-    // Oluşturduğumuz profile.routes.ts dosyasını yükle
+    path: 'profile',
     loadChildren: () => import('./features/profile/profile.routes').then(r => r.PROFILE_ROUTES),
-    // Bu rotaya erişimden önce authGuard çalışsın
     canActivate: [authGuard]
   },
   {
-    path: 'seller', // /seller ile başlayan tüm yollar
-    loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES), // Yeni oluşturduğumuz dosyayı yükle
-    canActivate: [authGuard] // Satıcı paneline giriş için genel bir guard (Rol kontrolü de eklenecek)
-  },
-
-  // Diğer rotalar veya '**' rotası buraya eklenebilir...
+    path: 'seller',
+    loadChildren: () => import('./features/seller/seller.routes').then(r => r.SELLER_ROUTES),
+    canActivate: [authGuard, sellerGuard]
+  }
 ];

@@ -4,8 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(description = "DTO for creating or updating a category") // Updated description
-public class CategoryRequestDto { // Updated class name
+@Schema(description = "DTO for creating or updating a category")
+public class CategoryRequestDto {
 
     @Schema(description = "Name for the category", requiredMode = Schema.RequiredMode.REQUIRED, example = "Home Appliances")
     @NotBlank(message = "Category name cannot be blank")

@@ -1,0 +1,77 @@
+.reviews-container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.product-avatar {
+  object-fit: cover; /* Resimlerin orantılı kalmasını sağlar */
+  width: 40px; /* MatCard avatar için standart boyut */
+  height: 40px; /* MatCard avatar için standart boyut */
+  border-radius: 50%; /* Yuvarlak yapar */
+}
+
+.product-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.product-link:hover {
+  text-decoration: underline;
+  /* Angular Material temasına uygun bir renk kullanmak daha iyi olabilir */
+  /* color: var(--bs-primary); Bootstrap kullanılıyorsa */ 
+  color: #3f51b5; /* Örnek Material Design primary rengi */
+}
+
+.review-content .rating-label {
+  font-weight: 500;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.review-rating mat-icon {
+  font-size: 20px; /* Yıldız boyutunu ayarlar */
+  vertical-align: middle;
+}
+
+.filled-star {
+  color: #ffc107; /* Dolu yıldız rengi (Material sarısı) */
+}
+
+.empty-star {
+  color: #bdbdbd; /* Boş yıldız için biraz daha belirgin bir gri */
+}
+
+.rating-text {
+  margin-left: 5px;
+  vertical-align: middle;
+  font-size: 0.9em;
+  color: #757575; /* Biraz daha koyu gri */
+}
+
+.comment-text {
+  margin-top: 10px;
+  white-space: pre-wrap; /* Yorumlardaki satır sonlarını korur */
+  line-height: 1.5;
+  color: #424242; /* Ana metin için koyu gri */
+}
+
+.pagination-controls .page-info {
+  margin: 0 10px;
+  vertical-align: middle;
+}
+
+/* Kartların arasında biraz daha boşluk */
+.review-card + .review-card {
+  margin-top: 1.5rem !important;
+}
+
+/* Daha iyi bir başlık stili */
+.reviews-container h2 {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Avatar ve başlık hizalaması */
+::ng-deep .review-card .mat-mdc-card-header-text {
+  margin-left: 16px !important; /* mat-card-avatar ile başlık arasında boşluk */
+}

@@ -281,3 +281,30 @@
 .review-rating .fa-solid {
   font-weight: 900;
 }
+
+.loading-reviews {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #666;
+}
+
+.loading-reviews span {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 0 10px;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #666;
+}

@@ -5,7 +5,6 @@ import com.example.ecommerce.dto.LoginRequest;
 import com.example.ecommerce.dto.SignupRequest;
 import com.example.ecommerce.entity.Role;
 import com.example.ecommerce.entity.User;
-// import com.example.ecommerce.exception.ResourceNotFoundException; // Not needed directly here now
 import com.example.ecommerce.repository.RoleRepository;
 import com.example.ecommerce.repository.UserRepository;
 import com.example.ecommerce.security.jwt.JwtUtils;
@@ -21,7 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.StringUtils; // Import StringUtils
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;

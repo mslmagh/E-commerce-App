@@ -1,134 +1,53 @@
-// frontend/src/app/features/auth/components/register/register.component.ts
-// SON HALİ (Standart Üye Kaydı - Satıcı Kaydına Geçiş Butonuyla - SCSS olmadan)
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Standalone için
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // Standalone için
-import { Router, RouterLink } from '@angular/router'; // Standalone için
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AuthService } from '../../../core/services/auth.service';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // Standalone için
+import { AuthService, SignupRequest } from '../../../core/services/auth.service'; // SignupRequest import edildi
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
-// Angular Material Modülleri (Standalone component ise burada imports içinde olacak)
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; // isLoading için
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-register',
-  standalone: true, // Standalone component olarak işaretlendi
+  standalone: true,
   imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    RouterLink,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatCheckboxModule,
-    MatIconModule,
-    MatSnackBarModule,
-    MatDividerModule,
-    MatProgressSpinnerModule // Yükleme göstergesi için
+    CommonModule, ReactiveFormsModule, RouterLink, MatFormFieldModule,
+    MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule,
+    MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule
   ],
   templateUrl: './register.component.html',
   styles: [`
-    :host {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start; /* İçeriği yukarıdan başlatır */
-      padding: 40px 16px; /* Üst ve yan boşluklar */
-      box-sizing: border-box; /* Padding hesaba katılır */
-      min-height: calc(100vh - 64px); /* Header yüksekliği varsayılarak (ayarlayın) */
-      background-color: #f5f5f5; /* Hafif bir arka plan rengi */
-    }
-    .register-card {
-      max-width: 480px; /* Kartın maksimum genişliği */
-      width: 100%;
-      margin: 0 auto; /* Ortalamak için */
-    }
-    .mat-card-header { /* Angular Material kart başlığı için özel stil gerekirse */
-      display: flex;
-      justify-content: center;
-      padding-bottom: 16px;
-    }
-    .mat-mdc-form-field { /* Form alanları için tam genişlik */
-      width: 100%;
-      margin-bottom: 8px;
-    }
-    .submit-button-container { /* Butonu tam genişlik yapmak ve boşluk eklemek için */
-      display: block; /* Veya flex ve justify-content: center; */
-      margin-top: 24px;
-      margin-bottom: 16px;
-    }
-    .submit-button-container button {
-        width: 100%;
-    }
-    .login-link-container, .switch-to-seller-container {
-      text-align: center;
-      margin-top: 16px;
-      font-size: 0.9em;
-    }
-    .switch-to-seller-container {
-      padding: 16px;
-      margin-bottom: 24px;
-      border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 4px;
-      background-color: #fafafa;
-    }
-    .switch-to-seller-container p {
-      margin-bottom: 12px;
-    }
-    .form-intro-text {
-      font-size: 0.9em;
-      color: grey;
-      margin-top: 16px;
-      text-align: center;
-    }
-    .terms-field {
-      margin-top: 16px;
-      margin-bottom: 8px; /* submit butonuna daha yakın */
-    }
-    .terms-field a {
-        text-decoration: none;
-        color: #3f51b5; /* Angular Material primary rengi */
-    }
-    .terms-field a:hover {
-        text-decoration: underline;
-    }
-    .registration-success-message {
-      text-align: center;
-      padding: 20px;
-    }
-    .registration-success-message h3 {
-        color: #4CAF50; /* Yeşil bir başarı rengi */
-        margin-bottom: 16px;
-    }
-    .registration-success-message p {
-        font-size: 1.1em;
-        margin-bottom: 16px;
-    }
-    .registration-success-message button {
-        margin-top: 10px;
-    }
-    /* İki alanlı satır için basit flex */
-    .name-fields-row {
-      display: flex;
-      gap: 16px; /* Alanlar arası boşluk */
-    }
-    .name-fields-row > mat-form-field { /* Satırdaki her form alanı */
-      flex: 1; /* Eşit genişlikte yayıl */
-    }
-    /* Mobil için alt alta */
-    @media (max-width: 599px) {
-      .name-fields-row {
-        flex-direction: column;
-        gap: 0; /* Alt alta iken boşluk sıfır, form field kendi margin'ini kullanır */
-      }
-    }
+    :host { display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px; box-sizing: border-box; min-height: calc(100vh - 64px); background-color: #f5f5f5; }
+    .register-card { max-width: 480px; width: 100%; margin: 0 auto; background-color: white; padding: 24px 32px; border-radius: 8px; box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12); }
+    .register-card h2 { text-align: center; margin-bottom: 24px; font-weight: 500;}
+    .mat-mdc-form-field { width: 100%; margin-bottom: 8px; }
+    .submit-button-container { display: block; margin-top: 24px; margin-bottom: 16px; }
+    .submit-button-container button { width: 100%; }
+    .login-link-container, .switch-to-seller-container { text-align: center; margin-top: 16px; font-size: 0.9em; }
+    .switch-to-seller-container { padding: 16px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; background-color: #fafafa; }
+    .switch-to-seller-container p { margin-bottom: 12px; }
+    .form-intro-text { font-size: 0.9em; color: grey; margin-top: 16px; text-align: center; }
+    .terms-field { margin-top: 16px; margin-bottom: 8px; }
+    .terms-field a { text-decoration: none; color: #3f51b5; }
+    .terms-field a:hover { text-decoration: underline; }
+    .registration-success-message { text-align: center; padding: 20px; }
+    .registration-success-message h3 { color: #4CAF50; margin-bottom: 16px; }
+    .registration-success-message p { font-size: 1.1em; margin-bottom: 16px; }
+    .registration-success-message button { margin-top: 10px; }
+    .name-fields-row { display: flex; gap: 16px; }
+    .name-fields-row > mat-form-field { flex: 1; }
+    .form-error-message { color: #f44336; font-size: 0.75rem; padding-left: 1px; margin-top: -12px; margin-bottom: 10px; display: block; }
+    @media (max-width: 599px) { .name-fields-row { flex-direction: column; gap: 0; } }
+    button[type="submit"] mat-progress-spinner { display: inline-block; margin-right: 8px; }
+    button[type="submit"] .mat-mdc-progress-spinner circle { stroke: white !important; }
   `]
 })
 export class RegisterComponent implements OnInit, OnDestroy {
@@ -146,8 +65,9 @@ export class RegisterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.registerForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      firstName: ['', Validators.required], // Bu bilgi backend DTO'sunda yok, ama formda tutulabilir.
+      lastName: ['', Validators.required],  // Bu bilgi backend DTO'sunda yok.
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required],
@@ -155,28 +75,24 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }, { validator: this.passwordMatchValidator });
   }
 
-  passwordMatchValidator(form: FormGroup): { [s: string]: boolean } | null {
-    const password = form.get('password')?.value;
-    const confirmPassword = form.get('confirmPassword')?.value;
-    if (password !== confirmPassword) {
-      form.get('confirmPassword')?.setErrors({ 'mismatch': true });
-      return { 'mismatch': true };
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.get('password');
+    const confirmPassword = control.get('confirmPassword');
+
+    if (!password || !confirmPassword || !password.value || !confirmPassword.value) {
+      return null;
     }
-    // Eğer şifreler eşleşiyorsa ve 'confirmPassword' alanında 'mismatch' hatası varsa temizle
-    // Ancak sadece 'mismatch' hatasını temizlemeli, diğer validasyon hatalarını (örn: required) etkilememeli
-    if (form.get('confirmPassword')?.hasError('mismatch')) {
-        // Diğer hataları koruyarak sadece mismatch'i silmek için:
-        const errors = form.get('confirmPassword')?.errors;
-        if (errors) {
-            delete errors['mismatch'];
-            if (Object.keys(errors).length === 0) {
-                form.get('confirmPassword')?.setErrors(null);
-            } else {
-                form.get('confirmPassword')?.setErrors(errors);
-            }
-        }
+    if (password.value === confirmPassword.value) {
+      if (confirmPassword.hasError('mismatch')) {
+        const errors = { ...confirmPassword.errors };
+        delete errors['mismatch'];
+        confirmPassword.setErrors(Object.keys(errors).length > 0 ? errors : null);
+      }
+      return null;
+    } else {
+      confirmPassword.setErrors({ ...(confirmPassword.errors || {}), mismatch: true });
+      return { mismatch: true }; // Form seviyesinde de hata döndür
     }
-    return null;
   }
 
   onSubmit(): void {
@@ -187,18 +103,22 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
-    const { confirmPassword, ...registrationData } = this.registerForm.value;
+    const formValue = this.registerForm.value;
+
+    const payload: SignupRequest = {
+      username: formValue.username, // Formdan alınan username
+      email: formValue.email,
+      password: formValue.password,
+    };
 
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
     }
 
-    this.authSubscription = this.authService.registerMember(registrationData).subscribe({
+    this.authSubscription = this.authService.registerMember(payload).subscribe({
       next: (response) => {
         this.isLoading = false;
-        this.registrationSuccessful = true;
-        this.snackBar.open('Üyelik kaydınız başarıyla oluşturuldu!', 'Kapat', { duration: 3000, panelClass: ['success-snackbar'] });
-        // Formu tamamen sıfırla ve validasyon durumlarını temizle
+        this.registrationSuccessful = true; // Başarı mesajını göster
         this.registerForm.reset();
         Object.keys(this.registerForm.controls).forEach(key => {
             this.registerForm.get(key)?.setErrors(null) ;
@@ -206,23 +126,24 @@ export class RegisterComponent implements OnInit, OnDestroy {
             this.registerForm.get(key)?.markAsUntouched();
         });
         this.registerForm.updateValueAndValidity();
-
-
+        this.router.navigate(['/auth/login'], { queryParams: { reason: 'registration_success' } });
         console.log('Member registration successful:', response);
       },
-      error: (error) => {
+      error: (error: HttpErrorResponse) => {
         this.isLoading = false;
         this.registrationSuccessful = false;
         let displayErrorMessage = 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.';
         if (error.error && typeof error.error.message === 'string') {
-          const backendMsg = error.error.message.toLowerCase();
-          if (backendMsg.includes('email already exists') || backendMsg.includes('e-posta zaten kullanılıyor')) {
-            displayErrorMessage = 'Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta deneyin veya giriş yapın.';
-          } else {
-            displayErrorMessage = error.error.message;
-          }
+            const backendMsg = error.error.message.toLowerCase();
+            if (backendMsg.includes('username is already taken')) {
+                displayErrorMessage = 'Bu kullanıcı adı zaten alınmış. Lütfen farklı bir kullanıcı adı deneyin.';
+            } else if (backendMsg.includes('email is already in use')) {
+                displayErrorMessage = 'Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta deneyin veya giriş yapın.';
+            } else {
+                displayErrorMessage = error.error.message; // Backend'den gelen diğer hatalar
+            }
         } else if (error.status === 0 || error.status === 503) {
-          displayErrorMessage = 'Sunucuya ulaşılamıyor. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.';
+             displayErrorMessage = 'Sunucuya ulaşılamıyor. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.';
         }
         this.snackBar.open(displayErrorMessage, 'Kapat', { duration: 5000, panelClass: ['error-snackbar'] });
         console.error('Member registration failed:', error);
@@ -231,7 +152,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   }
 
   navigateToSellerRegistrationPage(): void {
-    this.router.navigate(['/auth/seller-register']); // Satıcı kayıt sayfasının yolu (Örnek)
+    this.router.navigate(['/auth/seller-register']);
   }
 
   ngOnDestroy(): void {
@@ -240,6 +161,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
   }
 
+  get username() { return this.registerForm.get('username'); }
   get firstName() { return this.registerForm.get('firstName'); }
   get lastName() { return this.registerForm.get('lastName'); }
   get email() { return this.registerForm.get('email'); }

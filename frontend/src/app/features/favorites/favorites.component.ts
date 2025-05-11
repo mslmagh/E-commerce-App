@@ -1,6 +1,3 @@
-// frontend/src/app/features/favorites/favorites.component.ts
-// SON HAL (Sepete Ekleme Fonksiyonu Eklendi - Yorumsuz)
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
@@ -12,6 +9,7 @@ import { CartService } from '../../core/services/cart.service'; // CartService e
 import { MatButtonModule } from '@angular/material/button'; // Material Buton Modülü
 import { MatIconModule } from '@angular/material/icon';   // Material İkon Modülü
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { CartItemRequest } from '../../core/models/cart-item-request.model'; // Import CartItemRequest
 
 @Component({
   selector: 'app-favorites',
@@ -44,7 +42,6 @@ export class FavoritesComponent implements OnInit {
 
   favorites$: Observable<Product[]>;
 
-  // CartService ve Router constructor'a eklendi
   constructor(
     private favoritesService: FavoritesService,
     private cartService: CartService,
@@ -58,7 +55,6 @@ export class FavoritesComponent implements OnInit {
     console.log('FavoritesComponent loaded');
   }
 
-  // Favorilerden çıkarma metodu (mevcuttu)
   removeFromFavorites(product: Product): void {
     if (product) {
       console.log('FavoritesPage: Removing product from favorites:', product.name);
@@ -66,20 +62,46 @@ export class FavoritesComponent implements OnInit {
     }
   }
 
-  addToCart(product: Product | undefined | null): void { // ProductDetail'deki null kontrolü için tip güncellendi
+  addToCart(product: Product | undefined | null): void {
     if (product) {
-      console.log(`${this.constructor.name}: Adding product to cart:`, product.name); // Hangi component'ten çağrıldığını logla
-      this.cartService.addToCart(product);
+      if (product.stockQuantity !== undefined && product.stockQuantity < 1) {
+        this.snackBar.open(`'${product.name}' stokta bulunmamaktadır!`, 'Kapat', {
+          duration: 3000, panelClass: ['warning-snackbar']
+        });
+        return;
+      }
+      console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
+      
+      const itemRequest: CartItemRequest = { 
+        productId: product.id,
+        quantity: 1 // Default quantity
+      };
 
-
-      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
-        duration: 2500,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom'
+      this.cartService.addItem(itemRequest, product).subscribe({
+        next: (cart) => {
+          this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+            duration: 2500,
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom'
+          });
+        },
+        error: (err) => {
+          console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+          let errorMessage = "Ürün sepete eklenemedi!";
+          if (err && err.error && err.error.message) {
+            errorMessage = err.error.message;
+          } else if (err && err.message) {
+            errorMessage = err.message;
+          }
+          this.snackBar.open(errorMessage, 'Kapat', {
+            duration: 3500,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
+
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
-
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', {
          duration: 3000,
          panelClass: ['error-snackbar']

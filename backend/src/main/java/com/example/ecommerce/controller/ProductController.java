@@ -37,12 +37,27 @@ public class ProductController {
         this.productService = productService;
     }
 
-    // GET All Products
-    @Operation(summary = "Get All Products", security = {}) // Override global security for public endpoints
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))) })
+    // GET All Products (Optionally filtered by categoryId)
+    @Operation(summary = "Get All Products",
+               description = "Retrieves a list of all products. Can be filtered by categoryId.",
+               security = {}) 
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))) 
+    })
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<ProductDto> products = productService.getAllProducts();
+    public ResponseEntity<List<ProductDto>> getAllProducts(
+            @Parameter(description = "Optional Category ID to filter products")
+            @RequestParam(required = false) Long categoryId) {
+        List<ProductDto> products;
+        if (categoryId != null) {
+            // Assuming ProductService has a method like getProductsByCategoryId
+            // If not, this will need to be created in ProductService
+            products = productService.getProductsByCategoryId(categoryId); 
+        } else {
+            products = productService.getAllProducts();
+        }
         return ResponseEntity.ok(products);
     }
 
@@ -55,6 +70,22 @@ public class ProductController {
     public ResponseEntity<ProductDto> getProductById(@Parameter(description = "ID of product to retrieve") @PathVariable Long id) {
         ProductDto productDto = productService.getProductById(id);
         return ResponseEntity.ok(productDto);
+    }
+
+    @Operation(summary = "Get Products for Current Seller",
+               description = "Retrieves a list of products belonging to the currently authenticated seller.")
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products for the current seller",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden, user is not a seller")
+    })
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<List<ProductDto>> getMyProducts() {
+        List<ProductDto> products = productService.getProductsForCurrentSeller();
+        return ResponseEntity.ok(products);
     }
 
     // CREATE Product

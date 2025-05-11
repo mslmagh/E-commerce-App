@@ -6,91 +6,102 @@
 
   <section class="category-navbar-section mb-4">
     <nav class="category-nav">
-      <ul class="category-nav-list">
-        <li><a [routerLink]="['/products', 'category', 'kadin-giyim']" class="nav-link">Kadın</a></li>
-        <li><a [routerLink]="['/products', 'category', 'erkek-giyim']" class="nav-link">Erkek</a></li>
-        <li><a [routerLink]="['/products', 'category', 'anne-cocuk']" class="nav-link">Anne & Çocuk</a></li>
-        <li><a [routerLink]="['/products', 'category', 'ev-yasam']" class="nav-link">Ev & Yaşam</a></li>
-        <li><a [routerLink]="['/products', 'category', 'supermarket']" class="nav-link">Süpermarket</a></li>
-        <li><a [routerLink]="['/products', 'category', 'kozmetik']" class="nav-link">Kozmetik</a></li>
-        <li><a [routerLink]="['/products', 'category', 'ayakkabi-canta']" class="nav-link">Ayakkabı & Çanta</a></li>
-        <li><a [routerLink]="['/products', 'category', 'elektronik']" class="nav-link">Elektronik</a></li>
-        <li><a [routerLink]="['/products', 'category', 'cok-satanlar']" class="nav-link">Çok Satanlar <span class="badge new-badge">Yeni</span></a></li>
-
+      <ul class="category-nav-list" *ngIf="(displayedCategories$ | async) as categories; else categoryLoading">
+        <li *ngFor="let category of categories">
+          <a [routerLink]="['/products', 'category', generateSlug(category.name)]" class="nav-link">
+            {{ category.name }}
+          </a>
+        </li>
+        <!-- İsteğe bağlı olarak "Çok Satanlar" gibi özel linkler buraya eklenebilir -->
+        <!-- 
+        <li>
+          <a [routerLink]="['/products', 'featured', 'cok-satanlar']" class="nav-link">
+            Çok Satanlar <span class="badge new-badge">Yeni</span>
+          </a>
+        </li>
+        -->
       </ul>
+      <ng-template #categoryLoading>
+        <div *ngIf="isLoadingCategories" style="text-align: center; padding: 10px;">
+          <mat-progress-spinner mode="indeterminate" diameter="30" strokeWidth="3"></mat-progress-spinner>
+          <span style="margin-left: 10px; vertical-align: middle;">Kategoriler yükleniyor...</span>
+        </div>
+        <div *ngIf="!isLoadingCategories && !(displayedCategories$ | async)?.length">
+          <!-- Kategoriler yüklenemedi veya boş geldiğinde bir mesaj gösterilebilir -->
+        </div>
+      </ng-template>
     </nav>
   </section>
 
   <div class="main-product-area">
-
     <aside class="sidebar-filter">
       <mat-card class="filter-card">
         <mat-card-title>Sırala</mat-card-title>
         <mat-card-content>
           <mat-form-field appearance="outline" style="width: 100%;">
             <mat-label>Sıralama Seçeneği</mat-label>
-            <mat-select [(ngModel)]="selectedSortOption" (valueChange)="onSortOptionChange()">
+            <mat-select [(ngModel)]="selectedSortOption" (ngModelChange)="onSortOptionChange()">
               <mat-option value="default">Önerilen Sıralama</mat-option>
-              <mat-option value="price-asc">Fiyata Göre Azalan</mat-option>
-              <mat-option value="price-desc">Fiyata Göre Artan</mat-option>
-              <mat-option value="rating-desc">Puana Göre Yüksekten</mat-option>
+              <mat-option value="price-asc">Fiyata Göre Artan</mat-option> <mat-option value="price-desc">Fiyata Göre Azalan</mat-option> <mat-option value="rating-desc">Puana Göre Yüksekten</mat-option>
               <mat-option value="rating-asc">Puana Göre Düşükten</mat-option>
             </mat-select>
           </mat-form-field>
-        </mat-card-content> <mat-divider style="margin: 20px 0;"></mat-divider> <mat-card-title>Filtrele</mat-card-title>
-        <mat-card-content style="padding-top: 0 !important;"> <div class="filter-section">
-              <h4>Fiyat Aralığı</h4>
-               <div class="price-range-inputs">
-                  <mat-form-field appearance="outline" class="price-input">
-                      <mat-label>Min Fiyat</mat-label>
-                      <input matInput type="number" [(ngModel)]="minPrice" name="minPrice" (input)="onPriceRangeChange()" placeholder="0" min="0">
-                  </mat-form-field>
-                  <span class="price-range-separator">-</span>
-                  <mat-form-field appearance="outline" class="price-input">
-                       <mat-label>Max Fiyat</mat-label>
-                       <input matInput type="number" [(ngModel)]="maxPrice" name="maxPrice" (input)="onPriceRangeChange()" placeholder="Sınırsız" min="0">
-                  </mat-form-field>
-               </div>
-               </div>
-
+        </mat-card-content>
+        <mat-divider style="margin: 20px 0;"></mat-divider>
+        <mat-card-title>Filtrele</mat-card-title>
+        <mat-card-content style="padding-top: 0 !important;">
+          <div class="filter-section">
+            <h4>Fiyat Aralığı</h4>
+            <div class="price-range-inputs">
+              <mat-form-field appearance="outline" class="price-input">
+                <mat-label>Min Fiyat</mat-label>
+                <input matInput type="number" [(ngModel)]="minPrice" name="minPrice" (ngModelChange)="onPriceRangeChange()" placeholder="0" min="0">
+              </mat-form-field>
+              <span class="price-range-separator">-</span>
+              <mat-form-field appearance="outline" class="price-input">
+                <mat-label>Max Fiyat</mat-label>
+                <input matInput type="number" [(ngModel)]="maxPrice" name="maxPrice" (ngModelChange)="onPriceRangeChange()" placeholder="Sınırsız" min="0">
+              </mat-form-field>
+            </div>
+          </div>
           <mat-divider style="margin: 20px 0;"></mat-divider>
-
-           <div class="filter-section">
-              <h4>Marka</h4>
-              <p>TODO: Marka filtre seçenekleri buraya gelecek (Checkbox, Select vb.)</p>
+          <div class="filter-section">
+            <h4>Marka</h4>
+            <p>TODO: Marka filtre seçenekleri buraya gelecek (Checkbox, Select vb.)</p>
           </div>
-           <mat-divider style="margin: 20px 0;"></mat-divider>
-
-           <div class="filter-section">
-              <h4>Beden</h4>
-              <p>TODO: Beden filtre seçenekleri buraya gelecek.</p>
+          <mat-divider style="margin: 20px 0;"></mat-divider>
+          <div class="filter-section">
+            <h4>Beden</h4>
+            <p>TODO: Beden filtre seçenekleri buraya gelecek.</p>
           </div>
-           <mat-divider style="margin: 20px 0;"></mat-divider>
-
-           <div class="filter-section">
-              <h4>Renk</h4>
-              <p>TODO: Renk filtre seçenekleri buraya gelecek.</p>
+          <mat-divider style="margin: 20px 0;"></mat-divider>
+          <div class="filter-section">
+            <h4>Renk</h4>
+            <p>TODO: Renk filtre seçenekleri buraya gelecek.</p>
           </div>
-           </mat-card-content> </mat-card> </aside>
+        </mat-card-content>
+      </mat-card>
+    </aside>
 
     <main class="product-grid-area">
       <h3 class="section-title">Öne Çıkanlar</h3>
-       <div *ngIf="isLoading" class="loading-indicator" style="text-align: center;">
-          <p>Ürünler yükleniyor...</p>
-        </div>
+      <div *ngIf="isLoading" class="loading-indicator" style="text-align: center; padding: 20px;">
+        <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+        <p style="margin-top: 10px;">Ürünler yükleniyor...</p>
+      </div>
 
       <div class="product-grid">
-        <ng-container *ngIf="!isLoading && sortedProducts.length > 0">
-            <app-product-card
-              *ngFor="let product of sortedProducts"
-              [product]="product"
-              (addToCartClick)="addToCart($event)">
-            </app-product-card> </ng-container> <div *ngIf="!isLoading && sortedProducts.length === 0" class="no-products-message">
-             Gösterilecek ürün bulunamadı.
-         </div>
+        <ng-container *ngIf="!isLoading && sortedAndFilteredProducts.length > 0">
+          <app-product-card
+            *ngFor="let product of sortedAndFilteredProducts"
+            [product]="product"
+            (addToCartClick)="addToCart($event)">
+          </app-product-card>
+        </ng-container>
+        <div *ngIf="!isLoading && sortedAndFilteredProducts.length === 0" class="no-products-message">
+          Gösterilecek ürün bulunamadı.
+        </div>
       </div>
     </main>
-
-  </div> </div>
-
-
+  </div>
+</div>

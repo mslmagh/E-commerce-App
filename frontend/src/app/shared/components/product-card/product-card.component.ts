@@ -1,20 +1,16 @@
-// frontend/src/app/shared/components/product-card/product-card.component.ts
-// SON HAL (Yorumsuz, Inline Styles ile)
-
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Product } from '../../../core/services/product.service'; // Yolu Kontrol Et!
+import { Product } from '../../../core/services/product.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-// import { MatIconModule } from '@angular/material/icon';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
-  imports: [ CommonModule, RouterLink, MatCardModule, MatButtonModule /*, MatIconModule*/ ],
+  imports: [ CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule /*, MatIconModule*/ ],
   templateUrl: './product-card.component.html',
-  // styleUrls: ['./product-card.component.css'] // KALDIRILDI
   styles: [`
     :host { display: block; height: 100%; }
     mat-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: box-shadow 0.3s ease; }
@@ -29,10 +25,20 @@ import { MatButtonModule } from '@angular/material/button';
      button[mat-flat-button]:hover { background-color: #e66000; }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnChanges {
   @Input() product!: Product;
   @Output() addToCartClick = new EventEmitter<Product>();
+
   constructor() { }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['product'] && this.product) {
+      console.log('ProductCardComponent - Product Data:', this.product);
+      console.log('Average Rating:', this.product.averageRating);
+      console.log('Review Count:', this.product.reviewCount);
+    }
+  }
+
   addToCart(): void {
     console.log('ProductCard: Emitting addToCartClick for:', this.product?.name);
     this.addToCartClick.emit(this.product);

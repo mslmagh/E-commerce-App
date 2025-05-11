@@ -1,1 +1,58 @@
-<p>reviews works!</p>
+<div class="container reviews-container py-4">
+  <h2 class="mb-4">Yorumlarım ({{ totalReviews }})</h2>
+
+  <div *ngIf="isLoading" class="text-center my-5">
+    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+    <p class="mt-2">Yorumlarınız yükleniyor...</p>
+  </div>
+
+  <div *ngIf="!isLoading && reviews.length === 0" class="alert alert-info text-center" role="alert">
+    Henüz hiç yorum yapmamışsınız.
+  </div>
+
+  <div *ngIf="!isLoading && reviews.length > 0">
+    <mat-card *ngFor="let review of reviews" class="mb-3 review-card">
+      <mat-card-header>
+        <img mat-card-avatar [src]="review.productImageUrl || 'https://via.placeholder.com/40?text=P'" [alt]="review.productName" class="product-avatar">
+        <mat-card-title>
+          <a [routerLink]="['/products', review.productId]" class="product-link">{{ review.productName }}</a>
+        </mat-card-title>
+        <mat-card-subtitle>
+          Yorum Tarihi: {{ review.date | date:'dd.MM.yyyy HH:mm' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="review-content">
+        <div class="review-rating mb-2">
+          <span class="rating-label">Puanınız:</span>
+          <ng-container *ngFor="let star of [1, 2, 3, 4, 5]; let i = index">
+            <mat-icon [ngClass]="{'filled-star': i < review.rating, 'empty-star': i >= review.rating}">
+              {{ i < review.rating ? 'star' : 'star_border' }}
+            </mat-icon>
+          </ng-container>
+          <span class="rating-text">({{ review.rating }}/5)</span>
+        </div>
+        <p class="comment-text">{{ review.comment }}</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <!-- 
+          TODO: Düzenle/Sil butonları eklenebilir.
+          Örnek: ProductDetailComponent'e yönlendirme
+          <button mat-button color="primary" [routerLink]="['/products', review.productId]" [queryParams]="{ reviewId: review.id, openReviews: true }">
+            Yorumu Görüntüle/Düzenle
+          </button> 
+        -->
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-controls mt-4 text-center" *ngIf="totalPages > 1">
+      <button mat-stroked-button color="primary" [disabled]="currentPage === 0" (click)="loadPreviousPage()" class="me-2">
+        <mat-icon>chevron_left</mat-icon> Önceki
+      </button>
+      <span class="page-info align-middle">Sayfa {{ currentPage + 1 }} / {{ totalPages }}</span>
+      <button mat-stroked-button color="primary" [disabled]="currentPage >= totalPages - 1" (click)="loadNextPage()" class="ms-2">
+        Sonraki <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

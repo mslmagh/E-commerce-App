@@ -92,4 +92,20 @@ public class CartController {
         CartDto updatedCart = cartService.removeItemFromCart(itemId);
         return ResponseEntity.ok(updatedCart);
     }
+
+    @Operation(summary = "Clear All Items from Cart", description = "Removes all items from the current user's shopping cart. Returns the updated (empty) cart.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All items removed successfully",
+                         content = @Content(mediaType = "application/json", schema = @Schema(implementation = CartDto.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - User not authenticated"),
+            @ApiResponse(responseCode = "404", description = "Cart not found for current user (should not happen if user is authenticated as cart is usually created)")
+    })
+    @DeleteMapping("/items") // Using /items path to be consistent with adding/removing single items
+    public ResponseEntity<CartDto> clearAllItemsFromMyCart() {
+        // The existing clearCartForCurrentUser in CartService does not return the cart.
+        // We need to call it, then fetch the (now empty) cart to return.
+        cartService.clearCartForCurrentUser(); // This is void
+        CartDto emptyCart = cartService.getCartForCurrentUser(); // Fetch the cart again to get its DTO
+        return ResponseEntity.ok(emptyCart);
+    }
 }

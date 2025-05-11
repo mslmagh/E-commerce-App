@@ -3,6 +3,18 @@
     <img mat-card-image [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name">
     <mat-card-content>
       <mat-card-title class="product-name">{{ product.name }}</mat-card-title>
+      
+      <!-- Puan ve Yorum Sayısı Gösterimi -->
+      <div class="product-rating-summary" *ngIf="product.reviewCount && product.reviewCount > 0">
+        <ng-container *ngFor="let i of [1,2,3,4,5]">
+          <mat-icon class="rating-star">{{ product.averageRating && i <= product.averageRating ? 'star' : 'star_border' }}</mat-icon>
+        </ng-container>
+        <span class="review-count-display">({{ product.reviewCount }})</span>
+      </div>
+      <div class="product-rating-summary" *ngIf="(!product.reviewCount || product.reviewCount === 0) && product.averageRating === 0">
+        <!-- <span class="no-reviews-yet">(Henüz Yorum Yok)</span> -->
+      </div>
+
       <mat-card-subtitle class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</mat-card-subtitle>
     </mat-card-content>
   </a>

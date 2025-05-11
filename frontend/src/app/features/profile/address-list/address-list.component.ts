@@ -1,22 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider'; // Gerekirse kullanılabilir
-
-// Adres interface'i
-export interface Address {
-  id: number | string;
-  title: string;
-  recipientName: string;
-  phone: string;
-  addressLine: string;
-  city: string;
-  country: string;
-  isDefault?: boolean;
-}
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule, MatDialogConfig } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AddressService } from '../../../core/services/address.service';
+import { Address } from '../../../core/models/address.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-address-list',
@@ -27,10 +22,12 @@ export interface Address {
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatDividerModule
+    MatDividerModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './address-list.component.html',
-  // styleUrls: ['./address-list.component.css'] // ---> KALDIRILDI
   styles: [`
     .address-list-container { padding: 0 10px; } /* İçerik alanına hafif padding */
     .add-address-button-container {
@@ -88,38 +85,159 @@ export interface Address {
     }
      .empty-message p { margin-bottom: 20px; }
      .empty-message button { /* Buton ortada kalsın */ }
+     .loading-container {
+       display: flex;
+       justify-content: center;
+       padding: 50px 0;
+     }
+     .error-message {
+       color: #f44336;
+       margin: 10px 0;
+       padding: 10px;
+       background-color: #ffeaea;
+       border-radius: 4px;
+     }
+     .auth-required {
+       text-align: center;
+       padding: 30px;
+       border: 1px solid #e0e0e0;
+       border-radius: 8px;
+       background-color: #f9f9f9;
+       margin: 20px 0;
+     }
+     .auth-required p {
+       margin-bottom: 15px;
+       color: #555;
+     }
   `]
 })
 export class AddressListComponent implements OnInit {
+  addresses: Address[] = [];
+  isLoading = true;
+  error = false;
+  errorMessage = '';
+  isAuthenticated = false;
+  deleteInProgress = false;
 
-  addresses: Address[] = [
-    { id: 1, title: 'Ev Adresim', recipientName: 'Arda Akıncı', phone: '555 123 4567', addressLine: 'Örnek Mah. Test Cad. No: 1 Daire: 2', city: 'Antalya', country: 'Türkiye', isDefault: true },
-    { id: 2, title: 'İş Adresim', recipientName: 'Arda Akıncı', phone: '555 987 6543', addressLine: 'Sanayi Sit. Tekno Sok. No: 10', city: 'İstanbul', country: 'Türkiye', isDefault: false },
-  ];
-
-  constructor() { }
+  constructor(
+    private addressService: AddressService,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog,
+    private router: Router,
+    private authService: AuthService
+  ) { }
 
   ngOnInit(): void {
-    console.log('AddressListComponent loaded');
-    // TODO: Gerçek uygulamada adresler bir servisten çekilmeli
-    // this.addressService.getAddresses().subscribe(data => this.addresses = data);
+    this.isAuthenticated = this.authService.isLoggedIn();
+    
+    if (this.isAuthenticated) {
+      this.loadAddresses();
+    } else {
+      this.isLoading = false;
+    }
+  }
+
+  loadAddresses(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.isAuthenticated = false;
+      this.isLoading = false;
+      return;
+    }
+
+    this.isLoading = true;
+    this.error = false;
+    this.errorMessage = '';
+    
+    this.addressService.getAddresses().subscribe({
+      next: (addresses: Address[]) => {
+        this.addresses = addresses;
+        this.isLoading = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Error loading addresses:', err);
+        this.error = true;
+        this.errorMessage = err.message || 'Adres bilgileri yüklenirken bir hata oluştu.';
+        this.isLoading = false;
+        this.snackBar.open('Adres bilgileri yüklenirken bir hata oluştu.', 'Kapat', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+  }
+
+  login(): void {
+    this.router.navigate(['/auth/login'], { 
+      queryParams: { returnUrl: this.router.url } 
+    });
   }
 
   addNewAddress(): void {
-    console.log('TODO: Navigate to Add New Address Page/Open Modal');
-    alert('Yeni Adres Ekleme Formu Açılacak (Henüz yapılmadı)');
-    // this.router.navigate(['/profile/addresses/new']); // İleride eklenecek rota
+    if (!this.authService.isLoggedIn()) {
+      this.snackBar.open('Adres eklemek için giriş yapmalısınız.', 'Giriş Yap', {
+        duration: 5000,
+        panelClass: ['warning-snackbar']
+      }).onAction().subscribe(() => {
+        this.login();
+      });
+      return;
+    }
+    
+    // Navigate to the address form
+    this.router.navigate(['/profile/address-form']);
   }
 
   editAddress(address: Address): void {
-    console.log('TODO: Navigate to Edit Address Page/Open Modal for ID:', address.id);
-    alert(`Adres Düzenle Tıklandı: ${address.title} (Henüz yapılmadı)`);
-    // this.router.navigate(['/profile/addresses/edit', address.id]); // İleride eklenecek rota
+    if (!this.authService.isLoggedIn()) {
+      this.snackBar.open('Adres düzenlemek için giriş yapmalısınız.', 'Giriş Yap', {
+        duration: 5000,
+        panelClass: ['warning-snackbar']
+      }).onAction().subscribe(() => {
+        this.login();
+      });
+      return;
+    }
+    
+    this.router.navigate(['/profile/address-form', address.id]);
   }
 
   deleteAddress(address: Address): void {
-    console.log('TODO: Show confirmation and call service to delete address ID:', address.id);
-    alert(`Adres Sil Tıklandı: ${address.title} (Henüz yapılmadı)`);
-    // if (confirm(...)) { this.addressService.delete(address.id)... }
+    if (!this.authService.isLoggedIn()) {
+      this.snackBar.open('Adres silmek için giriş yapmalısınız.', 'Giriş Yap', {
+        duration: 5000,
+        panelClass: ['warning-snackbar']
+      }).onAction().subscribe(() => {
+        this.login();
+      });
+      return;
+    }
+    
+    if (this.deleteInProgress) {
+      return; // Prevent multiple delete operations
+    }
+
+    const confirmMessage = `"${address.addressText}" adresini silmek istediğinize emin misiniz?`;
+    if (confirm(confirmMessage)) {
+      this.deleteInProgress = true;
+      
+      this.addressService.deleteAddress(address.id!).subscribe({
+        next: () => {
+          this.deleteInProgress = false;
+          this.snackBar.open('Adres başarıyla silindi.', 'Tamam', {
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+          this.loadAddresses(); // Reload addresses after deletion
+        },
+        error: (err) => {
+          this.deleteInProgress = false;
+          console.error('Error deleting address:', err);
+          this.snackBar.open('Adres silinirken bir hata oluştu.', 'Kapat', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
+    }
   }
 }

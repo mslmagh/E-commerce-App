@@ -19,7 +19,14 @@
 
         <div class="product-meta">
           <span class="seller">Satıcı: <a href="#">Örnek Satıcı</a></span>
-          <span class="rating">(<i class="fa-solid fa-star" style="color: #ffc107;"></i> 4.7 | 250+ Değerlendirme)</span>
+          <span class="rating" *ngIf="product.averageRating && product.reviewCount && product.reviewCount > 0">
+            <i class="fa-solid fa-star" style="color: #ffc107;"></i>
+            {{ product.averageRating | number:'1.1-1' }} 
+            <span class="review-count">({{ product.reviewCount }} Değerlendirme)</span>
+          </span>
+          <span class="rating" *ngIf="!product.reviewCount || product.reviewCount === 0">
+            (Henüz Değerlendirilmemiş)
+          </span>
         </div>
 
         <div class="price-box">
@@ -69,8 +76,8 @@
          <div *ngIf="activeTab === 'reviews'">
            <h3>Değerlendirmeler</h3>
 
-           <div class="add-review-section" *ngIf="isLoggedIn">
-              <h4>Yeni Değerlendirme Bırakın</h4>
+           <div class="add-review-section" *ngIf="isLoggedIn" id="reviewFormArea">
+              <h4>{{ editingReview ? 'Yorumu Güncelle' : 'Yeni Değerlendirme Bırakın' }}</h4>
               <div class="rating-input">
                   <span>Puanınız:</span>
                   <i *ngFor="let star of [1, 2, 3, 4, 5]; let i = index"
@@ -92,7 +99,10 @@
                <button mat-raised-button color="primary"
                       (click)="submitReview()"
                       [disabled]="!newReviewRating || newReviewComment.trim().length === 0">
-                   Değerlendirmeyi Gönder
+                   {{ editingReview ? 'Güncellemeyi Kaydet' : 'Değerlendirmeyi Gönder' }}
+              </button>
+              <button mat-stroked-button *ngIf="editingReview" (click)="cancelEditReview()" style="margin-left: 10px;">
+                İptal
               </button>
               <mat-divider style="margin-top: 30px; margin-bottom: 30px;"></mat-divider>
            </div>
@@ -102,9 +112,14 @@
             </div>
 
            <div class="existing-reviews-list">
-               <h4 *ngIf="reviews.length > 0">Ürün Değerlendirmeleri ({{ reviews.length }})</h4>
-                <h4 *ngIf="reviews.length === 0 && isLoggedIn">Henüz Hiç Değerlendirme Yapılmamış. İlk Değerlendirmeyi Siz Yapın!</h4>
-               <h4 *ngIf="reviews.length === 0 && !isLoggedIn">Bu ürüne henüz hiç değerlendirme yapılmamış.</h4>
+               <h4 *ngIf="reviews.length > 0">Ürün Değerlendirmeleri ({{ totalReviews }})</h4>
+               <h4 *ngIf="reviews.length === 0 && !loadingReviews && isLoggedIn">Henüz Hiç Değerlendirme Yapılmamış. İlk Değerlendirmeyi Siz Yapın!</h4>
+               <h4 *ngIf="reviews.length === 0 && !loadingReviews && !isLoggedIn">Bu ürüne henüz hiç değerlendirme yapılmamış.</h4>
+
+               <div *ngIf="loadingReviews" class="loading-reviews">
+                   <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                   <span>Değerlendirmeler yükleniyor...</span>
+               </div>
 
                <div class="review-item" *ngFor="let review of reviews">
                    <div class="review-header">
@@ -118,7 +133,34 @@
                    <div class="review-comment">
                        <p>{{ review.comment }}</p>
                    </div>
-                   <mat-divider></mat-divider>
+                   <!-- Yorum düzenleme ve silme butonları -->
+                   <div class="review-actions" *ngIf="isLoggedIn && review.userId === currentUserId && !editingReview">
+                    <button mat-icon-button color="primary" (click)="startEditReview(review)" title="Yorumu Düzenle">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="promptDeleteReview(review)" title="Yorumu Sil">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                  <div class="review-actions" *ngIf="editingReview && editingReview.id === review.id">
+                    <span>Bu yorumu düzenliyorsunuz...</span> 
+                    <button mat-stroked-button color="accent" (click)="cancelEditReview()" title="Düzenlemeyi İptal Et" style="margin-left: 8px;">
+                        İptal
+                    </button>
+                  </div>
+
+                   <mat-divider *ngIf="!(editingReview && editingReview.id === review.id)"></mat-divider> <!-- Düzenlenen yorumun altında divider gösterme -->
+               </div>
+
+               <!-- Pagination Controls -->
+               <div class="pagination-controls" *ngIf="totalReviewPages > 1">
+                   <button mat-button [disabled]="reviewPage === 0" (click)="loadPreviousReviewPage()">
+                       <mat-icon>chevron_left</mat-icon> Önceki
+                   </button>
+                   <span class="page-info">Sayfa {{ reviewPage + 1 }} / {{ totalReviewPages }}</span>
+                   <button mat-button [disabled]="reviewPage >= totalReviewPages - 1" (click)="loadNextReviewPage()">
+                       Sonraki <mat-icon>chevron_right</mat-icon>
+                   </button>
                </div>
            </div>
            </div>

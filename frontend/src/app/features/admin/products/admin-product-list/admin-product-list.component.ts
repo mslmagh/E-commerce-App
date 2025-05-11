@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router} from '@angular/router';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -12,7 +12,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-// Admin Ürün Modeli
 export interface AdminProduct {
   id: string | number;
   name: string;
@@ -31,7 +30,6 @@ export interface AdminProduct {
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -77,7 +75,6 @@ export interface AdminProduct {
   `]
 })
 export class AdminProductListComponent implements OnInit, AfterViewInit {
-  // Seller panelindeki kolonlara benzer, Admin için ek kolonlar olabilir (sellerName vb.)
   displayedColumns: string[] = ['imageUrl', 'name', 'sellerName', 'category', 'price', 'stockQuantity', 'status', 'createdAt', 'actions'];
   dataSource = new MatTableDataSource<AdminProduct>([]);
   isLoading = false;
@@ -88,11 +85,9 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
   constructor(
     private router: Router,
     private snackBar: MatSnackBar
-    // private adminProductService: any // Backend servisi şimdilik any
   ) {}
 
   ngOnInit(): void {
-    // Component yüklendiğinde ürünleri çek (şimdilik mock)
     this.loadProducts();
   }
 
@@ -100,7 +95,6 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
-    // Kolonlara göre sıralama ayarları
     this.dataSource.sortingDataAccessor = (item: AdminProduct, property: string) => {
         switch (property) {
           case 'createdAt': return item.createdAt ? item.createdAt.getTime() : 0;
@@ -111,7 +105,6 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
         }
      };
 
-     // Filtreleme mantığı (isim, sku, satıcı adı, kategori, status)
      this.dataSource.filterPredicate = (data: AdminProduct, filter: string): boolean => {
          const searchString = (data.name + data.sku + data.sellerName + data.category + data.status)
                                 .toLowerCase();
@@ -122,8 +115,6 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
   loadProducts(): void {
     this.isLoading = true;
 
-    // --- MOCK DATA İLE SİMÜLASYON ---
-    // Backend hazır olunca bu kısmı gerçek API çağrısı ile değiştireceksiniz.
     setTimeout(() => {
       const mockProducts: AdminProduct[] = [
         { id: 1, name: 'Kablosuz Kulaklık Pro X', price: 899, stockQuantity: 50, status: 'Yayında', imageUrl: 'https://via.placeholder.com/50/cccccc/ffffff?text=Ürün1', sellerName: 'Ses Dünyası', category: 'Elektronik', createdAt: new Date(2024, 0, 10) },
@@ -139,7 +130,6 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     }, 1000); // 1 saniye gecikme ile yükleme simülasyonu
   }
 
-  // Filtreleme metodu
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
@@ -149,37 +139,22 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Yeni ürün ekleme sayfasına yönlendirme (Bu rotayı tanımlamamız gerekecek)
   navigateToAddNewProduct(): void {
-    console.log('TODO: navigate to Admin Add New Product page');
-    // Admin routes dosyanızda bu rotayı tanımlamanız gerekecek,
-    // muhtemelen /admin/products/new gibi.
-    // Şimdilik bir alert gösterelim:
-    alert('Yeni Ürün Ekleme Sayfası (Admin) Henüz Hazır Değil!');
-    // this.router.navigate(['/admin/products/new']); // Örnek rota navigasyonu
+    console.log('AdminProductListComponent: Navigating to add new product.');
+    this.router.navigate(['/admin/products/new']);
   }
 
-  // Ürün düzenleme sayfasına yönlendirme (Bu rotayı tanımlamamız gerekecek)
   editProduct(product: AdminProduct): void {
-     console.log('TODO: navigate to Admin Edit Product page for ID:', product.id);
-     // Admin routes dosyanızda bu rotayı tanımlamanız gerekecek,
-     // muhtemelen /admin/products/edit/:id gibi.
-     // Şimdilik bir alert gösterelim:
-     alert(`Ürün Düzenleme Sayfası (Admin) Henüz Hazır Değil! Ürün ID: ${product.id}`);
-    // this.router.navigate(['/admin/products/edit', product.id]); // Örnek rota navigasyonu
+    console.log('AdminProductListComponent: Navigating to edit product ID:', product.id);
+    this.router.navigate(['/admin/products/edit', product.id]);
   }
 
-  // Ürün silme işlemi (Backend entegrasyonu gerektirecek)
   deleteProduct(product: AdminProduct): void {
     console.log('TODO: Implement delete product backend call for ID:', product.id);
     if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
       this.isLoading = true;
-      // Backend silme servisi çağrılacak
-      // this.adminProductService.deleteProduct(product.id).subscribe({ ... });
 
-      // Silme simülasyonu
       setTimeout(() => {
-        // Mock data'dan ürünü çıkar
         this.dataSource.data = this.dataSource.data.filter(p => p.id !== product.id);
         this.snackBar.open(`'${product.name}' silindi (simülasyon).`, 'Tamam', { duration: 2000 });
         this.isLoading = false;
@@ -190,7 +165,6 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Durum chip rengi için yardımcı metot
    getStatusClass(status: AdminProduct['status']): string {
     switch (status) {
       case 'Yayında': return 'status-yayinda';

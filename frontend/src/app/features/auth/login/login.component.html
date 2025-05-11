@@ -7,14 +7,11 @@
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
     <mat-form-field appearance="outline">
-      <mat-label>E-posta Adresi</mat-label>
-      <input matInput type="email" formControlName="email" placeholder="ornek@mail.com" required>
-      <mat-icon matSuffix>email</mat-icon>
-      <mat-error *ngIf="email?.hasError('required')">
-        E-posta adresi zorunludur.
-      </mat-error>
-      <mat-error *ngIf="email?.hasError('email')">
-        Lütfen geçerli bir e-posta adresi girin.
+      <mat-label>Kullanıcı Adı</mat-label>
+      <input matInput type="text" formControlName="username" placeholder="Kullanıcı adınızı girin" required>
+      <mat-icon matSuffix>person</mat-icon>
+      <mat-error *ngIf="username?.hasError('required')">
+        Kullanıcı adı zorunludur.
       </mat-error>
     </mat-form-field>
 

@@ -1,11 +1,7 @@
-// frontend/src/app/features/profile/profile.component.ts
-// SON HAL (Material Sidenav/List Modülleri ve Layout Stilleri Eklendi - Yorumsuz)
 
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-// RouterOutlet child rotaları göstermek için, RouterLink/Active menü linkleri için
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-// Angular Material Modülleri
 import { MatSidenavModule } from '@angular/material/sidenav'; // Yan menü (Sidenav)
 import { MatListModule } from '@angular/material/list';     // Menü listesi
 import { MatIconModule } from '@angular/material/icon';     // Menü ikonları (opsiyonel)
@@ -18,13 +14,11 @@ import { MatIconModule } from '@angular/material/icon';     // Menü ikonları (
     RouterOutlet, // Sağdaki içerik için
     RouterLink,   // Menü linkleri için
     RouterLinkActive, // Aktif menü linkini işaretlemek için
-    // Material Modülleri:
     MatSidenavModule,
     MatListModule,
     MatIconModule // Opsiyonel ikonlar için
   ],
   templateUrl: './profile.component.html',
-  // styleUrls: ['./profile.component.css'] // Eski CSS yerine inline stil
   styles: [`
     .profile-container {
       height: calc(100vh - 64px); /* Header yüksekliğini çıkar (eğer header sabitse) */
@@ -62,9 +56,6 @@ import { MatIconModule } from '@angular/material/icon';     // Menü ikonları (
   `]
 })
 export class ProfileComponent {
-  // Şimdilik TS tarafında özel bir mantığa gerek yok
-  // Layout ve routing HTML'den yönetilecek
   constructor() { }
 
-  // ngOnInit(): void {}
 }

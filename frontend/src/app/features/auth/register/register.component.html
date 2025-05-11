@@ -15,6 +15,17 @@
   <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
     <div class="name-fields-row">
       <mat-form-field appearance="outline">
+        <mat-label>Kullanıcı Adı *</mat-label>
+        <input matInput formControlName="username" required minlength="3">
+        <mat-error *ngIf="username?.touched && username?.hasError('required')">
+          Kullanıcı adı zorunludur.
+        </mat-error>
+        <mat-error *ngIf="username?.touched && username?.hasError('minlength')">
+          Kullanıcı adı en az 3 karakter olmalıdır.
+        </mat-error>
+      </mat-form-field>
+      
+      <mat-form-field appearance="outline">
         <mat-label>Adınız</mat-label>
         <input matInput formControlName="firstName" required>
         <mat-error *ngIf="firstName?.touched && firstName?.hasError('required')">Adınız zorunludur.</mat-error>

@@ -4,6 +4,7 @@ package com.example.ecommerce.exception;
 import com.example.ecommerce.dto.ErrorResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory; // LoggerFactory import edildiğinden emin olun
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -68,6 +69,33 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 path);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponseDto> handleIllegalStateException(IllegalStateException ex,
+            WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        logger.warn("IllegalStateException: {} at path {}", ex.getMessage(), path);
+        ErrorResponseDto errorResponse = new ErrorResponseDto(
+                HttpStatus.CONFLICT.value(),
+                "Data Conflict",
+                ex.getMessage(),
+                path);
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+    
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataIntegrityViolationException(DataIntegrityViolationException ex,
+            WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        logger.warn("DataIntegrityViolationException at path {}: {}", path, ex.getMessage(), ex);
+        
+        ErrorResponseDto errorResponse = new ErrorResponseDto(
+                HttpStatus.CONFLICT.value(),
+                "Data Integrity Violation",
+                "The operation could not be completed because it would violate data integrity constraints. This usually happens when a record is referenced by other records.",
+                path);
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

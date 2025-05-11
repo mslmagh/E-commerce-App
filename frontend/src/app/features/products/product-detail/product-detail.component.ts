@@ -7,9 +7,10 @@ import { Product, ProductService } from '../../../core/services/product.service'
 import { CartService } from '../../../core/services/cart.service'; // Yolunuzu kontrol edin
 import { AuthService } from '../../../core/services/auth.service'; // Yolunuzu kontrol edin
 import { FavoritesService } from '../../../core/services/favorites.service'; // Yolunuzu kontrol edin
+import { Review, ReviewRequest, ReviewService } from '../../../core/services/review.service'; // Yeni eklenen
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { CartItemRequest } from '../../../core/models/cart-item-request.model'; // Import CartItemRequest
 
-// Angular Material Modülleri
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -18,22 +19,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule } from '@angular/forms';
-// --- Eksik Material Modülleri Eklendi (Hataları çözecek) ---
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-// ----------------------------------------
-
-// Değerlendirme (Review) için temel interface
-export interface ProductReview {
-  id?: number | string;
-  productId: number | string;
-  userId: number | string; // Kimin yorum yaptığı (mock için string olabilir)
-  userName: string; // Yorumu yapanın adı
-  rating: number; // 1-5 arası puan
-  comment: string; // Yorum metni
-  date: Date; // Yorum tarihi
-}
-
 
 @Component({
   selector: 'app-product-detail',
@@ -50,10 +37,8 @@ export interface ProductReview {
       MatInputModule,
       MatDividerModule,
       FormsModule,
-      // --- Eksik Material Modülleri Imports'a Eklendi ---
       MatTooltipModule, // matTooltip hatası için
       MatProgressSpinnerModule, // mat-progress-spinner hatası için
-      // -------------------------------------------------
     ],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.css'] // CSS dosyasını kullanıyoruz
@@ -63,18 +48,22 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   product$: Observable<Product | undefined> = of(undefined);
   public activeTab: string = 'description';
   public isFavorite: boolean = false;
-  // --- Yeni Eklenen Değişken (isLoading hatasını çözecek) ---
   isLoading: boolean = false; // Yükleme durumu için
-  // -----------------------------
   private routeSubscription?: Subscription;
   private favoriteCheckSubscription?: Subscription;
 
-  // --- Değerlendirme (Review) İçin Yeni Değişkenler ---
-  reviews: ProductReview[] = [];
+  reviews: Review[] = [];
   newReviewRating: number = 0;
   newReviewComment: string = '';
   hoveredRating: number = 0;
-  // ---------------------------------------------------
+  loadingReviews: boolean = false;
+  reviewPage: number = 0;
+  reviewsPerPage: number = 5;
+  totalReviews: number = 0;
+  totalReviewPages: number = 0;
+
+  // Düzenleme modu için değişkenler
+  editingReview: Review | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -83,21 +72,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private router: Router, // Router private kalabilir, getter ekleyeceğiz
     private authService: AuthService, // AuthService private kalabilir, getter ekleyeceğiz
     private favoritesService: FavoritesService,
+    private reviewService: ReviewService, // Yeni eklenen
     private snackBar: MatSnackBar
   ) { }
 
   ngOnInit(): void {
     console.log('ProductDetailComponent ngOnInit');
-    // URL'deki ürün ID'sini al ve ürünü yükle
     this.routeSubscription = this.route.paramMap.pipe(
       switchMap(params => {
         const productId = params.get('id');
         console.log('ProductDetailComponent: Found productId from route:', productId);
         this.isLoading = true; // Yüklemeyi başlat
         if (productId) {
-          // Ürün bilgisini çek
           const productObservable = this.productService.getProductById(productId);
-          // Ürün bilgisi geldiğinde favori durumunu ve yorumları kontrol et
           productObservable.subscribe(product => {
               if (product) {
                   this.checkIfFavorite(product.id); // Favori durumunu kontrol et
@@ -124,27 +111,23 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         }
       })
     ).subscribe(product => {
-        // Ana product$ Observable'ı güncellendiğinde çalışır
         this.product$ = of(product); // Componentteki product$ değişkenini güncelle
     });
   }
 
   ngOnDestroy(): void {
-    // Component yok olurken oluşturduğumuz abonelikleri iptal et
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
     }
     if (this.favoriteCheckSubscription) {
       this.favoriteCheckSubscription.unsubscribe();
     }
-    // Eğer review'ler için ayrı bir abonelik olsaydı onu da iptal ederdik
   }
 
-  checkIfFavorite(productId: string | number): void {
+  checkIfFavorite(productId: number): void {
     if (this.favoriteCheckSubscription) {
       this.favoriteCheckSubscription.unsubscribe();
     }
-     // Template'ten erişilebilen public getter'ı kullanacağız
      if (this.isLoggedIn) { // Kullanıcı giriş yapmışsa kontrol et
         this.favoriteCheckSubscription = this.favoritesService.isFavorite(productId).pipe(
           take(1) // Sadece ilk cevabı al, sonra abonelik otomatik bitsin
@@ -159,11 +142,36 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   addToCart(product: Product | undefined | null): void {
     if (product) {
+      // Stok kontrolü (Örnek: product.stockQuantity > 0 olmalı)
+      if (product.stockQuantity !== undefined && product.stockQuantity < 1) {
+        this.snackBar.open(`'${product.name}' stokta bulunmamaktadır!`, 'Kapat', {
+          duration: 3000, panelClass: ['warning-snackbar']
+        });
+        return;
+      }
+
       console.log(`${this.constructor.name}: Adding product to cart:`, product.name);
-      this.cartService.addToCart(product);
-      this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
-        duration: 2500, horizontalPosition: 'center', verticalPosition: 'bottom'
+      
+      const itemRequest: CartItemRequest = { 
+        productId: product.id,
+        quantity: 1 // Default quantity to add, can be dynamic if quantity input exists
+      };
+
+      this.cartService.addItem(itemRequest, product).subscribe({
+        next: (cart) => {
+          this.snackBar.open(`'${product.name}' sepete eklendi`, 'Tamam', {
+            duration: 2500, horizontalPosition: 'center', verticalPosition: 'bottom'
+          });
+        },
+        error: (err) => {
+          console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+          this.snackBar.open(err.message || "Ürün sepete eklenemedi!", 'Kapat', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
+
     } else {
       console.error(`${this.constructor.name}: Cannot add null/undefined product to cart.`);
       this.snackBar.open("Ürün sepete eklenemedi!", 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
@@ -179,7 +187,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         this.snackBar.open("Favori işlemi yapılamadı.", "Kapat", { duration: 3000 });
         return;
     }
-     // Template'ten erişilebilen public getter'ı kullanacağız
     if (this.isLoggedIn) { // Kullanıcı giriş yapmışsa işlem yap
       if (this.isFavorite) {
         this.favoritesService.removeFavorite(product.id);
@@ -193,30 +200,55 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     } else {
       const snackRef = this.snackBar.open('Favorilere eklemek için lütfen giriş yapın.', 'Giriş Yap', { duration: 4000 });
       snackRef.onAction().subscribe(() => {
-        // Template'ten erişilebilen public getter'ı kullanacağız
         this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.currentUrl } });
       });
     }
   }
 
-  // --- Değerlendirme (Review) Metotları ---
+  loadReviews(productId: number): void {
+    console.log(`Loading reviews for product ID: ${productId}`);
+    this.loadingReviews = true;
 
-  loadReviews(productId: string | number): void {
-      console.log(`Loading reviews for product ID: ${productId}`);
-      // TODO: Gerçek uygulamada backend servisinden değerlendirmeleri çek
-      // this.reviewService.getReviewsByProductId(productId).subscribe(reviews => { ... });
+    this.reviewService.getProductReviews(productId, this.reviewPage, this.reviewsPerPage).subscribe(
+      response => {
+        this.reviews = response.content;
+        this.totalReviews = response.totalElements;
+        this.totalReviewPages = response.totalPages;
+        this.loadingReviews = false;
+        console.log(`Loaded ${response.content.length} reviews for product ID: ${productId}`);
+      },
+      error => {
+        console.error('Error loading reviews:', error);
+        this.loadingReviews = false;
+        this.snackBar.open('Değerlendirmeler yüklenirken bir hata oluştu', 'Kapat', { duration: 3000 });
+      }
+    );
+  }
 
-      // Mock değerlendirme verisi simülasyonu
-      setTimeout(() => {
-          this.reviews = [
-              { id: 1, productId: productId, userId: 101, userName: 'Ali Veli', rating: 5, comment: 'Ürün harika, çok beğendim!', date: new Date(2025, 4, 5) },
-              { id: 2, productId: productId, userId: 102, userName: 'Ayşe Yılmaz', rating: 4, comment: 'Beklediğim gibi çıktı, hızlı kargo.', date: new Date(2025, 4, 6) },
-              // Ürün ID'sine göre farklı mock yorumlar döndürebilirsiniz
-              ...(productId === 1 || productId === '1' ? [{ id: 3, productId: productId, userId: 103, userName: 'Mehmet Öztürk', rating: 5, comment: 'Kablosuz kulaklık müthiş!', date: new Date(2025, 4, 7) }] : []),
-              ...(productId === 2 || productId === '2' ? [{ id: 4, productId: productId, userId: 104, userName: 'Fatma Kaya', rating: 4, comment: 'Akıllı saat işimi görüyor.', date: new Date(2025, 4, 7) }] : []),
-          ];
-          console.log('Mock reviews loaded:', this.reviews);
-      }, 500);
+  loadNextReviewPage(): void {
+    if (this.reviewPage < this.totalReviewPages - 1) {
+      this.reviewPage++;
+      let currentProductId: number | undefined;
+      this.product$.pipe(take(1)).subscribe(product => {
+        currentProductId = product?.id;
+        if (currentProductId) {
+          this.loadReviews(currentProductId);
+        }
+      });
+    }
+  }
+
+  loadPreviousReviewPage(): void {
+    if (this.reviewPage > 0) {
+      this.reviewPage--;
+      let currentProductId: number | undefined;
+      this.product$.pipe(take(1)).subscribe(product => {
+        currentProductId = product?.id;
+        if (currentProductId) {
+          this.loadReviews(currentProductId);
+        }
+      });
+    }
   }
 
   selectRating(rating: number): void {
@@ -230,73 +262,131 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   submitReview(): void {
-      // Template'ten erişilebilen public getter'ı kullanacağız
-      if (!this.isLoggedIn) {
-          this.snackBar.open('Değerlendirme göndermek için lütfen giriş yapın.', 'Kapat', { duration: 3000 });
-          return;
-      }
-       // Puan ve yorum metni zorunlu
-      if (this.newReviewRating === 0 || !this.newReviewComment.trim()) {
-           this.snackBar.open('Lütfen puan verin ve yorum yazın.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
-           return;
-      }
+    if (!this.isLoggedIn) {
+      this.snackBar.open('Değerlendirme göndermek için lütfen giriş yapın.', 'Kapat', { duration: 3000 });
+      return;
+    }
+    if (this.newReviewRating === 0 || !this.newReviewComment.trim()) {
+      this.snackBar.open('Lütfen puan verin ve yorum yazın.', 'Kapat', { duration: 3000, panelClass: ['warning-snackbar'] });
+      return;
+    }
 
-       let currentProductId: string | number | undefined;
-       // product$ Observable'ının güncel değerini senkron olarak almak için take(1) ve subscribe kullanılır
-       // product$ pipe'ı içindeki subscribe metodunu da kullanabiliriz, bu örnek daha basit
-       this.product$.pipe(take(1)).subscribe(product => {
-           currentProductId = product?.id;
-       });
+    let currentProductId: number | undefined;
+    this.product$.pipe(take(1)).subscribe(product => {
+      currentProductId = product?.id;
+    });
 
+    if (!currentProductId) {
+      this.snackBar.open('Ürün bilgisi alınamadı, yorum gönderilemiyor.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+      console.error('Cannot submit review: Product ID is missing.');
+      return;
+    }
 
-       if (!currentProductId) {
-            this.snackBar.open('Ürün bilgisi alınamadı, yorum gönderilemiyor.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
-            console.error('Cannot submit review: Product ID is missing.');
-            return;
-       }
+    const reviewRequest: ReviewRequest = {
+      rating: this.newReviewRating,
+      comment: this.newReviewComment.trim()
+    };
 
-      const newReview: ProductReview = {
-          productId: currentProductId,
-          userId: 'mock-user-id-' + Math.floor(Math.random() * 1000),
-          userName: 'Mevcut Kullanıcı',
-          rating: this.newReviewRating,
-          comment: this.newReviewComment.trim(),
-          date: new Date()
-      };
-
-      console.log('Submitting new review (simulated):', newReview);
-      // TODO: Backend servis çağrısı ile yorumu gönder
-      // this.reviewService.submitReview(newReview).subscribe({
-      //   next: (response) => { ... },
-      //   error: (error) => { ... }
-      // });
-
-      // Başarılı gönderim simülasyonu
-      setTimeout(() => {
-          this.reviews = [newReview, ...this.reviews];
-          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi (simülasyon)!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
-          // Formu temizle
-          this.newReviewRating = 0;
-          this.newReviewComment = '';
-          this.hoveredRating = 0;
-           console.log('New review added to mock list:', newReview);
-      }, 1000);
+    if (this.editingReview) {
+      // Düzenleme Modu
+      this.reviewService.updateReview(this.editingReview.id, reviewRequest).subscribe({
+        next: updatedReview => {
+          this.snackBar.open('Değerlendirmeniz başarıyla güncellendi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          this.resetReviewFormAndState();
+          if (currentProductId) this.loadReviews(currentProductId);
+        },
+        error: err => {
+          console.error('Error updating review:', err);
+          this.snackBar.open(err.message || 'Değerlendirme güncellenirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      });
+    } else {
+      // Yeni Yorum Ekleme Modu
+      this.reviewService.createReview(currentProductId, reviewRequest).subscribe({
+        next: newReview => {
+          this.snackBar.open('Değerlendirmeniz başarıyla gönderildi!', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          this.resetReviewFormAndState();
+          if (currentProductId) this.loadReviews(currentProductId);
+        },
+        error: err => {
+          console.error('Error submitting review:', err);
+          this.snackBar.open(err.message || 'Değerlendirme gönderilirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      });
+    }
   }
 
-  // --- Private servis üyelerine template'ten erişim için Getter'lar (Hataları çözecek) ---
+  resetReviewFormAndState(): void {
+    this.newReviewRating = 0;
+    this.newReviewComment = '';
+    this.hoveredRating = 0;
+    this.editingReview = null;
+  }
+
   get isLoggedIn(): boolean {
-      return this.authService.isLoggedIn();
+    return this.authService.isLoggedIn();
+  }
+
+  get currentUsername(): string | null {
+    return this.authService.getUsername();
+  }
+
+  get currentUserId(): number | null {
+    const userIdStr = this.authService.getUserId();
+    return userIdStr ? parseInt(userIdStr, 10) : null;
   }
 
   get currentUrl(): string {
-      return this.router.url;
+    return this.router.url;
   }
 
-  // productForm hatası için: review comment validasyonu productForm kullanmıyor,
-  // sadece newReviewComment'ın boş olup olmadığını kontrol ediyor.
-  // productForm özelliği bu componentte tanımlı DEĞİL ve gerekli de değil.
-  // HTML'deki hata kontrolünü düzenledik.
+  startEditReview(review: Review): void {
+    this.editingReview = { ...review }; 
+    this.newReviewRating = review.rating;
+    this.newReviewComment = review.comment;
+    
+    const reviewFormElement = document.getElementById('reviewFormArea'); // HTML'e bu ID'yi ekleyeceğiz
+    if (reviewFormElement) {
+      reviewFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    this.snackBar.open('Yorumu düzenliyorsunuz. Formu güncelleyip gönderin.', 'Tamam', { duration: 3500 });
+  }
+  
+  cancelEditReview(): void {
+    this.editingReview = null;
+    this.newReviewRating = 0; 
+    this.newReviewComment = ''; 
+    this.hoveredRating = 0;
+    this.snackBar.open('Düzenleme iptal edildi.', 'Tamam', { duration: 2000 });
+  }
 
-  // ---------------------------------------
+  promptDeleteReview(review: Review): void {
+    let currentProductId: number | undefined;
+    // product$ observable'ından anlık değeri almak için take(1) kullanılır.
+    this.product$.pipe(take(1)).subscribe(product => {
+      currentProductId = product?.id;
+    });
 
+    if (!currentProductId) {
+        console.error('Cannot delete review: Product ID is missing for context.');
+        this.snackBar.open('İşlem için ürün bilgisi bulunamadı.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        return;
+    }
+
+    if (confirm(`'${review.comment.substring(0, 50).trim()}...' yorumunu silmek istediğinizden emin misiniz?`)) {
+      this.reviewService.deleteReview(review.id).subscribe({
+        next: () => {
+          this.snackBar.open('Yorum başarıyla silindi.', 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+          if (currentProductId) {
+              this.loadReviews(currentProductId); 
+          }
+        },
+        error: (err) => {
+          console.error('Error deleting review:', err);
+          this.snackBar.open(err.message || 'Yorum silinirken bir hata oluştu.', 'Kapat', { duration: 3000, panelClass: ['error-snackbar'] });
+        }
+      });
+    }
+  }
 }

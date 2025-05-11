@@ -1,158 +1,297 @@
-// frontend/src/app/core/services/cart.service.ts
-// YORUM SATIRSIZ HAL
+import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
+import { BehaviorSubject, Observable, catchError, map, tap, throwError, of } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Product } from './product.service';
+import { environment } from '../../../environment';
+import { AuthService } from './auth.service';
+import { isPlatformBrowser } from '@angular/common';
 
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-// import { HttpClient } from '@angular/common/http'; // Şimdilik gerekmiyor
-
-export interface CartItem {
-  id: number | string;
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string;
-}
+import { Cart } from '../models/cart.model';
+import { CartItem } from '../models/cart-item.model';
+import { CartItemRequest } from '../models/cart-item-request.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CartService {
+  private apiUrl = `${environment.apiUrl}/cart`;
 
-  private cartItemsSource = new BehaviorSubject<CartItem[]>([]);
-  cartItems$: Observable<CartItem[]> = this.cartItemsSource.asObservable();
+  private cartSource = new BehaviorSubject<Cart | null>(null);
+  cart$: Observable<Cart | null> = this.cartSource.asObservable();
+  
+  private isBrowser: boolean;
 
-  constructor() {
-    // const savedCart = localStorage.getItem('shoppingCart');
-    // if (savedCart) {
-    //   this.cartItemsSource.next(JSON.parse(savedCart));
-    // }
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+    this.loadInitialCart();
   }
 
-  getCartItems(): CartItem[] {
-    return this.cartItemsSource.getValue();
-  }
-
-  addToCart(product: any): void {
-    const currentItems = this.getCartItems();
-    const existingItemIndex = currentItems.findIndex(item => item.id === product.id);
-    let updatedItems: CartItem[];
-
-    if (existingItemIndex > -1) {
-      console.log(`CartService: Updating quantity for product ${product.id}`);
-      updatedItems = currentItems.map((item, index) => {
-        if (index === existingItemIndex) {
-          return { ...item, quantity: item.quantity + 1 };
-        }
-        return item;
-      });
+  private getHttpOptions() {
+    const token = this.authService.getToken();
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     } else {
-      console.log(`CartService: Adding new product ${product.id} to cart`);
-      const newItem: CartItem = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl || undefined,
-        quantity: 1
-      };
-      updatedItems = [...currentItems, newItem];
+      console.warn('CartService: No auth token found. API requests for protected cart endpoints might fail.');
+    }
+    return { headers };
+  }
+
+  private loadInitialCart(): void {
+    if (this.authService.isLoggedIn()) {
+      this.fetchCartFromServer();
+    } else if (this.isBrowser) {
+      const localCartJson = localStorage.getItem('anonymousCart');
+      if (localCartJson) {
+        try {
+          const localCart = JSON.parse(localCartJson) as Cart;
+          if (localCart && localCart.items !== undefined && localCart.grandTotal !== undefined) {
+             this.cartSource.next(localCart);
+          } else {
+            localStorage.removeItem('anonymousCart'); 
+            this.cartSource.next(this.createEmptyLocalCart());
+          }
+        } catch (e) {
+          console.error('Error parsing local cart', e);
+          localStorage.removeItem('anonymousCart');
+          this.cartSource.next(this.createEmptyLocalCart());
+        }
+      } else {
+        this.cartSource.next(this.createEmptyLocalCart());
+      }
+    }
+  }
+
+  private fetchCartFromServer(): void {
+    this.http.get<Cart>(`${this.apiUrl}`, this.getHttpOptions()).pipe(
+      tap(cart => {
+        console.log('CartService: Cart fetched from API', cart);
+        this.cartSource.next(cart);
+        if (this.isBrowser && cart) {
+            localStorage.removeItem('anonymousCart');
+        }
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error fetching cart from API', error);
+        if (error.status === 404) { 
+            this.cartSource.next(null);
+            if (this.isBrowser) { localStorage.removeItem('anonymousCart'); }
+        } else {
+            this.cartSource.next(null); 
+        }
+        return throwError(() => new Error('Failed to fetch cart from server. ' + (error.error?.message || error.message)));
+      })
+    ).subscribe();
+  }
+
+  private saveCartToLocalStorage(cart: Cart | null): void {
+    if (this.isBrowser && !this.authService.isLoggedIn()) {
+      if (cart && cart.items.length > 0) {
+        localStorage.setItem('anonymousCart', JSON.stringify(cart));
+      } else {
+        localStorage.removeItem('anonymousCart');
+      }
+    }
+  }
+  
+  getCurrentCartValue(): Cart | null {
+    return this.cartSource.getValue();
+  }
+
+  getCart(): Observable<Cart | null> {
+    if (!this.cartSource.getValue() && this.authService.isLoggedIn()) {
+        this.fetchCartFromServer();
+    }
+    return this.cart$;
+  }
+
+  addItem(itemRequest: CartItemRequest, productDetails?: Product): Observable<Cart> {
+    if (!itemRequest || itemRequest.quantity < 1) {
+        return throwError(() => new Error('Invalid item request for adding to cart.'));
     }
 
-    this.cartItemsSource.next(updatedItems);
-    // localStorage.setItem('shoppingCart', JSON.stringify(updatedItems));
-    console.log('Cart Updated:', this.getCartItems());
+    if (this.authService.isLoggedIn()) {
+      return this.http.post<Cart>(`${this.apiUrl}/items`, itemRequest, this.getHttpOptions()).pipe(
+        tap(updatedCart => {
+          console.log('CartService: Item added/updated via API', updatedCart);
+          this.cartSource.next(updatedCart);
+        }),
+        catchError(this.handleError('addItemToCart (API)'))
+      );
+    } else {
+      if (!productDetails) {
+        console.error('Product details are required to add item to local cart.');
+        return throwError(() => new Error('Product details needed for local cart.'));
+      }
+      const currentCart = this.getCurrentCartValue() || this.createEmptyLocalCart();
+      const existingItemIndex = currentCart.items.findIndex(i => i.productId === itemRequest.productId);
+
+      if (existingItemIndex > -1) {
+        currentCart.items[existingItemIndex].quantity += itemRequest.quantity;
+        currentCart.items[existingItemIndex].totalPrice = currentCart.items[existingItemIndex].unitPrice * currentCart.items[existingItemIndex].quantity;
+      } else {
+        const newItem: CartItem = {
+            itemId: Date.now(),
+            productId: itemRequest.productId,
+            productName: productDetails.name,
+            quantity: itemRequest.quantity,
+            unitPrice: productDetails.price,
+            totalPrice: productDetails.price * itemRequest.quantity
+        };
+        currentCart.items.push(newItem);
+      }
+      this.recalculateLocalCartTotals(currentCart);
+      this.cartSource.next(currentCart);
+      this.saveCartToLocalStorage(currentCart);
+      return new Observable<Cart>(observer => { 
+        observer.next(currentCart);
+        observer.complete();
+      });
+    }
   }
 
-  // İleride eklenecek diğer metodlar buraya gelebilir
-  // removeFromCart(...) {}
-  // clearCart() {}
-  // getTotalPrice() {}
-  // getTotalItemCount() {}
-  // cart.service.ts sınıfının içine eklenecek yeni metodlar:
+  updateItemQuantity(itemId: number, newQuantity: number): Observable<Cart> {
+    if (newQuantity < 1) {
+      return this.removeItem(itemId);
+    }
 
-/**
- * Sepetteki bir ürünün adetini 1 azaltır. Adet 1 ise ürünü sepetten kaldırır.
- * @param productId Adeti azaltılacak ürünün ID'si
- */
-decreaseQuantity(productId: number | string): void {
-  const currentItems = this.getCartItems();
-  const existingItem = currentItems.find(item => item.id === productId);
+    const currentCart = this.getCurrentCartValue();
+    const itemToUpdate = currentCart?.items.find(item => item.itemId === itemId);
 
-  if (!existingItem) {
-    console.warn(`CartService: Product ID ${productId} not found for decreasing quantity.`);
-    return;
+    if (!itemToUpdate) {
+      return throwError(() => new Error('Item not found in cart to update quantity.'));
+    }
+    const itemUpdateRequest: CartItemRequest = { productId: itemToUpdate.productId, quantity: newQuantity };
+
+    if (this.authService.isLoggedIn()) {
+      return this.http.put<Cart>(`${this.apiUrl}/items/${itemId}`, itemUpdateRequest, this.getHttpOptions()).pipe(
+        tap(updatedCart => {
+          console.log(`CartService: Updated quantity for item ${itemId} via API`);
+          this.cartSource.next(updatedCart);
+        }),
+        catchError(this.handleError('updateItemQuantity (API)'))
+      );
+    } else {
+      const localCart = this.getCurrentCartValue();
+      if (!localCart) return throwError(() => new Error('No local cart to update.'));
+      
+      const existingItemIndex = localCart.items.findIndex(i => i.itemId === itemId); 
+      if (existingItemIndex > -1) {
+        localCart.items[existingItemIndex].quantity = newQuantity;
+        localCart.items[existingItemIndex].totalPrice = localCart.items[existingItemIndex].unitPrice * newQuantity;
+        this.recalculateLocalCartTotals(localCart);
+        this.cartSource.next(localCart);
+        this.saveCartToLocalStorage(localCart);
+      } else {
+        return throwError(() => new Error('Item not found in local cart to update.'));
+      }
+       return new Observable<Cart>(observer => {
+        observer.next(localCart);
+        observer.complete();
+      });
+    }
   }
 
-  if (existingItem.quantity > 1) {
-    // Adet 1'den fazlaysa, sadece o ürünün adetini 1 azaltarak yeni bir dizi oluştur
-    const updatedItems = currentItems.map(item =>
-      item.id === productId ? { ...item, quantity: item.quantity - 1 } : item
-    );
-    this.cartItemsSource.next(updatedItems); // Yeni listeyi yayınla
-    // localStorage'ı da güncelle (eğer kullanıyorsak)
-    // localStorage.setItem('shoppingCart', JSON.stringify(updatedItems));
-    console.log(`CartService: Decreased quantity for product ${productId}`);
-  } else {
-    // Adet zaten 1 ise, ürünü tamamen kaldır (aşağıdaki metodu çağır)
-    this.removeFromCart(productId);
+  removeItem(itemId: number): Observable<Cart> {
+    if (this.authService.isLoggedIn()) {
+      return this.http.delete<Cart>(`${this.apiUrl}/items/${itemId}`, this.getHttpOptions()).pipe(
+        tap(updatedCart => {
+          console.log(`CartService: Removed item ${itemId} via API`);
+          this.cartSource.next(updatedCart?.items?.length > 0 ? updatedCart : null);
+        }),
+        catchError(this.handleError('removeItem (API)'))
+      );
+    } else {
+      const currentCart = this.getCurrentCartValue();
+      if (!currentCart) return throwError(() => new Error('No local cart to remove from.'));
+
+      currentCart.items = currentCart.items.filter(i => i.itemId !== itemId);
+      if (currentCart.items.length === 0) {
+          this.cartSource.next(null);
+          this.saveCartToLocalStorage(null);
+           return new Observable<Cart>(observer => { observer.next(null as any); observer.complete(); });
+      } else {
+          this.recalculateLocalCartTotals(currentCart);
+          this.cartSource.next(currentCart);
+          this.saveCartToLocalStorage(currentCart);
+           return new Observable<Cart>(observer => { observer.next(currentCart); observer.complete(); });
+      }
+    }
   }
-}
-
-/**
- * Belirtilen ürünü sepetten tamamen kaldırır.
- * @param productId Sepetten kaldırılacak ürünün ID'si
- */
-removeFromCart(productId: number | string): void {
-  const currentItems = this.getCartItems();
-  // Verilen ID'ye sahip olmayan tüm ürünleri filtreleyerek yeni bir dizi oluştur
-  const updatedItems = currentItems.filter(item => item.id !== productId);
-
-  // Liste gerçekten değiştiyse (ürün bulundu ve silindi ise) yeni listeyi yayınla
-  if (updatedItems.length !== currentItems.length) {
-     this.cartItemsSource.next(updatedItems);
-     // localStorage'ı da güncelle (eğer kullanıyorsak)
-     // localStorage.setItem('shoppingCart', JSON.stringify(updatedItems));
-     console.log(`CartService: Removed product ${productId} from cart.`);
-  } else {
-     console.warn(`CartService: Product ID ${productId} not found for removal.`);
-  }
-}
-
-/**
- * Sepeti tamamen boşaltır.
- */
-clearCart(): void {
-  this.cartItemsSource.next([]); // Boş dizi yayınla
-  // localStorage.removeItem('shoppingCart'); // localStorage'ı temizle
-  console.log('CartService: Cart cleared.');
-}
-
-/**
- * Verilen ID listesindeki ürünleri sepetten kaldırır.
- * @param itemIdsToRemove Kaldırılacak ürünlerin ID'lerini içeren dizi (number veya string olabilir).
- */
-removeSelectedItems(itemIdsToRemove: (number | string)[]): void {
-
-  if (!itemIdsToRemove || itemIdsToRemove.length === 0) {
-    console.warn('CartService: No item IDs provided for removal.');
-    return;
+  
+  private recalculateLocalCartTotals(cart: Cart): void {
+    if (!cart || !cart.items) {
+      if(cart) cart.grandTotal = 0;
+      return;
+    }
+    cart.grandTotal = cart.items.reduce((total, item) => {
+        const itemTotalPrice = (item.unitPrice || 0) * (item.quantity || 0);
+        return total + itemTotalPrice;
+    }, 0);
   }
 
-
-  const currentItems = this.getCartItems();
-
-
-  const updatedItems = currentItems.filter(item => !itemIdsToRemove.includes(item.id));
-
-
-  if (updatedItems.length !== currentItems.length) {
-
-     this.cartItemsSource.next(updatedItems);
-     // Eğer localStorage kullanıyorsan burada da güncelle
-     localStorage.setItem('shoppingCart', JSON.stringify(updatedItems));
-     console.log(`CartService: Removed selected items. IDs:`, itemIdsToRemove);
-  } else {
-     // Silinmesi istenen ID'lerden hiçbiri sepette bulunamadıysa uyar
-     console.warn(`CartService: None of the selected IDs found for removal:`, itemIdsToRemove);
+  private createEmptyLocalCart(): Cart {
+      return {
+          cartId: Date.now(), 
+          userId: 0, 
+          items: [],
+          grandTotal: 0
+      };
   }
-}
+
+  clearCart(): Observable<Cart | null> { 
+    if (this.authService.isLoggedIn()) {
+      return this.http.delete<Cart>(`${this.apiUrl}/items`, this.getHttpOptions()).pipe(
+        tap(emptyCart => { 
+          console.log('CartService: Cart cleared via API', emptyCart);
+          this.cartSource.next(emptyCart); 
+        }),
+        catchError(error => {
+          console.error('Error clearing cart via API', error);
+          return throwError(() => new Error('Failed to clear cart on server. ' + (error.error?.message || error.message)));
+        })
+      );
+    } else {
+      // For anonymous users, clear local storage
+      if (this.isBrowser) {
+        localStorage.removeItem('anonymousCart');
+      }
+      this.cartSource.next(null); // Update the BehaviorSubject
+      return of(null); // Return an observable that completes
+    }
+  }
+
+  private handleError(operation: string = 'operation') {
+    return (error: HttpErrorResponse): Observable<never> => {
+      console.error(`${operation} failed: ${error.message}`, error);
+      let userMessage = `An error occurred during ${operation}. Please try again.`;
+      if (error.error && typeof error.error.message === 'string') {
+          userMessage = error.error.message; 
+      } else if (error.error?.error && typeof error.error.error === 'string') {
+          userMessage = error.error.error;
+      }
+      return throwError(() => new Error(userMessage));
+    };
+  }
+  
+  onLogout(): void {
+    this.cartSource.next(null);
+    if (this.isBrowser) {
+      localStorage.removeItem('anonymousCart');
+    }
+    console.log('CartService: Cleared cart data on logout.');
+  }
+
+  syncCartOnLogin(): void {
+    if (this.authService.isLoggedIn()) {
+        console.log("CartService: User logged in, ensuring server cart is primary.");
+        this.fetchCartFromServer(); 
+    }
+  }
 }

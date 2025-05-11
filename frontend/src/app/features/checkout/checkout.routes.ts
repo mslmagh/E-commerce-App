@@ -1,18 +1,23 @@
 import { Routes } from '@angular/router';
 import { CheckoutComponent } from './checkout.component';
-import { PaymentComponent } from './payment/payment.component'; // Yeni component'i import edin
-import { authGuard } from '../../core/guards/auth.guard'; // Kullanıcı giriş kontrolü için
+import { PaymentComponent } from './payment/payment.component';
+import { SelectAddressComponent } from './select-address/select-address.component';
+import { authGuard } from '../../core/guards/auth.guard';
 
 export const CHECKOUT_ROUTES: Routes = [
   {
     path: '',
-    component: CheckoutComponent, // '/checkout' -> Adres formu
-    canActivate: [authGuard] // Adres sayfasına erişim için giriş yapmış olmalı
+    component: SelectAddressComponent,
+    canActivate: [authGuard]
   },
   {
-    path: 'payment',
-    component: PaymentComponent, // '/checkout/payment' -> Ödeme sayfası
-    canActivate: [authGuard] // Ödeme sayfasına erişim için de giriş yapmış olmalı
+    path: 'new-address',
+    component: CheckoutComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'payment/:orderId',
+    component: PaymentComponent,
+    canActivate: [authGuard]
   }
-  // İleride sipariş onay sayfası için '/checkout/confirmation' gibi bir rota eklenebilir
 ];

@@ -715,28 +715,23 @@ public class OrderService {
 
     @Transactional
     public void handlePaymentFailed(String paymentIntentId) {
-        logger.warn("Webhook received: Payment Failed for PI ID: {}", paymentIntentId);
-        Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId); // Bu metot
-                                                                                                 // OrderRepository'de
-                                                                                                 // olmalı
+        logger.info("Webhook received: Payment Failed for PI ID: {}", paymentIntentId);
+        Optional<Order> orderOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId);
 
         if (orderOpt.isEmpty()) {
             logger.error("Webhook error: No order found for failed PaymentIntent ID: {}", paymentIntentId);
             return;
         }
+        
         Order order = orderOpt.get();
-        // OrderStatus enum'ında PAYMENT_FAILED olduğundan emin olun
         if (order.getStatus() == OrderStatus.PENDING) {
             order.setStatus(OrderStatus.PAYMENT_FAILED);
-            // İsteğe bağlı: Stokları burada geri artırabilirsiniz.
-            // for (OrderItem item : order.getOrderItems()) {
-            // productService.increaseStock(item.getProduct().getId(), item.getQuantity());
-            // }
             orderRepository.save(order);
-            logger.info("Order ID: {} status updated to {} due to failed payment.", order.getId(), order.getStatus());
+            logger.info("Order ID: {} status updated to {} due to failed payment.", order.getId(),
+                    order.getStatus());
         } else {
             logger.warn(
-                    "Webhook warning: Received payment_intent.payment_failed for Order ID: {} which is in status: {}.",
+                    "Webhook warning: Received payment_intent.failed for Order ID: {} which is already in status: {}.",
                     order.getId(), order.getStatus());
         }
     }

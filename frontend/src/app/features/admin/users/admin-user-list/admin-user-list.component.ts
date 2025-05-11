@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -9,28 +9,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'; // SlideToggleChange eklendi
+import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// MatDialog ve ilgili component importları kaldırıldı
-// import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// import { AdminChangePasswordDialogComponent, ChangePasswordDialogData } from './admin-change-password-dialog/admin-change-password-dialog.component';
 import { FormsModule } from '@angular/forms';
-
-// import { AdminUserService } from '../../../../core/services/admin-user.service';
-
-// Kullanıcı modeli (Aynı)
-export interface AdminManagedUser {
-  id: string | number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: 'ADMIN' | 'SELLER' | 'MEMBER';
-  isActive: boolean;
-  registrationDate: Date;
-  lastLogin?: Date;
-
-}
+import { AdminUserService, AdminUserView } from '../../services/admin-user.service';
+import { Subject } from 'rxjs';
+import { takeUntil, finalize } from 'rxjs/operators';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-admin-user-list',
@@ -39,12 +25,11 @@ export interface AdminManagedUser {
     CommonModule, RouterLink, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule,
-    MatSlideToggleModule, MatProgressSpinnerModule, MatSnackBarModule
-    // MatDialogModule kaldırıldı
+    MatSlideToggleModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatDialogModule
   ],
   templateUrl: './admin-user-list.component.html',
   styles: [
-    // Stiller aynı kalabilir
     `
     .user-list-container { padding: 20px; }
     .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
@@ -53,14 +38,13 @@ export interface AdminManagedUser {
     .user-table-container { overflow-x: auto; }
     table.mat-mdc-table { width: 100%; min-width: 900px; box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12); border-radius: 4px; margin-bottom: 16px; }
     .mat-column-id { flex: 0 0 80px; }
-    .mat-column-name { flex: 1 1 180px; }
+    .mat-column-username { flex: 1 1 180px; }
     .mat-column-email { flex: 1 1 200px; }
-    .mat-column-role { flex: 0 0 100px; text-align: center;}
-    .mat-column-registrationDate { flex: 0 0 140px; }
-    .mat-column-isActive { flex: 0 0 120px; text-align: center; }
+    .mat-column-roles { flex: 0 0 100px; text-align: center;}
+    .mat-column-enabled { flex: 0 0 120px; text-align: center; }
     .mat-column-actions { flex: 0 0 150px; text-align: center; }
     .actions-cell button:not(:last-child) { margin-right: 5px; }
-    .loading-spinner-container, .no-users-message { text-align: center; padding: 40px; }
+    .loading-spinner-container, .no-users-message, .error-message { text-align: center; padding: 40px; }
     .role-chip { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 500; }
     .role-admin { background-color: #ffebee; color: #b71c1c; }
     .role-seller { background-color: #e3f2fd; color: #0d47a1; }
@@ -68,162 +52,132 @@ export interface AdminManagedUser {
     ::ng-deep .mat-sort-header-container { display: flex !important; justify-content: center; }
     ::ng-deep th[style*="text-align: right"] .mat-sort-header-container { justify-content: flex-end !important; }
     ::ng-deep th[style*="text-align: left"] .mat-sort-header-container { justify-content: flex-start !important; }
-    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; } /* Pasif renk */
-    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; } /* Aktif renk */
+    ::ng-deep .mat-mdc-slide-toggle .mdc-switch .mdc-switch__track { background-color: #ff4081 !important; }
+    ::ng-deep .mat-mdc-slide-toggle.mat-checked .mdc-switch .mdc-switch__track { background-color: #69f0ae !important; }
     tr.inactive-user { opacity: 0.6; background-color: #fafafa; }
     tr.inactive-user:hover { opacity: 0.8; }
+    .error-message p { color: red; margin-bottom: 10px; }
     `
   ]
 })
-export class AdminUserListComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['id', 'name', 'email', 'role', 'registrationDate', 'isActive', 'actions'];
-  dataSourceMat = new MatTableDataSource<AdminManagedUser>();
-  isLoading = false;
+export class AdminUserListComponent implements OnInit, AfterViewInit, OnDestroy {
+  displayedColumns: string[] = ['id', 'username', 'email', 'roles', 'enabled', 'actions'];
+  dataSource = new MatTableDataSource<AdminUserView>();
+  isLoading = true;
+  error: string | null = null;
+
+  private destroy$ = new Subject<void>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private router: Router,
+    private adminUserService: AdminUserService,
     private snackBar: MatSnackBar,
-    // public dialog: MatDialog, // Dialog servisi kaldırıldı
-    // private adminUserService: AdminUserService
+    private router: Router,
+    private dialog: MatDialog
   ) {}
 
-  ngOnInit(): void { this.loadUsers(); }
-  ngAfterViewInit(): void {
-      this.dataSourceMat.paginator = this.paginator;
-      this.dataSourceMat.sort = this.sort;
-      this.dataSourceMat.sortingDataAccessor = (item, property) => {
-          switch (property) {
-            case 'registrationDate': return item.registrationDate.getTime();
-            case 'name': return `${item.firstName} ${item.lastName}`;
-            default: return (item as any)[property];
-          }
-      };
-      this.dataSourceMat.filterPredicate = (data: AdminManagedUser, filter: string): boolean => {
-          const dataStr = `${data.id} ${data.firstName} ${data.lastName} ${data.email} ${data.role}`.toLowerCase();
-          return dataStr.includes(filter);
-      };
+  ngOnInit(): void {
+    this.loadUsers();
   }
 
-  loadUsers(): void {
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadUsers(retryAttempt = false): void {
     this.isLoading = true;
-    setTimeout(() => { // Simülasyon
-      const mockUsers: AdminManagedUser[] = [
-        { id: 101, firstName: 'Ali', lastName: 'Veli', email: 'ali.veli@email.com', role: 'MEMBER', isActive: true, registrationDate: new Date(2025, 3, 15) },
-        { id: 102, firstName: 'Ayşe', lastName: 'Yılmaz', email: 'ayse.seller@shop.com', role: 'SELLER', isActive: true, registrationDate: new Date(2025, 4, 1) },
-        { id: 103, firstName: 'Mehmet', lastName: 'Admin', email: 'admin@site.com', role: 'ADMIN', isActive: true, registrationDate: new Date(2025, 1, 1) },
-        { id: 104, firstName: 'Zeynep', lastName: 'Kaya', email: 'zeynep@mail.net', role: 'MEMBER', isActive: false, registrationDate: new Date(2025, 2, 20) },
-        { id: 105, firstName: 'Hasan', lastName: 'Demir', email: 'hasan.store@domain.org', role: 'SELLER', isActive: false, registrationDate: new Date(2025, 4, 5) },
-      ];
-      this.dataSourceMat.data = mockUsers;
-      this.isLoading = false;
-    }, 1000);
+    this.error = null;
+    this.adminUserService.getUsers()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isLoading = false)
+      )
+      .subscribe({
+        next: users => {
+          this.dataSource.data = users;
+          // console.log('Users loaded:', users);
+        },
+        error: err => {
+          console.error('Error loading users:', err);
+          this.error = `Failed to load users: ${err.message || 'Unknown server error'}`;
+          if (!retryAttempt) { // Avoid infinite loops if retry also fails for same reason
+            this.snackBar.open(this.error, 'Retry', { duration: 5000 })
+              .onAction().subscribe(() => this.loadUsers(true));
+          } else {
+            this.snackBar.open(this.error, 'Close', { duration: 5000 });
+          }
+        }
+      });
   }
 
   applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
-    this.dataSourceMat.filter = filterValue.trim().toLowerCase();
-    if (this.dataSourceMat.paginator) {
-      this.dataSourceMat.paginator.firstPage();
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
     }
   }
 
-  toggleUserStatus(user: AdminManagedUser, event: MatSlideToggleChange): void {
-    const newStatus = event.checked;
-    const actionText = newStatus ? 'aktif etmek' : 'yasaklamak';
-    if (confirm(`${user.firstName} ${user.lastName} adlı kullanıcıyı ${actionText} istediğinizden emin misiniz?`)) {
-        console.log(`TODO: Backend call to set user ${user.id} status to ${newStatus}`);
-        this.updateUserStatusInBackend(user.id, newStatus, actionText, event.source); // source'u gönder
-    } else {
-        event.source.checked = !newStatus; // İptal edilirse toggle'ı geri al
-        console.log('User status change cancelled.');
+  navigateToDetail(userId: number): void {
+    this.router.navigate(['/admin/users/detail', userId]);
+  }
+
+  toggleUserStatus(user: AdminUserView, event: MatSlideToggleChange): void {
+    // Boolean değeri açıkça belirleyelim
+    const isEnabled = event.checked === true;
+    console.log('[AdminUserListComponent] toggleUserStatus called for user ID:', user.id, 
+                'event.checked:', event.checked, 
+                'typeof event.checked:', typeof event.checked, 
+                'isEnabled:', isEnabled,
+                'typeof isEnabled:', typeof isEnabled);
+    
+    this.adminUserService.updateUserStatus(user.id, isEnabled)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          // Optional cleanup if needed
+        })
+      )
+      .subscribe({
+        next: (updatedUser) => {
+          this.snackBar.open(`User ${user.username} status updated to ${isEnabled ? 'enabled' : 'disabled'}.`, 'Close', { duration: 3000 });
+          // Update local data
+          const index = this.dataSource.data.findIndex(u => u.id === updatedUser.id);
+          if (index !== -1) {
+            this.dataSource.data[index] = updatedUser;
+            this.dataSource.data = [...this.dataSource.data]; // Trigger refresh
+          }
+        },
+        error: (err: any) => {
+          console.error('Error updating user status:', err);
+          this.snackBar.open(`Failed to update user status: ${err.message || 'Unknown server error'}`, 'Close', { duration: 5000 });
+          // Revert toggle state in UI
+          event.source.checked = !event.checked;
+          // Refresh data to ensure consistent state
+          this.loadUsers();
+        }
+      });
+  }
+
+  getRolesAsString(roles: Set<string> | undefined): string {
+    if (!roles) {
+      return '';
     }
+    return Array.from(roles).join(', ');
   }
 
-  private updateUserStatusInBackend(userId: string | number, newStatus: boolean, actionText: string, toggleSource: any): void {
-    this.isLoading = true;
-    // this.adminUserService.setUserStatus(userId, newStatus).subscribe({
-    //   next: () => {
-    //      this.snackBar.open(`Kullanıcı başarıyla ${actionText}ldi.`, 'Tamam', { duration: 2000 });
-    //      // DataSource'u güncellemeye gerek yok, toggle zaten state'i yansıtıyor (eğer hata olmazsa)
-    //      this.isLoading = false;
-    //   },
-    //   error: (err) => {
-    //      console.error(`Error ${actionText}ing user:`, err);
-    //      this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu.`, 'Kapat', { duration: 3000 });
-    //      toggleSource.checked = !newStatus; // Hata olursa toggle'ı geri al
-    //      this.isLoading = false;
-    //   }
-    // });
-
-    // Simülasyon
-    setTimeout(() => {
-        this.snackBar.open(`Kullanıcı ${actionText}ldi (Simülasyon).`, 'Tamam', { duration: 2000 });
-        // Simülasyonda hata durumunu test etmek için:
-        // toggleSource.checked = !newStatus; // Hata olmuş gibi toggle'ı geri al
-        // this.snackBar.open(`Kullanıcı durumu güncellenirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
-        this.isLoading = false;
-      }, 750);
-  }
-
-  // Şifre Değiştirme Metodu (Dialog yerine prompt ile)
-  changePasswordDirectly(user: AdminManagedUser, event: Event): void {
-     event.stopPropagation();
-     const newPassword = prompt(`${user.firstName} ${user.lastName} (${user.email}) için YENİ ŞİFREYİ girin (en az 6 karakter):`);
-
-     if (newPassword && newPassword.trim().length >= 6) {
-         const confirmPassword = prompt('Yeni şifreyi TEKRAR girin:');
-         if (newPassword.trim() === confirmPassword?.trim()) {
-             // Şifreler eşleşti, backend'e gönder
-             this.sendNewPasswordToBackend(user.id, newPassword.trim());
-         } else if (confirmPassword !== null) {
-             alert('Girilen şifreler eşleşmiyor!');
-         } else {
-             // Kullanıcı ikinci prompt'u iptal etti
-             console.log('Password change cancelled at confirmation.');
-         }
-     } else if (newPassword !== null) {
-         alert('Geçersiz şifre. En az 6 karakter olmalı.');
-     } else {
-        // Kullanıcı ilk prompt'u iptal etti
-        console.log('Password change cancelled.');
-     }
-  }
-
-  // Backend'e şifre değiştirme isteği gönderen metot (şimdilik simülasyon)
-  private sendNewPasswordToBackend(userId: string | number, newPass: string): void {
-      console.log(`TODO: Backend call to change password for user ${userId} to ${newPass}`);
-      this.isLoading = true; // Genel yükleme göstergesi
-      // this.adminUserService.changeUserPassword(userId, newPass).subscribe({ ... });
-
-      const snackRef = this.snackBar.open(`Kullanıcı ${userId} için şifre değiştirme isteği gönderiliyor...`);
-      setTimeout(() => { // Simülasyon
-           snackRef.dismiss();
-           this.snackBar.open(`Kullanıcı ${userId} şifresi değiştirildi (Simülasyon).`, 'Tamam', { duration: 3000 });
-           this.isLoading = false;
-        }, 1500);
-      // Hata simülasyonu:
-      // setTimeout(() => {
-      //      snackRef.dismiss();
-      //      this.snackBar.open(`Şifre değiştirilirken hata oluştu (Simülasyon).`, 'Kapat', { duration: 3000 });
-      //      this.isLoading = false;
-      //   }, 1500);
-  }
-
-  getRoleClass(role: AdminManagedUser['role']): string { /* ... Önceki gibi ... */
-    switch (role) {
-      case 'ADMIN': return 'role-admin';
-      case 'SELLER': return 'role-seller';
-      case 'MEMBER': return 'role-member';
-      default: return '';
-    }
-  }
-
-  UserDetails(user: AdminManagedUser): void {
-    console.log('Navigating to user details for:', user.id);
-    // Kullanıcı detay sayfasına yönlendirme
-    this.router.navigate(['/admin/users', user.id]);
+  // Placeholder for future functionality
+  changePasswordDirectly(user: AdminUserView, event: MouseEvent): void {
+    event.stopPropagation(); // Prevent row click
+    this.snackBar.open(`Password change for "${user.username}" is not yet implemented.`, 'Close', { duration: 3000 });
+    // In a real implementation, this might open a dialog or navigate to a specific password change view.
   }
 }

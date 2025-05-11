@@ -1,14 +1,14 @@
 package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.ProductDto;
-import com.example.ecommerce.dto.UserFavoriteDto; // DTO adı güncellendi
+import com.example.ecommerce.dto.UserFavoriteDto;
 import com.example.ecommerce.entity.Product;
 import com.example.ecommerce.entity.User;
-import com.example.ecommerce.entity.UserFavorite; // Entity adı güncellendi
+import com.example.ecommerce.entity.UserFavorite;
 import com.example.ecommerce.exception.ResourceNotFoundException;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.UserRepository;
-import com.example.ecommerce.repository.UserFavoriteRepository; // Repository adı güncellendi
+import com.example.ecommerce.repository.UserFavoriteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,17 +19,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class UserFavoriteService { // Sınıf adı güncellendi
+public class UserFavoriteService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserFavoriteService.class);
 
-    private final UserFavoriteRepository userFavoriteRepository; // Tip güncellendi
+    private final UserFavoriteRepository userFavoriteRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
-    // ProductService enjeksiyonuna burada gerek kalmadı, ProductDto dönüşümünü kendimiz yapacağız.
 
     @Autowired
-    public UserFavoriteService(UserFavoriteRepository userFavoriteRepository, // Tip güncellendi
+    public UserFavoriteService(UserFavoriteRepository userFavoriteRepository,
                                UserRepository userRepository,
                                ProductRepository productRepository) {
         this.userFavoriteRepository = userFavoriteRepository;
@@ -38,24 +37,24 @@ public class UserFavoriteService { // Sınıf adı güncellendi
     }
 
     @Transactional
-    public UserFavoriteDto getFavoritesForCurrentUser(String username) { // Metot adı güncellendi
+    public UserFavoriteDto getFavoritesForCurrentUser(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         UserFavorite userFavorite = userFavoriteRepository.findByUserUsername(user.getUsername())
-                .orElseGet(() -> createNewUserFavorite(user)); // Metot adı güncellendi
+                .orElseGet(() -> createNewUserFavorite(user));
         return convertToDto(userFavorite);
     }
 
     @Transactional
-    public UserFavoriteDto addProductToFavorites(Long productId, String username) { // Metot adı güncellendi
+    public UserFavoriteDto addProductToFavorites(Long productId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         UserFavorite userFavorite = userFavoriteRepository.findByUserUsername(user.getUsername())
-                .orElseGet(() -> createNewUserFavorite(user)); // Metot adı güncellendi
+                .orElseGet(() -> createNewUserFavorite(user));
 
         if (userFavorite.getProducts().stream().anyMatch(p -> p.getId().equals(productId))) {
             logger.info("Product ID {} already in favorites for user {}", productId, username);
@@ -63,13 +62,13 @@ public class UserFavoriteService { // Sınıf adı güncellendi
         }
 
         userFavorite.addProduct(product);
-        UserFavorite updatedUserFavorite = userFavoriteRepository.save(userFavorite); // Tip güncellendi
+        UserFavorite updatedUserFavorite = userFavoriteRepository.save(userFavorite);
         logger.info("Product ID {} added to favorites for user {}", productId, username);
         return convertToDto(updatedUserFavorite);
     }
 
     @Transactional
-    public UserFavoriteDto removeProductFromFavorites(Long productId, String username) { // Metot adı güncellendi
+    public UserFavoriteDto removeProductFromFavorites(Long productId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
@@ -83,13 +82,13 @@ public class UserFavoriteService { // Sınıf adı güncellendi
             return convertToDto(userFavorite);
         }
 
-        UserFavorite updatedUserFavorite = userFavoriteRepository.save(userFavorite); // Tip güncellendi
+        UserFavorite updatedUserFavorite = userFavoriteRepository.save(userFavorite);
         logger.info("Product ID {} removed from favorites for user {}", productId, username);
         return convertToDto(updatedUserFavorite);
     }
 
     @Transactional
-    public void clearFavorites(String username) { // Metot adı güncellendi
+    public void clearFavorites(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         UserFavorite userFavorite = userFavoriteRepository.findByUserUsername(user.getUsername()).orElse(null);
@@ -103,8 +102,8 @@ public class UserFavoriteService { // Sınıf adı güncellendi
         }
     }
 
-    private UserFavorite createNewUserFavorite(User user) { // Metot ve dönüş tipi güncellendi
-        UserFavorite newUserFavorite = new UserFavorite(user); // Tip güncellendi
+    private UserFavorite createNewUserFavorite(User user) {
+        UserFavorite newUserFavorite = new UserFavorite(user);
         logger.info("Creating new favorites list for user {}", user.getUsername());
         return userFavoriteRepository.save(newUserFavorite);
     }
@@ -113,8 +112,6 @@ public class UserFavoriteService { // Sınıf adı güncellendi
         if (product == null) return null;
         Long categoryId = (product.getCategory() != null) ? product.getCategory().getId() : null;
         String categoryName = (product.getCategory() != null) ? product.getCategory().getName() : null;
-        // ProductDto constructor'ınızın parametrelerini kontrol edin.
-        // Seller bilgisi varsa ve ProductDto'da bekleniyorsa ekleyin.
         return new ProductDto(
             product.getId(),
             product.getName(),
@@ -123,17 +120,18 @@ public class UserFavoriteService { // Sınıf adı güncellendi
             product.getStockQuantity(),
             categoryId,
             categoryName,
-            product.getImageUrl()
-            // Örneğin, product.getSeller() != null ? product.getSeller().getUsername() : null gibi
+            product.getImageUrl(),
+            null,
+            0
         );
     }
 
-    private UserFavoriteDto convertToDto(UserFavorite userFavorite) { // Parametre ve dönüş tipi güncellendi
+    private UserFavoriteDto convertToDto(UserFavorite userFavorite) {
         List<ProductDto> productDtos = userFavorite.getProducts().stream()
                 .map(this::convertProductToDto)
                 .collect(Collectors.toList());
 
-        return new UserFavoriteDto( // DTO adı güncellendi
+        return new UserFavoriteDto(
                 userFavorite.getId(),
                 userFavorite.getUser().getId(),
                 productDtos,

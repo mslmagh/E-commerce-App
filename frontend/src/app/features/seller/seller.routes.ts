@@ -1,16 +1,14 @@
-// src/app/features/seller/seller.routes.ts
-// "Seller" ön ekli ve doğru yollu component adlarına göre güncellenmiş son hali
-
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
 import { SellerLayoutComponent } from './layout/seller-layout/seller-layout.component';
+import { sellerGuard } from '../../core/guards/seller.guard';
 
 export const SELLER_ROUTES: Routes = [
   {
     path: '',
     component: SellerLayoutComponent,
-    canActivate: [authGuard],
-    // TODO: Rol bazlı guard da eklenmeli (sadece SELLER rolü girebilsin)
+    canActivate: [authGuard, sellerGuard],
+    canActivateChild: [sellerGuard],
     children: [
       {
         path: 'dashboard',

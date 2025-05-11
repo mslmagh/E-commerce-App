@@ -1,6 +1,4 @@
-// src/app/features/seller/products/seller-product-list/seller-product-list.component.ts
-
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common'; // *ngFor, async pipe vb. için
 import { Router, RouterLink } from '@angular/router'; // Yönlendirme ve linkler için
 import { MatTableModule } from '@angular/material/table'; // Tablo için
@@ -12,19 +10,9 @@ import { MatCardModule } from '@angular/material/card'; // Kart görünümü iç
 import { MatDividerModule } from '@angular/material/divider'; // Ayırıcı için (opsiyonel)
 import { MatSnackBar } from '@angular/material/snack-bar'; // Snackbar için
 
-// Satıcının ürünleri için bir interface/model tanımlayalım
-// Bu model, backend'den gelecek ürün verisine göre şekillenecek
-export interface SellerListedProduct {
-  id: string | number;
-  name: string;
-  sku?: string; // Stok kodu (Stock Keeping Unit)
-  price: number;
-  stockQuantity: number;
-  status: 'Yayında' | 'Taslak' | 'Onay Bekliyor' | 'Reddedildi' | 'Stok Tükendi';
-  imageUrl?: string; // Küçük resim için
-  category?: string; // Ürün kategorisi
-  // dateAdded?: Date; // Eklenme tarihi (isteğe bağlı)
-}
+import { Product, ProductService } from '../../../../core/services/product.service'; // Product ve ProductService import edildi
+import { catchError, tap } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
 
 @Component({
   selector: 'app-seller-product-list', // Component'in HTML etiketi
@@ -122,22 +110,19 @@ export interface SellerListedProduct {
       border: 1px solid transparent;
     }
     .status-yayinda { background-color: #C8E6C9; color: #2E7D32; border-color: #A5D6A7; }
-    .status-taslak { background-color: #E1F5FE; color: #0277BD; border-color: #B3E5FC; }
-    .status-onay-bekliyor { background-color: #FFF9C4; color: #FBC02D; border-color: #FFF59D; }
-    .status-reddedildi { background-color: #FFCDD2; color: #C62828; border-color: #EF9A9A; }
     .status-stok-tukendi { background-color: #F5F5F5; color: #757575; border-color: #E0E0E0; }
   `]
 })
 export class SellerProductListComponent implements OnInit {
-  displayedColumns: string[] = ['imageUrl', 'name', 'sku', 'price', 'stockQuantity', 'status', 'actions'];
-  dataSource: SellerListedProduct[] = [];
+  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'derivedStatus', 'actions'];
+  dataSource: Product[] = [];
   isLoading = false;
 
-  constructor(
-    private router: Router,
-    // private productService: ProductService // Gerçek ProductService'iniz (ileride eklenecek)
-    private snackBar: MatSnackBar
-  ) {}
+  private productService = inject(ProductService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadSellerProducts();
@@ -145,61 +130,70 @@ export class SellerProductListComponent implements OnInit {
 
   loadSellerProducts(): void {
     this.isLoading = true;
-    // TODO: Backend entegrasyonu -> Satıcının kendi ürünlerini servisten çek
-    // this.productService.getProductsByCurrentSeller().subscribe({
-    //   next: (data) => {
-    //     this.dataSource = data;
-    //     this.isLoading = false;
-    //   },
-    //   error: (error) => {
-    //     console.error('Satıcı ürünleri yüklenirken hata:', error);
-    //     this.isLoading = false;
-    //     this.snackBar.open('Ürünler yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
-    //   }
-    // });
-
-    // Şimdilik sahte (mock) veri ile simülasyon
-    setTimeout(() => {
-      this.dataSource = [
-        {id: 'S001', name: 'El Yapımı Deri Çanta', sku: 'DERI-CNT-001', price: 450.99, stockQuantity: 15, status: 'Yayında', imageUrl: 'https://via.placeholder.com/50/FFA07A/000000?Text=P1', category: 'Aksesuar'},
-        {id: 'S002', name: 'Organik Pamuk Tişört - Mavi', sku: 'PAMUK-TS-002-M', price: 120.00, stockQuantity: 0, status: 'Stok Tükendi', imageUrl: 'https://via.placeholder.com/50/ADD8E6/000000?Text=P2', category: 'Giyim'},
-        {id: 'S003', name: 'Ahşap Oyuncak Seti', sku: 'AHSAP-OYN-003', price: 280.50, stockQuantity: 5, status: 'Onay Bekliyor', imageUrl: 'https://via.placeholder.com/50/90EE90/000000?Text=P3', category: 'Oyuncak'},
-        {id: 'S004', name: 'Seramik Kupa (Özel Tasarım)', sku: 'SERAMIK-KUPA-004', price: 75.00, stockQuantity: 30, status: 'Taslak', imageUrl: 'https://via.placeholder.com/50/D3D3D3/000000?Text=P4', category: 'Mutfak'},
-      ];
-      this.isLoading = false;
-    }, 1500);
+    this.productService.getMyProducts().pipe(
+      tap(products => {
+        this.dataSource = products;
+        this.isLoading = false;
+        if (!products || products.length === 0) {
+          this.snackBar.open('Henüz hiç ürün eklememişsiniz.', 'Tamam', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        this.isLoading = false;
+        console.error('Error loading seller products:', error);
+        this.snackBar.open(`Ürünler yüklenirken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+          duration: 5000,
+          panelClass: ['error-snackbar'] // Opsiyonel: Hata snackbar'ı için özel stil
+        });
+        return EMPTY; // veya throwError(() => error) eğer hatayı global handler'a bırakmak isterseniz
+      })
+    ).subscribe();
   }
 
   navigateToAddNewProduct(): void {
     this.router.navigate(['/seller/products/new']);
   }
 
-  editProduct(product: SellerListedProduct): void {
+  editProduct(product: Product): void {
     console.log('Düzenlenecek ürün:', product);
     this.router.navigate(['/seller/products/edit', product.id]);
   }
 
-  deleteProduct(product: SellerListedProduct): void {
+  deleteProduct(product: Product): void {
     console.log('Silinecek ürün:', product);
-    // TODO: Onay dialogu (MatDialog) ve backend'e silme isteği
-    if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+    if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz?`)) {
       this.isLoading = true;
-      // Örnek: this.productService.deleteSellerProduct(product.id).subscribe( ... )
-      setTimeout(() => { // Simülasyon
-        this.dataSource = this.dataSource.filter(p => p.id !== product.id);
-        this.snackBar.open(`'${product.name}' silindi (simülasyon).`, 'Tamam', { duration: 2000 });
-        this.isLoading = false;
-      }, 1000);
+      this.productService.deleteProduct(product.id).pipe(
+        tap(() => {
+          this.isLoading = false;
+          this.dataSource = this.dataSource.filter(p => p.id !== product.id);
+          this.snackBar.open(`'${product.name}' başarıyla silindi.`, 'Tamam', { duration: 3000 });
+          // Eğer silme sonrası hiç ürün kalmazsa özel bir mesaj gösterilebilir.
+          if (this.dataSource.length === 0) {
+             this.snackBar.open('Tüm ürünleriniz silindi.', 'Tamam', { duration: 3000 });
+          }
+        }),
+        catchError(error => {
+          this.isLoading = false;
+          console.error('Error deleting product:', error);
+          this.snackBar.open(`Ürün silinirken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          return EMPTY;
+        })
+      ).subscribe();
     }
   }
 
-  // Durum etiketleri için CSS sınıfı döndüren yardımcı fonksiyon
-  getStatusClass(status: SellerListedProduct['status']): string {
+  getDerivedStatus(product: Product): 'Yayında' | 'Stok Tükendi' {
+    return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';
+  }
+
+  getStatusClass(product: Product): string {
+    const status = this.getDerivedStatus(product);
     switch (status) {
       case 'Yayında': return 'status-yayinda';
-      case 'Taslak': return 'status-taslak';
-      case 'Onay Bekliyor': return 'status-onay-bekliyor';
-      case 'Reddedildi': return 'status-reddedildi';
       case 'Stok Tükendi': return 'status-stok-tukendi';
       default: return '';
     }
