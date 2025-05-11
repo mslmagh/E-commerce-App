@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Set; // Import Set for roles/authorities
+import java.util.stream.Stream;
 
 @Service
 public class OrderService {
@@ -186,17 +187,17 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED /*
-                                                                                                      * veya
-                                                                                                      * FULLY_REFUNDED
-                                                                                                      * gibi son
-                                                                                                      * durumlar
-                                                                                                      */) {
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED) {
             throw new IllegalStateException(
                     "Order is already in a final state (CANCELLED/DELIVERED) and cannot be partially modified.");
         }
+
+        // Check if a monetary refund can be attempted
+        boolean canAttemptMonetaryRefund = true;
         if (order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
-            throw new IllegalStateException("Order does not have a Payment Intent ID. Refunds cannot be processed.");
+            logger.warn("Order ID: {} does not have a Payment Intent ID. Monetary refund will not be processed. Items will be cancelled.", orderId);
+            canAttemptMonetaryRefund = false;
+            // Do not throw an exception here, allow cancellation without monetary refund
         }
 
         List<Long> itemIdsToCancel = requestDto.getOrderItemIds();
@@ -246,7 +247,7 @@ public class OrderService {
         }
 
         String stripeRefundId = null;
-        if (totalAmountToRefund.compareTo(BigDecimal.ZERO) > 0) {
+        if (totalAmountToRefund.compareTo(BigDecimal.ZERO) > 0 && canAttemptMonetaryRefund) {
             try {
                 logger.info("Processing partial refund for order ID {}. Amount: {}. Items: {}",
                         orderId, totalAmountToRefund, itemsSuccessfullyProcessedForRefund.stream().map(OrderItem::getId)
@@ -259,12 +260,10 @@ public class OrderService {
             } catch (StripeException e) {
                 logger.error("Stripe partial refund failed for order ID: {}. Amount: {}. Error: {}",
                         orderId, totalAmountToRefund, e.getMessage(), e);
-                // Burada hata yönetimi önemli. İade başarısız olursa ne olacak?
-                // Belki kalemlerin durumu REFUND_FAILED gibi bir şeye ayarlanabilir.
-                // Şimdilik sadece logluyoruz ve sipariş iptal işlemi devam etmiyor (kısmi iade
-                // hatası)
                 throw new RuntimeException("Stripe refund processing failed: " + e.getMessage(), e);
             }
+        } else if (totalAmountToRefund.compareTo(BigDecimal.ZERO) > 0 && !canAttemptMonetaryRefund) {
+            logger.info("Total amount for specified items is greater than zero for order ID {}, but monetary refund cannot be attempted (e.g. no Payment Intent ID). Items will be marked as CANCELLED.", orderId);
         } else {
             logger.info(
                     "Total amount to refund is zero for order ID {}. No Stripe refund will be processed. Items might be cancelled without monetary refund.",
@@ -273,15 +272,16 @@ public class OrderService {
 
         // Başarıyla iade için işlenen kalemlerin durumunu ve stoklarını güncelle
         for (OrderItem item : itemsSuccessfullyProcessedForRefund) {
-            item.setStatus(stripeRefundId != null ? OrderItemStatus.REFUNDED : OrderItemStatus.CANCELLED); // Eğer iade
-                                                                                                           // yapıldıysa
-                                                                                                           // REFUNDED
-            item.setStripeRefundId(stripeRefundId); // Tüm bu kalemler aynı iade işlemine ait
-            item.setRefundedAmount(item.getPriceAtPurchase().multiply(new BigDecimal(item.getQuantity()))); // Her
-                                                                                                            // kalemin
-                                                                                                            // iade
-                                                                                                            // edilen
-                                                                                                            // tutarı
+            // If a Stripe refund was processed and successful, or if it was intended but couldn't be (e.g. no PI) but items are being cancelled.
+            // Status should be REFUNDED if stripeRefundId is present, otherwise CANCELLED.
+            item.setStatus((stripeRefundId != null) ? OrderItemStatus.REFUNDED : OrderItemStatus.CANCELLED);
+            item.setStripeRefundId(stripeRefundId); 
+            // Set refunded amount on item only if a monetary refund happened for this item through Stripe
+            if (stripeRefundId != null) {
+                item.setRefundedAmount(item.getPriceAtPurchase().multiply(new BigDecimal(item.getQuantity())));
+            } else {
+                item.setRefundedAmount(BigDecimal.ZERO); // No monetary refund for this item
+            }
             orderItemRepository.save(item); // Her bir kalemi kaydet
 
             try {
@@ -528,36 +528,49 @@ public class OrderService {
     public List<OrderDto> getOrdersForCurrentUser() {
         User customer = getCurrentAuthenticatedUserEntity();
         List<Order> orders = orderRepository.findByCustomerUsername(customer.getUsername());
-        return orders.stream().map(this::convertToDto).collect(Collectors.toList());
+        return orders.stream().map(this::convertToDto) /* Uses simple convertToDto for customer */ .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public OrderDto getOrderByIdForCurrentUser(Long orderId) {
-        User currentUser = getCurrentAuthenticatedUserEntity();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = getCurrentAuthenticatedUserEntity(authentication);
+        Set<String> currentUserRoles = getUserRoles(authentication);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        boolean isAdmin = getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_ADMIN"); // Get
-                                                                                                                       // roles
+        boolean isAdmin = currentUserRoles.contains("ROLE_ADMIN");
+        boolean isOwner = order.getCustomer().getId().equals(currentUser.getId());
+        // boolean isSeller = currentUserRoles.contains("ROLE_SELLER"); // No longer needed here directly for decision
 
-        // Allow owner OR admin to view
-        if (!order.getCustomer().getId().equals(currentUser.getId()) && !isAdmin) {
-            throw new AccessDeniedException("You are not authorized to view this order.");
+        if (isOwner || isAdmin) {
+            // Owner and Admin see all items and original total
+            return convertToDto(order); // Uses the simpler overload that shows all items
         }
-        return convertToDto(order);
+
+        // If it's a seller, they must have a product in the order
+        if (currentUserRoles.contains("ROLE_SELLER")) {
+            boolean orderContainsSellersProduct = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
+            if (orderContainsSellersProduct) {
+                // Seller sees only their items and their specific total
+                return convertToDto(order, currentUser, currentUserRoles);
+            }
+        }
+        throw new AccessDeniedException("You are not authorized to view this order.");
     }
 
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersForSeller() {
-        User seller = getCurrentAuthenticatedUserEntity();
-        // No need to check role again if controller already does, but can be added for
-        // safety
-        // boolean isSeller =
-        // getUserRoles(SecurityContextHolder.getContext().getAuthentication()).contains("ROLE_SELLER");
-        // if (!isSeller) { throw new AccessDeniedException("Access denied: User is not
-        // a seller."); }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User seller = getCurrentAuthenticatedUserEntity(authentication);
+        Set<String> sellerRoles = getUserRoles(authentication); // Should predominantly be ROLE_SELLER
+
         List<Order> orders = orderRepository.findOrdersContainingProductFromSeller(seller.getId());
-        return orders.stream().map(this::convertToDto).collect(Collectors.toList());
+        return orders.stream()
+                     .map(order -> convertToDto(order, seller, sellerRoles)) // Use new convertToDto for seller list
+                     .collect(Collectors.toList());
     }
 
     @Transactional
@@ -634,7 +647,56 @@ public class OrderService {
                 .collect(Collectors.toSet());
     }
 
+    // Overloaded convertToDto to filter items for seller
+    private OrderDto convertToDto(Order order, User currentUser, Set<String> currentUserRoles) {
+        List<OrderItemDto> itemDtos;
+        if (order.getOrderItems() != null) {
+            Stream<OrderItem> itemStream = order.getOrderItems().stream();
+
+            if (currentUserRoles.contains("ROLE_SELLER") && !currentUserRoles.contains("ROLE_ADMIN")) {
+                // If the current user is a SELLER (and not an ADMIN), filter items by seller ID
+                itemStream = itemStream.filter(item -> item.getProduct().getSeller().getId().equals(currentUser.getId()));
+            }
+            itemDtos = itemStream.map(this::convertItemToDto).collect(Collectors.toList());
+        } else {
+            itemDtos = new ArrayList<>();
+        }
+
+        // Recalculate totalAmount for the seller based on filtered items
+        BigDecimal sellerSpecificTotalAmount = BigDecimal.ZERO;
+        if (currentUserRoles.contains("ROLE_SELLER") && !currentUserRoles.contains("ROLE_ADMIN")) {
+            for (OrderItemDto itemDto : itemDtos) {
+                // priceAtPurchase should be per unit. Multiply by quantity.
+                sellerSpecificTotalAmount = sellerSpecificTotalAmount.add(itemDto.getPriceAtPurchase().multiply(new BigDecimal(itemDto.getQuantity())));
+            }
+        } else {
+            sellerSpecificTotalAmount = order.getTotalAmount(); // Admins and customers see the original total
+        }
+
+        AddressDto shippingAddressDto = (order.getShippingAddress() != null)
+                ? convertAddressToDto(order.getShippingAddress())
+                : null;
+        return new OrderDto(
+                order.getId(),
+                order.getOrderDate(),
+                order.getStatus(),
+                sellerSpecificTotalAmount, // Use seller-specific total amount
+                order.getCustomer().getId(),
+                order.getCustomer().getUsername(),
+                itemDtos, // Filtered or all items
+                shippingAddressDto,
+                order.getStripePaymentIntentId());
+    }
+
+    // Original convertToDto for contexts where filtering is not needed or handled differently (e.g. admin views all)
     private OrderDto convertToDto(Order order) {
+         // For simplicity, let's assume we always want to pass the current user if available
+         // However, this might require fetching the user even if not strictly necessary for this specific overload.
+         // A better approach might be to have the calling methods decide which convertToDto to call.
+         // For now, let's make this one call the new one with nulls, implying no specific filtering by default.
+         // OR, even better, make the methods that need filtering call the new one explicitly.
+
+        // Defaulting to no specific user context for this simpler overload
         List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
                 ? order.getOrderItems().stream().map(this::convertItemToDto).collect(Collectors.toList())
                 : new ArrayList<>();
@@ -642,9 +704,31 @@ public class OrderService {
                 ? convertAddressToDto(order.getShippingAddress())
                 : null;
         return new OrderDto(
-                order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(),
-                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, shippingAddressDto,
+                order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(), // Original total amount
+                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, // All items
+                shippingAddressDto,
                 order.getStripePaymentIntentId());
+    }
+
+    private OrderItemDto convertItemToDto(OrderItem item) {
+        return new OrderItemDto(
+                item.getId(),
+                (item.getProduct() != null) ? item.getProduct().getId() : null,
+                (item.getProduct() != null) ? item.getProduct().getName() : null,
+                item.getQuantity(),
+                item.getPriceAtPurchase(),
+                item.getStatus() != null ? item.getStatus().name() : null,
+                item.getStripeRefundId(),
+                item.getRefundedAmount());
+    }
+
+    private AddressDto convertAddressToDto(Address address) {
+        if (address == null)
+            return null;
+        return new AddressDto(
+                address.getId(), address.getPhoneNumber(), address.getCountry(), address.getCity(),
+                address.getPostalCode(), address.getAddressText(),
+                (address.getUser() != null) ? address.getUser().getId() : null);
     }
 
     @Transactional // Modifies order by saving paymentIntentId
@@ -734,26 +818,5 @@ public class OrderService {
                     "Webhook warning: Received payment_intent.failed for Order ID: {} which is already in status: {}.",
                     order.getId(), order.getStatus());
         }
-    }
-
-    private OrderItemDto convertItemToDto(OrderItem item) {
-        return new OrderItemDto(
-                item.getId(),
-                (item.getProduct() != null) ? item.getProduct().getId() : null,
-                (item.getProduct() != null) ? item.getProduct().getName() : null,
-                item.getQuantity(),
-                item.getPriceAtPurchase(),
-                item.getStatus() != null ? item.getStatus().name() : null,
-                item.getStripeRefundId(),
-                item.getRefundedAmount());
-    }
-
-    private AddressDto convertAddressToDto(Address address) {
-        if (address == null)
-            return null;
-        return new AddressDto(
-                address.getId(), address.getPhoneNumber(), address.getCountry(), address.getCity(),
-                address.getPostalCode(), address.getAddressText(),
-                (address.getUser() != null) ? address.getUser().getId() : null);
     }
 }

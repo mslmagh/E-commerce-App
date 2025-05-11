@@ -1,9 +1,8 @@
-
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Gerekli
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription, of, Observable } from 'rxjs';
-import { delay, switchMap } from 'rxjs/operators';
+import { Subscription, of, Observable, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // Gerekli
 import { MatCardModule } from '@angular/material/card'; // Gerekli
 import { MatListModule } from '@angular/material/list'; // Gerekli
@@ -17,40 +16,60 @@ import { MatChipsModule } from '@angular/material/chips'; // Gerekli (status chi
 import { FormsModule } from '@angular/forms'; // [(ngModel)] için Gerekli
 import { HttpErrorResponse } from '@angular/common/http'; // Hata tipi için
 
+import { OrderService, Order as BackendOrder, OrderItem as BackendOrderItem, Address as BackendAddress } from '../../../../core/services/order.service'; // OrderService ve DTO'lar import edildi
 import { SellerOrder } from '../seller-order-list/seller-order-list.component'; // <<-- ÖNEMLİ İMPORT
 
+// Backend status'lerini SellerOrder['status'] tipine map'lemek için helper (list component'ten)
+const orderStatusMapForSeller: { [key: string]: SellerOrder['status'] } = {
+  PENDING: 'Yeni Sipariş',
+  CONFIRMED: 'Yeni Sipariş',
+  PROCESSING: 'Hazırlanıyor',
+  PREPARING: 'Hazırlanıyor',
+  SHIPPED: 'Kargoya Verildi',
+  DELIVERED: 'Teslim Edildi',
+  CANCELLED: 'İptal Edildi',
+  REFUND_PENDING: 'İade Bekliyor',
+  REFUNDED: 'İade Edildi',
+};
+
+export interface SellerOrderDetailItem {
+  orderItemId: number;
+  productId: string | number;
+  productName: string;
+  imageUrl?: string; // Opsiyonel, backend'den gelirse
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  sku?: string; // Opsiyonel
+  status?: string; // Kalem bazlı durum (opsiyonel)
+}
+
+export interface SellerOrderDetailAddress {
+  recipientName?: string; // Genellikle customerName ile aynı olur
+  addressLine: string;
+  city: string;
+  postalCode?: string;
+  country: string;
+  phone?: string; // Backend'de varsa
+}
 
 export interface SellerOrderDetail {
   orderId: string;
   orderDate: Date;
-  status: SellerOrder['status']; // SellerOrder'daki tipi kullan
+  status: SellerOrder['status'];
   customer: {
-    id: string | number;
-    name: string;
-    email?: string;
+    id: string | number; // customerId
+    name: string; // customerUsername
+    email?: string; // Backend'de varsa
   };
-  shippingAddress: {
-    recipientName: string;
-    addressLine: string;
-    city: string;
-    postalCode?: string;
-    country: string;
-    phone?: string;
-  };
-  billingAddress?: SellerOrderDetail['shippingAddress'];
-  items: {
-    productId: string | number;
-    productName: string;
-    imageUrl?: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-    sku?: string;
-  }[];
-  subTotal: number;
-  shippingCost: number;
+  shippingAddress: SellerOrderDetailAddress;
+  billingAddress?: SellerOrderDetailAddress; // Opsiyonel, backend'de varsa
+  items: SellerOrderDetailItem[];
+  subTotal: number; // Backend'den gelmiyorsa hesaplanabilir
+  shippingCost: number; // Backend'den geliyorsa veya sabit bir değer
   totalAmount: number;
-  paymentMethod?: string;
+  paymentMethod?: string; // Backend'den geliyorsa
+  paymentIntentId?: string; // Stripe vs.
   trackingNumber?: string;
 }
 
@@ -59,15 +78,18 @@ interface OrderStatusInfo {
   viewValue: string;
   nextPossibleStatus?: SellerOrderDetail['status'][];
   cancellable?: boolean;
+  isFinal?: boolean;
 }
 
-export const ORDER_STATUSES: { [key: string]: OrderStatusInfo } = {
-  YENI_SIPARIS: { value: 'Yeni Sipariş', viewValue: 'Yeni Sipariş', nextPossibleStatus: ['Hazırlanıyor', 'İptal Edildi'], cancellable: true },
-  HAZIRLANIYOR: { value: 'Hazırlanıyor', viewValue: 'Hazırlanıyor', nextPossibleStatus: ['Kargoya Verildi', 'İptal Edildi'], cancellable: true },
-  KARGOYA_VERILDI: { value: 'Kargoya Verildi', viewValue: 'Kargoya Verildi', nextPossibleStatus: ['Teslim Edildi'], cancellable: false },
-  TESLIM_EDILDI: { value: 'Teslim Edildi', viewValue: 'Teslim Edildi', nextPossibleStatus: ['İade Edildi'], cancellable: false },
-  IPTAL_EDILDI: { value: 'İptal Edildi', viewValue: 'İptal Edildi', nextPossibleStatus: [], cancellable: false },
-  IADE_EDILDI: { value: 'İade Edildi', viewValue: 'İade Edildi', nextPossibleStatus: [], cancellable: false }
+// ORDER_STATUSES güncellendi, SellerOrder['status'] tipini kullanıyor
+export const ORDER_STATUSES_DETAIL: { [key in SellerOrder['status']]: OrderStatusInfo } = {
+  'Yeni Sipariş': { value: 'Yeni Sipariş', viewValue: 'Yeni Sipariş', nextPossibleStatus: ['Hazırlanıyor', 'İptal Edildi'], cancellable: true, isFinal: false },
+  'Hazırlanıyor': { value: 'Hazırlanıyor', viewValue: 'Hazırlanıyor', nextPossibleStatus: ['Kargoya Verildi', 'İptal Edildi'], cancellable: true, isFinal: false },
+  'Kargoya Verildi': { value: 'Kargoya Verildi', viewValue: 'Kargoya Verildi', nextPossibleStatus: ['Teslim Edildi'], cancellable: false, isFinal: false }, // Kargodaki sipariş satıcı tarafından iptal edilemez varsayımı
+  'Teslim Edildi': { value: 'Teslim Edildi', viewValue: 'Teslim Edildi', nextPossibleStatus: ['İade Edildi'], cancellable: false, isFinal: true }, // Teslim edilen iade edilebilir ama iptal değil
+  'İptal Edildi': { value: 'İptal Edildi', viewValue: 'İptal Edildi', nextPossibleStatus: [], cancellable: false, isFinal: true },
+  'İade Bekliyor': { value: 'İade Bekliyor', viewValue: 'İade Bekliyor', nextPossibleStatus: ['İade Edildi'], cancellable: false, isFinal: false }, // Satıcı iadeyi onaylayabilir
+  'İade Edildi': { value: 'İade Edildi', viewValue: 'İade Edildi', nextPossibleStatus: [], cancellable: false, isFinal: true }
 };
 
 @Component({
@@ -107,19 +129,23 @@ export const ORDER_STATUSES: { [key: string]: OrderStatusInfo } = {
     .status-kargoya-verildi { background-color: #E0F2F1; color: #00695C; }
     .status-teslim-edildi { background-color: #C8E6C9; color: #2E7D32; }
     .status-iptal-edildi { background-color: #FFCDD2; color: #C62828; }
+    .status-iade-bekliyor { background-color: #FFCCBC; color: #D84315; }
     .status-iade-edildi { background-color: #D1C4E9; color: #4527A0; }
   `]
 })
 export class SellerOrderDetailComponent implements OnInit, OnDestroy {
   order: SellerOrderDetail | null = null;
-  isLoading = false;
+  isLoading = true;
   orderId: string | null = null;
   private routeSub!: Subscription;
+  private orderService = inject(OrderService);
+
   possibleNextStatuses: OrderStatusInfo[] = [];
   selectedNextStatus: SellerOrderDetail['status'] | null = null;
   isCancellable = false;
+  currentStatusIsFinal = false;
 
-  readonly orderStatuses = ORDER_STATUSES;
+  readonly orderStatusesMap = ORDER_STATUSES_DETAIL;
 
   constructor(
     private route: ActivatedRoute,
@@ -133,128 +159,184 @@ export class SellerOrderDetailComponent implements OnInit, OnDestroy {
         this.order = null;
         this.isLoading = true;
         this.orderId = params.get('orderId');
-        if (!this.orderId) {
-          this.snackBar.open('Sipariş ID bulunamadı!', 'Kapat', { duration: 3000 });
+        if (!this.orderId || isNaN(Number(this.orderId))) {
+          this.snackBar.open('Geçersiz Sipariş ID!', 'Kapat', { duration: 3000 });
           this.router.navigate(['/seller/orders']);
-          return of(null);
+          this.isLoading = false;
+          return throwError(() => new Error('Invalid Order ID'));
         }
         console.log('Fetching details for order ID:', this.orderId);
-        return this.getMockOrderDetails(this.orderId).pipe(delay(1000)); // Simülasyon
+        return this.orderService.getOrderById(Number(this.orderId)).pipe(
+          map(backendOrder => {
+            console.log('Backend order received:', backendOrder);
+            return this.mapBackendOrderToSellerDetail(backendOrder);
+          }),
+          catchError(err => {
+            console.error('Sipariş detayı alınırken hata:', err);
+            this.snackBar.open(`Sipariş ${this.orderId} yüklenirken bir hata oluştu veya bulunamadı.`, 'Kapat', { duration: 4000 });
+            this.router.navigate(['/seller/orders']);
+            this.isLoading = false;
+            return throwError(() => err);
+          })
+        );
       })
     ).subscribe({
-      next: (data: SellerOrderDetail | null) => { // data tipi eklendi
-        if (data) {
-          this.order = data;
+      next: (mappedOrder: SellerOrderDetail | null) => {
+        console.log('Mapped order:', mappedOrder);
+        if (mappedOrder) {
+          this.order = mappedOrder;
           this.updatePossibleActions();
-        } else if (this.orderId) {
-          this.snackBar.open(`Sipariş ${this.orderId} yüklenirken bir hata oluştu veya bulunamadı.`, 'Kapat', { duration: 4000 });
-          this.router.navigate(['/seller/orders']); // Bulunamadıysa listeye dön
+        } else {
+          this.snackBar.open(`Sipariş ${this.orderId} detayları işlenemedi.`, 'Kapat', { duration: 4000 });
         }
         this.isLoading = false;
-      },
-      error: (err: HttpErrorResponse) => { // err tipi eklendi
-        console.error('Sipariş detayları yüklenirken hata:', err);
-        this.isLoading = false;
-        this.snackBar.open('Sipariş detayları yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
-        this.router.navigate(['/seller/orders']);
       }
     });
   }
 
+  private mapBackendOrderToSellerDetail(bo: BackendOrder): SellerOrderDetail {
+    const frontendStatus = orderStatusMapForSeller[bo.status.toUpperCase()] || bo.status as SellerOrder['status'];
+
+    return {
+      orderId: bo.id.toString(),
+      orderDate: new Date(bo.orderDate),
+      status: frontendStatus,
+      customer: {
+        id: bo.customerId,
+        name: bo.customerUsername,
+      },
+      shippingAddress: this.mapBackendAddressToSellerDetailAddress(bo.shippingAddress, bo.customerUsername),
+      items: bo.items.map(item => this.mapBackendItemToSellerDetailItem(item)),
+      subTotal: bo.items.reduce((sum, item) => sum + (item.priceAtPurchase * item.quantity), 0),
+      shippingCost: 0,
+      totalAmount: bo.totalAmount,
+      paymentIntentId: bo.stripePaymentIntentId,
+    };
+  }
+
+  private mapBackendAddressToSellerDetailAddress(ba: BackendAddress, recipientNameFallback: string): SellerOrderDetailAddress {
+    return {
+      recipientName: recipientNameFallback,
+      addressLine: ba.addressText,
+      city: ba.city,
+      postalCode: ba.postalCode,
+      country: ba.country,
+      phone: ba.phoneNumber
+    };
+  }
+
+  private mapBackendItemToSellerDetailItem(bi: BackendOrderItem): SellerOrderDetailItem {
+    return {
+      orderItemId: bi.id,
+      productId: bi.productId,
+      productName: bi.productName,
+      quantity: bi.quantity,
+      unitPrice: bi.priceAtPurchase,
+      totalPrice: bi.priceAtPurchase * bi.quantity,
+      status: bi.status
+    };
+  }
+
   updatePossibleActions(): void {
     if (!this.order) return;
-    const currentStatusInfo = Object.values(this.orderStatuses).find(s => s.value === this.order?.status);
-    this.possibleNextStatuses = currentStatusInfo?.nextPossibleStatus
-        ?.map(statusValue => Object.values(this.orderStatuses).find(s => s.value === statusValue))
-        .filter((statusInfo): statusInfo is OrderStatusInfo => !!statusInfo) // null/undefined filtrele
+    const currentStatusKey = Object.keys(this.orderStatusesMap).find(
+      key => this.orderStatusesMap[key as SellerOrder['status']].value === this.order?.status
+    ) as SellerOrder['status'] | undefined;
+
+    if (currentStatusKey) {
+      const currentStatusInfo = this.orderStatusesMap[currentStatusKey];
+      this.possibleNextStatuses = currentStatusInfo?.nextPossibleStatus
+        ?.map(statusValue => this.orderStatusesMap[statusValue])
+        .filter((statusInfo): statusInfo is OrderStatusInfo => !!statusInfo)
         ?? [];
-    this.isCancellable = currentStatusInfo?.cancellable ?? false;
+      this.isCancellable = currentStatusInfo?.cancellable ?? false;
+      this.currentStatusIsFinal = currentStatusInfo?.isFinal ?? false;
+    } else {
+      this.possibleNextStatuses = [];
+      this.isCancellable = false;
+      this.currentStatusIsFinal = true;
+    }
     this.selectedNextStatus = null;
-    console.log('Possible next statuses:', this.possibleNextStatuses);
-    console.log('Is cancellable:', this.isCancellable);
   }
 
   updateOrderStatus(): void {
-    if (!this.order || !this.selectedNextStatus || this.isLoading) return;
+    console.log('updateOrderStatus called with selectedNextStatus:', this.selectedNextStatus);
+    if (this.selectedNextStatus === 'İptal Edildi') {
+      console.warn('updateOrderStatus called with "İptal Edildi", skipping.');
+      return;
+    }
+    if (!this.order || !this.selectedNextStatus || this.isLoading || this.currentStatusIsFinal) {
+      return;
+    }
 
     const newStatus = this.selectedNextStatus;
-    console.log(`Updating order ${this.order.orderId} status to: ${newStatus}`);
     this.isLoading = true;
 
-    setTimeout(() => { // Simülasyon
-      if (this.order) {
-         this.order.status = newStatus;
-         this.updatePossibleActions();
-         this.snackBar.open(`Sipariş durumu "${newStatus}" olarak güncellendi (simülasyon).`, 'Tamam', { duration: 3000 });
-      }
+    this.orderService.updateOrderStatusForSeller(this.order.orderId, newStatus).pipe(
+      catchError(err => {
+        this.isLoading = false;
+        this.snackBar.open(`Sipariş durumu güncellenirken hata: ${err.message || 'Bilinmeyen bir hata oluştu.'}`, 'Kapat', { duration: 5000, panelClass: ['error-snackbar'] });
+        return throwError(() => err);
+      })
+    ).subscribe((updatedOrder: BackendOrder) => {
       this.isLoading = false;
-    }, 1000);
+      // Backend'den dönen güncel sipariş ile frontend'i senkronize et
+      this.order = this.mapBackendOrderToSellerDetail(updatedOrder);
+      this.updatePossibleActions();
+      this.snackBar.open(`Sipariş durumu "${this.order.status}" olarak güncellendi.`, 'Tamam', { duration: 3000, panelClass: ['success-snackbar'] });
+    });
   }
 
   cancelOrder(): void {
-    if (!this.order || !this.isCancellable || this.isLoading) return;
+    if (!this.order || !this.isCancellable || this.isLoading || this.currentStatusIsFinal) {
+      return;
+    }
 
-    if (confirm(`ORD-${this.order.orderId} numaralı siparişi iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve müşteriye otomatik iade yapılır.`)) {
-      console.log(`Cancelling order ${this.order.orderId}`);
+    const confirmCancel = confirm(`Sipariş No: ${this.order.orderId}\nBu siparişteki size ait ürünleri iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`);
+    if (confirmCancel) {
       this.isLoading = true;
 
-      setTimeout(() => { // Simülasyon
-        if (this.order) {
-          this.order.status = 'İptal Edildi';
-          this.updatePossibleActions();
-          this.snackBar.open('Sipariş başarıyla iptal edildi (simülasyon). Müşteriye iade işlemi başlatıldı.', 'Tamam', { duration: 5000 });
-        }
+      // Satıcıya ait olan veya tüm kalemlerin ID'lerini al
+      // Backend yetkilendirmesi zaten satıcının sadece kendi ürünlerini iptal edebilmesini sağlayacaktır.
+      const itemIdsToCancel = this.order.items.map(item => item.orderItemId);
+
+      if (itemIdsToCancel.length === 0) {
+        this.snackBar.open('İptal edilecek ürün bulunamadı.', 'Kapat', { duration: 3000 });
         this.isLoading = false;
-      }, 1500);
+        return;
+      }
+
+      this.orderService.cancelOrderItemsForSeller(this.order.orderId, itemIdsToCancel, 'Satıcı tarafından iptal edildi').pipe(
+        catchError(err => {
+          this.isLoading = false;
+          this.snackBar.open(`Sipariş iptal edilirken hata: ${err.message || 'Bilinmeyen bir hata oluştu.'}`, 'Kapat', { duration: 5000, panelClass: ['error-snackbar'] });
+          return throwError(() => err);
+        })
+      ).subscribe((updatedOrder: BackendOrder) => {
+        this.isLoading = false;
+        this.order = this.mapBackendOrderToSellerDetail(updatedOrder);
+        this.updatePossibleActions(); // Olası aksiyonları ve durumu güncelle
+        this.snackBar.open('Siparişteki ürünleriniz başarıyla iptal edildi.', 'Tamam', { duration: 5000, panelClass: ['success-snackbar'] });
+      });
     }
   }
 
-  getMockOrderDetails(id: string): Observable<SellerOrderDetail | null> {
-    const mockOrderList: SellerOrder[] = [ // SellerOrder tipi artık tanınıyor olmalı
-      {orderId: 'ORD-001', orderDate: new Date(2025, 4, 6, 10, 30), customerName: 'Ali Veli Uzunİsimlioğlu', itemCount: 2, totalAmount: 570.99, status: 'Yeni Sipariş'},
-      {orderId: 'ORD-002', orderDate: new Date(2025, 4, 5, 15, 0), customerName: 'Ayşe Yılmaz', itemCount: 1, totalAmount: 120.00, status: 'Hazırlanıyor'},
-      {orderId: 'ORD-003', orderDate: new Date(2025, 4, 5, 9, 15), customerName: 'Mehmet Öztürk', itemCount: 3, totalAmount: 1250.50, status: 'Kargoya Verildi'},
-      {orderId: 'ORD-004', orderDate: new Date(2025, 4, 3, 11, 45), customerName: 'Fatma Kaya', itemCount: 1, totalAmount: 75.00, status: 'Teslim Edildi'},
-      {orderId: 'ORD-005', orderDate: new Date(2025, 4, 2, 18, 20), customerName: 'Hasan Demir', itemCount: 5, totalAmount: 850.00, status: 'İptal Edildi'},
-      {orderId: 'ORD-006', orderDate: new Date(2025, 4, 7, 8, 0), customerName: 'Zeynep Can', itemCount: 1, totalAmount: 300.00, status: 'Yeni Sipariş'},
-      {orderId: 'ORD-007', orderDate: new Date(2025, 4, 7, 11, 10), customerName: 'Mustafa Şahin', itemCount: 4, totalAmount: 980.00, status: 'Hazırlanıyor'},
-    ];
-    const foundInList = mockOrderList.find(o => o.orderId === id);
-    if (!foundInList) return of(null);
-
-    const detail: SellerOrderDetail = {
-      ...foundInList,
-      customer: { id: 'CUST-123', name: foundInList.customerName, email: 'musteri@ornek.com' },
-      shippingAddress: { recipientName: foundInList.customerName, addressLine: 'Deneme Mah. Test Sok. No:1 D:5', city: 'İstanbul', country: 'Türkiye', phone: '5551112233', postalCode: '34000' },
-      items: [
-        {productId: 'S001', productName: 'El Yapımı Deri Çanta', quantity: 1, unitPrice: 450.99, totalPrice: 450.99, imageUrl: 'https://via.placeholder.com/60/FFA07A/000000?Text=P1', sku: 'DERI-CNT-001'},
-        ...(id === 'ORD-001' ? [{productId: 'S004', productName: 'Seramik Kupa', quantity: 1, unitPrice: 75.00, totalPrice: 75.00, imageUrl: 'https://via.placeholder.com/60/D3D3D3/000000?Text=P4', sku: 'SERAMIK-KUPA-004'}] : []),
-         ...(id === 'ORD-003' ? [
-            {productId: 'S002', productName: 'Organik Pamuk Tişört - Mavi', quantity: 2, unitPrice: 120.00, totalPrice: 240.00, imageUrl: 'https://via.placeholder.com/60/ADD8E6/000000?Text=P2', sku: 'PAMUK-TS-002-M'},
-            {productId: 'S003', productName: 'Ahşap Oyuncak Seti', quantity: 1, unitPrice: 280.50, totalPrice: 280.50, imageUrl: 'https://via.placeholder.com/60/90EE90/000000?Text=P3', sku: 'AHSAP-OYN-003'}
-         ] : []),
-      ],
-      subTotal: foundInList.totalAmount - (id === 'ORD-004' ? 0 : 20), // Kargo ücreti varsayımı
-      shippingCost: (id === 'ORD-004' ? 0 : 20.00), // ORD-004 kargo bedava olsun
-      paymentMethod: 'Kredi Kartı **** 1234'
-    };
-    if (detail.status === 'Kargoya Verildi' || detail.status === 'Teslim Edildi') { detail.trackingNumber = 'ABC123XYZ789'; }
-    return of(detail);
-  }
-
-   getStatusClass(status: SellerOrder['status']): string {
+  getStatusClass(status: SellerOrder['status']): string {
     switch (status) {
       case 'Yeni Sipariş': return 'status-yeni-siparis';
       case 'Hazırlanıyor': return 'status-hazirlaniyor';
       case 'Kargoya Verildi': return 'status-kargoya-verildi';
       case 'Teslim Edildi': return 'status-teslim-edildi';
       case 'İptal Edildi': return 'status-iptal-edildi';
+      case 'İade Bekliyor': return 'status-iade-bekliyor';
       case 'İade Edildi': return 'status-iade-edildi';
       default: return '';
     }
   }
 
   ngOnDestroy(): void {
-    if (this.routeSub) this.routeSub.unsubscribe();
+    if (this.routeSub) {
+      this.routeSub.unsubscribe();
+    }
   }
 }

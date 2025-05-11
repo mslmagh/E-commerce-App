@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router'; // RouterLink kaldırıldı, Router inject edilecek
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -19,6 +19,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angul
 import { Observable, Subscription, of, throwError, merge } from 'rxjs';
 import { catchError, map, startWith, switchMap, debounceTime, distinctUntilChanged, tap } from 'rxjs/operators'; // tap import edildi
 import { environment } from '../../../../../environment';
+import { DatePipe } from '@angular/common'; // DatePipe'ı inject edebilmek için import et
 
 type OrderStatusType = 'PENDING' | 'PROCESSING' | 'PAYMENT_FAILED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
@@ -70,8 +71,9 @@ export interface OrderPage {
     ReactiveFormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatTooltipModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule, DatePipe
+    MatSnackBarModule, MatTooltipModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule
   ],
+  providers: [DatePipe],
   templateUrl: './admin-order-list.component.html',
   styles: [`
     .order-list-container { padding: 20px; }
@@ -107,7 +109,7 @@ export interface OrderPage {
 })
 export class AdminOrderListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = ['id', 'orderDate', 'customerUsername', 'itemCount', 'totalAmount', 'status', 'actions'];
-  dataSourceMat = new MatTableDataSource<AdminOrder>([]); // Değişiklik: dataSource -> dataSourceMat
+  dataSourceMat = new MatTableDataSource<AdminOrder>([]);
   isLoading = true;
   resultsLength = 0;
 
@@ -120,8 +122,32 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
   private fb = inject(FormBuilder);
   private datePipe = inject(DatePipe);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private _paginator!: MatPaginator;
+  @ViewChild(MatPaginator) set paginator(paginator: MatPaginator) {
+    if (paginator) {
+      this._paginator = paginator;
+      this.subscribeToPaginatorChanges();
+    }
+  }
+  get paginator(): MatPaginator {
+    return this._paginator;
+  }
+
+  private _sort!: MatSort;
+  @ViewChild(MatSort) set sort(sort: MatSort) {
+    if (sort) {
+      this._sort = sort;
+      this.subscribeToSortChanges();
+    }
+  }
+  get sort(): MatSort {
+    return this._sort;
+  }
+
+  private sortSubscription?: Subscription;
+  private paginatorSubscription?: Subscription;
+  private combinedEventsSubscription?: Subscription;
+  private viewInitialized = false;
 
   constructor() {
     this.filterForm = this.fb.group({
@@ -137,7 +163,7 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
       debounceTime(500),
       distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
       tap(() => {
-        if(this.paginator) this.paginator.pageIndex = 0;
+        if (this._paginator) this._paginator.pageIndex = 0;
       })
     ).subscribe(() => {
       this.loadOrders();
@@ -145,27 +171,54 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.sort.sortChange.subscribe(() => {
-      if(this.paginator) this.paginator.pageIndex = 0;
-    });
-
-    merge(this.sort.sortChange, this.paginator.page)
-      .pipe(
-        tap(() => this.loadOrders())
-      )
-      .subscribe();
-
+    this.viewInitialized = true;
+    console.log("AdminOrderListComponent: ngAfterViewInit called. Triggering initial loadOrders().");
     this.loadOrders();
   }
 
+  subscribeToSortChanges() {
+    if (this._sort && !this.sortSubscription) {
+      this.sortSubscription = this._sort.sortChange.subscribe(() => {
+        if (this._paginator) this._paginator.pageIndex = 0;
+      });
+      this.subscribeToCombinedEvents();
+    }
+  }
+
+  subscribeToPaginatorChanges() {
+    if (this._paginator && !this.paginatorSubscription) {
+      this.subscribeToCombinedEvents();
+    }
+  }
+
+  subscribeToCombinedEvents() {
+    if (this.combinedEventsSubscription) {
+      this.combinedEventsSubscription.unsubscribe();
+    }
+    if (this._sort && this._paginator) {
+      this.combinedEventsSubscription = merge(this._sort.sortChange, this._paginator.page)
+        .pipe(
+          tap(() => {
+            console.log("AdminOrderListComponent: Merged sort/page event. Calling loadOrders().");
+            this.loadOrders();
+          })
+        )
+        .subscribe();
+    } else {
+      console.warn("AdminOrderListComponent: Sort or Paginator not ready for merged event subscription.");
+    }
+  }
+
   loadOrders(): void {
+    console.log("AdminOrderListComponent: loadOrders() called.");
+
     this.isLoading = true;
     const formValue = this.filterForm.value;
 
     let params = new HttpParams()
-      .set('page', this.paginator ? this.paginator.pageIndex.toString() : '0')
-      .set('size', this.paginator ? this.paginator.pageSize.toString() : '10')
-      .set('sort', this.sort && this.sort.active && this.sort.direction ? `${this.sort.active},${this.sort.direction}` : 'orderDate,desc');
+      .set('page', this._paginator ? this._paginator.pageIndex.toString() : '0')
+      .set('size', this._paginator ? this._paginator.pageSize.toString() : '10')
+      .set('sort', this._sort && this._sort.active && this._sort.direction ? `${this.sort.active},${this.sort.direction}` : 'orderDate,desc');
 
     if (formValue.customerUsername) {
       params = params.set('customerUsername', formValue.customerUsername);
@@ -181,29 +234,36 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
     }
 
     const apiEndpoint = `${environment.apiUrl}/admin/orders`;
+    console.log(`AdminOrderListComponent: Attempting to fetch orders from ${apiEndpoint} with params:`, params.toString());
 
     this.httpClient.get<OrderPage>(apiEndpoint, { params }).pipe(
       map(page => {
+        console.log("AdminOrderListComponent: Orders fetched successfully.", page);
         this.isLoading = false;
         this.resultsLength = page.totalElements;
         return page.content.map(order => ({
           ...order,
-          itemCount: (order as any).items ? (order as any).items.length : (order.itemCount || 0) // Güvenli erişim
+          itemCount: (order as any).items ? (order as any).items.length : (order.itemCount || 0)
         }));
       }),
       catchError((error: HttpErrorResponse) => {
+        console.error("AdminOrderListComponent: Error loading admin orders:", error);
         this.isLoading = false;
         this.snackBar.open('Siparişler yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
-        console.error("Error loading admin orders:", error);
         return of([]);
       })
     ).subscribe(data => {
+      console.log("AdminOrderListComponent: Data subscribed and assigned to dataSourceMat.", data);
       this.dataSourceMat.data = data;
+      if (data.length === 0 && this.resultsLength > 0) {
+        if(this._paginator) this._paginator.pageIndex = 0;
+        console.warn("AdminOrderListComponent: Data is empty but resultsLength is positive. Possible non-existent page.");
+      }
     });
   }
 
-  applyApiFilter(event?: Event): void { // Event opsiyonel yapıldı, formdan direkt çağrılabilir
-    if (event) { // Eğer event ile çağrıldıysa (input'tan)
+  applyApiFilter(event?: Event): void {
+    if (event) {
         const filterValue = (event.target as HTMLInputElement).value;
     }
     if(this.paginator) this.paginator.pageIndex = 0;
@@ -218,15 +278,21 @@ export class AdminOrderListComponent implements OnInit, AfterViewInit {
       startDate: null,
       endDate: null
     });
-    this.applyApiFilter(); // Filtreleri temizledikten sonra listeyi yenile
+    this.applyApiFilter();
   }
 
   viewOrderDetails(order: AdminOrder): void {
     this.router.navigate(['/admin/orders', order.id]);
   }
 
-  getStatusClass(status: OrderStatusType | undefined): string { // undefined olma durumu eklendi
+  getStatusClass(status: OrderStatusType | undefined): string {
     if (!status) return '';
     return `status-chip status-${status}`;
+  }
+
+  ngOnDestroy() {
+    this.sortSubscription?.unsubscribe();
+    this.paginatorSubscription?.unsubscribe();
+    this.combinedEventsSubscription?.unsubscribe();
   }
 }

@@ -2,6 +2,7 @@ package com.example.ecommerce.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal; // Import BigDecimal
+import java.time.LocalDateTime; // LocalDateTime import edildi
 
 @Schema(description = "Data Transfer Object representing a product for API responses")
 public class ProductDto {
@@ -36,7 +37,24 @@ public class ProductDto {
     @Schema(description = "Total number of reviews for the product", example = "120")
     private Integer reviewCount;
 
-    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl, BigDecimal averageRating, Integer reviewCount) {
+    // Soft delete alanları eklendi
+    @Schema(description = "Indicates if the product is active and available for sale", example = "true")
+    private boolean isActive;
+
+    @Schema(description = "Reason why the product was deactivated", example = "Discontinued by manufacturer", nullable = true)
+    private String deactivationReason;
+
+    @Schema(description = "Timestamp when the product was deactivated", nullable = true)
+    private LocalDateTime deactivatedAt;
+
+    @Schema(description = "ID of the seller of the product", example = "2")
+    private Long sellerId;
+
+    @Schema(description = "Username of the seller of the product", example = "seller_username")
+    private String sellerName;
+
+    public ProductDto(Long id, String name, String description, BigDecimal price, Integer stockQuantity, Long categoryId, String categoryName, String imageUrl, BigDecimal averageRating, Integer reviewCount, boolean isActive, String deactivationReason, LocalDateTime deactivatedAt,
+                        Long sellerId, String sellerName) {
         this.imageUrl = imageUrl;
         this.id = id;
         this.name = name;
@@ -47,6 +65,11 @@ public class ProductDto {
         this.categoryName = categoryName;
         this.averageRating = averageRating;
         this.reviewCount = reviewCount;
+        this.isActive = isActive;
+        this.deactivationReason = deactivationReason;
+        this.deactivatedAt = deactivatedAt;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName;
     }
     public ProductDto() {} // Default constructor
 
@@ -71,4 +94,46 @@ public class ProductDto {
     public void setAverageRating(BigDecimal averageRating) { this.averageRating = averageRating; }
     public Integer getReviewCount() { return reviewCount; }
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+
+    // Yeni alanlar için Getter ve Setterlar
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public String getDeactivationReason() {
+        return deactivationReason;
+    }
+
+    public void setDeactivationReason(String deactivationReason) {
+        this.deactivationReason = deactivationReason;
+    }
+
+    public LocalDateTime getDeactivatedAt() {
+        return deactivatedAt;
+    }
+
+    public void setDeactivatedAt(LocalDateTime deactivatedAt) {
+        this.deactivatedAt = deactivatedAt;
+    }
+
+    // sellerId ve sellerName için Getter ve Setterlar
+    public Long getSellerId() {
+        return sellerId;
+    }
+
+    public void setSellerId(Long sellerId) {
+        this.sellerId = sellerId;
+    }
+
+    public String getSellerName() {
+        return sellerName;
+    }
+
+    public void setSellerName(String sellerName) {
+        this.sellerName = sellerName;
+    }
 }

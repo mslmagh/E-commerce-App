@@ -1,0 +1,35 @@
+<div class="product-list-container">
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+    <p>Loading products...</p>
+  </div>
+
+  <ng-container *ngIf="products$ | async as products; else noProductsOrError">
+    <div class="seller-header" *ngIf="sellerUsername">
+      <h2>Products from {{ sellerUsername }}</h2>
+      <a routerLink="/products">View all products</a>
+    </div>
+    <div *ngIf="products.length > 0; else noProductsMessage" class="product-grid">
+      <!-- Basic product card structure -->
+      <a *ngFor="let product of products" [routerLink]="['/products', product.id]" class="product-card">
+        <img [src]="product.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'" [alt]="product.name">
+        <div class="product-card-content">
+          <div class="product-card-name" [title]="product.name">{{ product.name }}</div>
+          <div class="product-card-category">{{ product.categoryName || 'N/A' }}</div>
+          <div class="product-card-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</div>
+        </div>
+      </a>
+    </div>
+    <ng-template #noProductsMessage>
+      <div class="empty-message" *ngIf="!isLoading">
+        <p>No products found for this seller.</p>
+      </div>
+    </ng-template>
+  </ng-container>
+
+  <ng-template #noProductsOrError>
+    <div class="empty-message" *ngIf="!isLoading && sellerUsername">
+      <p>Could not load products for {{ sellerUsername }}.</p>
+    </div>
+  </ng-template>
+</div> 

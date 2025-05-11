@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, Subscription, of } from 'rxjs';
 import { delay, switchMap } from 'rxjs/operators';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { environment } from '../../../../../environment';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,13 +17,32 @@ import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/sl
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatSelectModule } from '@angular/material/select';
+import { FormsModule } from '@angular/forms';
 
-import { SellerOrder } from '../../../seller/orders/seller-order-list/seller-order-list.component';
+import { OrderService } from '../../../../core/services/order.service';
+import { Order } from '../../../../core/services/order.service';
+
+// Aligning with OrderStatusType from AdminOrderListComponent
+type OrderStatus = 'PENDING' | 'PROCESSING' | 'PAYMENT_FAILED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+// REFUNDED durumu admin listesinde yoktu, gerekirse eklenebilir veya backend'den gelenlere göre şekillenir.
+
+export interface AdminOrderDetailItem {
+  orderItemId: number;
+  productId: string | number;
+  productName: string;
+  imageUrl?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  sku?: string;
+  sellerName?: string;
+}
 
 export interface AdminOrderDetail {
   orderId: string;
   orderDate: Date;
-  status: SellerOrder['status']; // SellerOrder'daki durumu kullanıyoruz (literal string union)
+  status: OrderStatus;
   customer: {
     id: string | number;
     name: string;
@@ -36,16 +57,7 @@ export interface AdminOrderDetail {
     phone?: string;
   };
   billingAddress?: AdminOrderDetail['shippingAddress'];
-  items: {
-    productId: string | number;
-    productName: string;
-    imageUrl?: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-    sku?: string;
-    sellerName?: string;
-  }[];
+  items: AdminOrderDetailItem[];
   subTotal: number;
   shippingCost: number;
   totalAmount: number;
@@ -58,10 +70,9 @@ type AdminOrderSummary = {
   orderDate: Date;
   customerName: string;
   totalAmount: number;
-  status: AdminOrderDetail['status']; // <-- Burada AdminOrderDetail'in status tipini kullanıyoruz
+  status: AdminOrderDetail['status'];
   itemCount: number;
 };
-
 
 @Component({
   selector: 'app-admin-order-detail',
@@ -69,7 +80,9 @@ type AdminOrderSummary = {
   imports: [
     CommonModule, RouterLink, MatSnackBarModule, MatCardModule, MatButtonModule,
     MatIconModule, MatProgressSpinnerModule, MatDividerModule, MatTooltipModule,
-    MatSlideToggleModule, MatFormFieldModule, MatInputModule, MatListModule
+    MatSlideToggleModule, MatFormFieldModule, MatInputModule, MatListModule,
+    MatSelectModule,
+    FormsModule
   ],
   templateUrl: './admin-order-detail.component.html',
   styles: [`
@@ -94,41 +107,44 @@ type AdminOrderSummary = {
     .status-label { font-weight: bold; margin-right: 8px; }
     address p { margin: 0 0 5px 0; line-height: 1.4; }
      .status-chip { padding: 5px 12px; border-radius: 16px; font-size: 0.8em; font-weight: 500; }
-     .status-yeni-siparis { background-color: #E3F2FD; color: #0D47A1; }
-     .status-hazirlaniyor { background-color: #FFF9C4; color: #F9A825; }
-     .status-kargoya-verildi { background-color: #E0F2F1; color: #00695C; }
-     .status-teslim-edildi { background-color: #C8E6C9; color: #2E7D32; }
-     .status-iptal-edildi { background-color: #FFCDD2; color: #C62828; }
-     .status-iade-edildi { background-color: #D1C4E9; color: #4527A0; }
+     .status-PENDING { background-color: #FFF9C4; color: #F57F17; border: 1px solid #FFF59D;}
+     .status-PROCESSING { background-color: #E1F5FE; color: #0277BD; border: 1px solid #B3E5FC;}
+     .status-PAYMENT_FAILED { background-color: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2;}
+     .status-PREPARING { background-color: #FFE0B2; color: #E65100; border: 1px solid #FFCC80;}
+     .status-SHIPPED { background-color: #E0F2F1; color: #00695C; border: 1px solid #B2DFDB;}
+     .status-DELIVERED { background-color: #C8E6C9; color: #2E7D32; border: 1px solid #A5D6A7;}
+     .status-CANCELLED { background-color: #F5F5F5; color: #757575; border: 1px solid #EEEEEE;}
   `]
 })
 export class AdminOrderDetailComponent implements OnInit, OnDestroy {
   order: AdminOrderDetail | null = null;
-  isLoading = false;
+  isLoading = true;
+  isCancellingOrder = false;
   orderId: string | null = null;
   private routeSub!: Subscription;
-  private orderSub!: Subscription;
-
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar,
+    private httpClient: HttpClient,
+    private orderService: OrderService
   ) { }
 
   ngOnInit(): void {
+    this.isLoading = true;
     this.routeSub = this.route.paramMap.pipe(
       switchMap(params => {
         this.order = null;
-        this.isLoading = true;
         const id = params.get('orderId');
         if (id) {
           this.orderId = id;
           console.log('Admin Order Detail: Loading details for order ID:', this.orderId);
-          return this.getMockOrderDetail(this.orderId).pipe(delay(1000));
+          return this.httpClient.get<AdminOrderDetail>(`${environment.apiUrl}/admin/orders/${this.orderId}`);
         } else {
           this.snackBar.open('Sipariş ID bulunamadı!', 'Kapat', { duration: 3000 });
           this.router.navigate(['/admin/orders']);
+          this.isLoading = false;
           return of(null);
         }
       })
@@ -136,107 +152,102 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
       next: (data: AdminOrderDetail | null) => {
         if (data) {
           this.order = data;
-          console.log('Admin Order Detail: Order data loaded:', this.order);
+          console.log('Admin Order Detail: Order data loaded from API:', this.order);
         } else if (this.orderId) {
            const errorMsg = `Sipariş (${this.orderId}) yüklenirken bir hata oluştu veya bulunamadı.`;
            this.snackBar.open(errorMsg, 'Kapat', { duration: 4000 });
            console.error(errorMsg);
-           this.router.navigate(['/admin/orders']);
         }
         this.isLoading = false;
       },
       error: (err) => {
-        console.error('Admin Order Detail: Error loading order details:', err);
+        console.error('Admin Order Detail: Error loading order details from API:', err);
         this.isLoading = false;
-        this.snackBar.open('Sipariş detayları yüklenirken bir hata oluştu.', 'Kapat', { duration: 3000 });
+        this.snackBar.open(`Sipariş detayları yüklenirken bir hata oluştu: ${err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
         this.router.navigate(['/admin/orders']);
       }
     });
   }
 
-   getMockOrderDetail(id: string): Observable<AdminOrderDetail | null> {
-      console.log(`Admin Order Detail: Fetching mock detail for ID: ${id}`);
+  onCancelOrder(): void {
+    console.log('AdminOrderDetailComponent: onCancelOrder called with orderId:', this.orderId);
+    if (!this.order || !this.order.items || this.order.items.length === 0 || this.order.status === 'CANCELLED') {
+      this.snackBar.open('Sipariş zaten iptal edilmiş, iptal edilemiyor veya ürün içermiyor.', 'Kapat', { duration: 3000 });
+      console.log('AdminOrderDetailComponent: Order already cancelled, not cancellable, or has no items.');
+      return;
+    }
+    if (!this.orderId) {
+        this.snackBar.open('Sipariş ID bulunamadı, sipariş iptal edilemiyor.', 'Kapat', { duration: 3000 });
+        console.error('AdminOrderDetailComponent: Order ID is missing, cannot cancel order.');
+        return;
+    }
 
-       const mockOrdersSummary: AdminOrderSummary[] = [
-            { orderId: 'ORD-2025-001', orderDate: new Date(2025, 4, 7, 10, 30), customerName: 'Ali Veli', totalAmount: 550.75, status: 'Yeni Sipariş', itemCount: 2 },
-            { orderId: 'ORD-2025-002', orderDate: new Date(2025, 4, 6, 15, 0), customerName: 'Ayşe Yılmaz', totalAmount: 120.00, status: 'Hazırlanıyor', itemCount: 1 },
-            { orderId: 'ORD-2025-003', orderDate: new Date(2025, 4, 6, 9, 45), customerName: 'Mehmet Öztürk', totalAmount: 899.50, status: 'Kargoya Verildi', itemCount: 3 },
-            { orderId: 'ORD-2025-004', orderDate: new Date(2025, 4, 5, 11, 20), customerName: 'Fatma Kaya', totalAmount: 250.00, status: 'Teslim Edildi', itemCount: 1 },
-            { orderId: 'ORD-2025-005', orderDate: new Date(2025, 4, 4, 18, 0), customerName: 'Hasan Can', totalAmount: 400.00, status: 'İptal Edildi', itemCount: 2 },
-             { orderId: 'ORD-2025-006', orderDate: new Date(2025, 4, 7, 14, 5), customerName: 'Zeynep Demir', totalAmount: 150.00, status: 'Yeni Sipariş', itemCount: 1 },
-             { orderId: 'ORD-2025-007', orderDate: new Date(2025, 4, 3, 10, 0), customerName: 'Mustafa Çelik', totalAmount: 320.00, status: 'Hazırlanıyor', itemCount: 2 },
-             { orderId: 'ORD-2025-008', orderDate: new Date(2025, 4, 2, 16, 30), customerName: 'Deniz Aras', totalAmount: 700.00, status: 'Teslim Edildi', itemCount: 4 },
-             { orderId: 'ORD-2025-009', orderDate: new Date(2025, 4, 1, 12, 10), customerName: 'Can Mert', totalAmount: 180.00, status: 'Kargoya Verildi', itemCount: 1 },
-             { orderId: 'ORD-2025-020', orderDate: new Date(2025, 3, 28, 9, 0), customerName: 'Ebru Şahin', totalAmount: 600.00, status: 'Teslim Edildi', itemCount: 3 },
-             { orderId: 'ORD-2025-021', orderDate: new Date(2025, 4, 8, 11, 0), customerName: 'İade Müşterisi', totalAmount: 100.00, status: 'İade Edildi', itemCount: 1 },
-       ];
-
-       const baseOrder = mockOrdersSummary.find(o => o.orderId === id);
-
-       if (!baseOrder) {
-           return of(null).pipe(delay(500));
-       }
-
-      const detailedOrder: AdminOrderDetail = {
-          ...baseOrder, // Status alanı doğru tipte geliyor (AdminOrderSummary sayesinde)
-          customer: {
-              id: 'CUST-' + Math.floor(Math.random() * 1000),
-              name: baseOrder.customerName,
-              email: baseOrder.customerName.toLowerCase().replace(' ', '.') + '@example.com'
-          },
-          shippingAddress: {
-              recipientName: baseOrder.customerName,
-              addressLine: 'Örnek Mah. Deneme Cad. No: ' + baseOrder.orderId.split('-').pop(),
-              city: 'İstanbul',
-              postalCode: '34000',
-              country: 'Türkiye',
-              phone: '555' + Math.floor(1000000 + Math.random() * 9000000).toString()
-          },
-          items: [
-              {
-                  productId: 'PROD-' + Math.floor(Math.random() * 100),
-                  productName: 'Ürün Adı ' + baseOrder.orderId + '-1',
-                  imageUrl: 'https://via.placeholder.com/60x60/EEEEEE/999999?text=Ürün1',
-                  quantity: 1,
-                  unitPrice: baseOrder.totalAmount > 100 ? baseOrder.totalAmount / baseOrder.itemCount : 100,
-                  totalPrice: baseOrder.totalAmount > 100 ? baseOrder.totalAmount / baseOrder.itemCount : 100,
-                  sku: 'SKU-' + Math.floor(Math.random() * 10000),
-                  sellerName: 'Satıcı ' + String.fromCharCode(65 + Math.floor(Math.random() * 5))
-              },
-              ...(baseOrder.itemCount > 1 ? [{
-                   productId: 'PROD-' + Math.floor(Math.random() * 100),
-                   productName: 'Ürün Adı ' + baseOrder.orderId + '-2',
-                   imageUrl: 'https://via.placeholder.com/60x60/CCCCCC/555555?text=Ürün2',
-                   quantity: baseOrder.itemCount - 1,
-                   unitPrice: baseOrder.totalAmount > 100 && baseOrder.itemCount > 1 ? (baseOrder.totalAmount / baseOrder.itemCount) * 0.8 : 50,
-                   totalPrice: baseOrder.totalAmount > 100 && baseOrder.itemCount > 1 ? (baseOrder.totalAmount / baseOrder.itemCount) * 0.8 * (baseOrder.itemCount - 1) : 50 * (baseOrder.itemCount - 1),
-                    sku: 'SKU-' + Math.floor(Math.random() * 10000),
-                    sellerName: 'Satıcı ' + String.fromCharCode(65 + Math.floor(Math.random() * 5))
-               }] : [])
-          ],
-          subTotal: baseOrder.totalAmount > 20 ? baseOrder.totalAmount - 20 : baseOrder.totalAmount,
-          shippingCost: baseOrder.totalAmount > 20 ? 20 : 0,
-          paymentMethod: 'Kredi Kartı',
-          trackingNumber: baseOrder.status === 'Kargoya Verildi' || baseOrder.status === 'Teslim Edildi' ? 'TK' + Math.floor(100000000 + Math.random() * 900000000) : undefined
-      };
-
-      return of(detailedOrder).pipe(delay(500));
+    this.isCancellingOrder = true;
+    const cancellationReason = 'Cancelled by Admin';
+    this.orderService.cancelOrderForAdmin(this.orderId, cancellationReason).subscribe({
+      next: (cancelledOrderData: Order) => {
+        console.log('AdminOrderDetailComponent: cancelOrderForAdmin successful, response:', cancelledOrderData);
+        if (this.order) {
+            const mappedOrderData: Partial<AdminOrderDetail> = {
+                orderId: cancelledOrderData.id.toString(),
+                orderDate: new Date(cancelledOrderData.orderDate),
+                status: cancelledOrderData.status as OrderStatus,
+                customer: {
+                    id: cancelledOrderData.customerId,
+                    name: cancelledOrderData.customerUsername,
+                    email: (this.order.customer) ? this.order.customer.email : undefined
+                },
+                shippingAddress: {
+                    recipientName: cancelledOrderData.customerUsername,
+                    addressLine: cancelledOrderData.shippingAddress.addressText,
+                    city: cancelledOrderData.shippingAddress.city,
+                    postalCode: cancelledOrderData.shippingAddress.postalCode,
+                    country: cancelledOrderData.shippingAddress.country,
+                    phone: cancelledOrderData.shippingAddress.phoneNumber
+                },
+                items: cancelledOrderData.items.map(item => ({ 
+                    orderItemId: item.id, 
+                    productId: item.productId,
+                    productName: item.productName,
+                    quantity: item.quantity,
+                    unitPrice: item.priceAtPurchase,
+                    totalPrice: item.priceAtPurchase * item.quantity,
+                    imageUrl: undefined, 
+                    sku: undefined,      
+                    sellerName: undefined 
+                })),
+                totalAmount: cancelledOrderData.totalAmount,
+            };
+            this.order = { ...this.order, ...mappedOrderData, status: 'CANCELLED' };
+        }
+        this.snackBar.open(`Sipariş (${this.orderId}) başarıyla iptal edildi ve iade işlemi başlatıldı.`, 'Kapat', { duration: 4000 });
+        this.isCancellingOrder = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('AdminOrderDetailComponent: Error cancelling order via API:', err);
+        this.snackBar.open(`Sipariş iptal edilirken bir hata oluştu: ${err.error?.message || err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
+        this.isCancellingOrder = false;
+      }
+    });
   }
 
-   getStatusClass(status: AdminOrderDetail['status']): string {
-     switch (status) {
-       case 'Yeni Sipariş': return 'status-yeni-siparis';
-       case 'Hazırlanıyor': return 'status-hazirlaniyor';
-       case 'Kargoya Verildi': return 'status-kargoya-verildi';
-       case 'Teslim Edildi': return 'status-teslim-edildi';
-       case 'İptal Edildi': return 'status-iptal-edildi';
-       case 'İade Edildi': return 'status-iade-edildi';
-       default: return '';
-     }
-   }
+  getStatusClass(status: OrderStatus | undefined): string {
+    if (!status) return '';
+    switch (status) {
+      case 'PENDING': return 'status-PENDING';
+      case 'PROCESSING': return 'status-PROCESSING';
+      case 'PREPARING': return 'status-PREPARING';
+      case 'SHIPPED': return 'status-SHIPPED';
+      case 'DELIVERED': return 'status-DELIVERED';
+      case 'CANCELLED': return 'status-CANCELLED';
+      case 'PAYMENT_FAILED': return 'status-PAYMENT_FAILED';
+      default:
+        console.warn("AdminOrderDetailComponent: Unknown status in getStatusClass: ", status);
+        return '';
+    }
+  }
 
   ngOnDestroy(): void {
     if (this.routeSub) this.routeSub.unsubscribe();
-    if (this.orderSub) this.orderSub.unsubscribe();
   }
 }

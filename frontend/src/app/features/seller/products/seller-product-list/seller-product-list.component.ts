@@ -111,10 +111,11 @@ import { EMPTY } from 'rxjs';
     }
     .status-yayinda { background-color: #C8E6C9; color: #2E7D32; border-color: #A5D6A7; }
     .status-stok-tukendi { background-color: #F5F5F5; color: #757575; border-color: #E0E0E0; }
+    .status-pasif { background-color: #FFCDD2; color: #B71C1C; border-color: #EF9A9A; }
   `]
 })
 export class SellerProductListComponent implements OnInit {
-  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'derivedStatus', 'actions'];
+  displayedColumns: string[] = ['imageUrl', 'name', 'categoryName', 'price', 'stockQuantity', 'derivedStatus', 'deactivationReason', 'deactivatedAt', 'actions'];
   dataSource: Product[] = [];
   isLoading = false;
 
@@ -159,24 +160,27 @@ export class SellerProductListComponent implements OnInit {
     this.router.navigate(['/seller/products/edit', product.id]);
   }
 
-  deleteProduct(product: Product): void {
-    console.log('Silinecek ürün:', product);
-    if (confirm(`'${product.name}' adlı ürünü silmek istediğinizden emin misiniz?`)) {
+  reactivateProduct(product: Product): void {
+    if (!product || product.id === undefined) {
+      this.snackBar.open('Geçersiz ürün bilgisi.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    if (confirm(`'${product.name}' adlı ürünü tekrar yayına almak istediğinizden emin misiniz?`)) {
       this.isLoading = true;
-      this.productService.deleteProduct(product.id).pipe(
-        tap(() => {
+      this.productService.reactivateProduct(product.id).pipe(
+        tap((updatedProduct) => {
           this.isLoading = false;
-          this.dataSource = this.dataSource.filter(p => p.id !== product.id);
-          this.snackBar.open(`'${product.name}' başarıyla silindi.`, 'Tamam', { duration: 3000 });
-          // Eğer silme sonrası hiç ürün kalmazsa özel bir mesaj gösterilebilir.
-          if (this.dataSource.length === 0) {
-             this.snackBar.open('Tüm ürünleriniz silindi.', 'Tamam', { duration: 3000 });
-          }
+          console.log('[SellerPanel] Component received updatedProduct from service (for snackbar):', updatedProduct);
+          this.snackBar.open(`'${updatedProduct.name}' başarıyla yayına alındı.`, 'Tamam', { duration: 3000 });
+          
+          console.log('[SellerPanel] Reactivation successful. Reloading all seller products from backend.');
+          this.loadSellerProducts();
         }),
         catchError(error => {
           this.isLoading = false;
-          console.error('Error deleting product:', error);
-          this.snackBar.open(`Ürün silinirken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+          console.error('Error reactivating product:', error);
+          this.snackBar.open(`Ürün yayına alınırken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
@@ -186,13 +190,60 @@ export class SellerProductListComponent implements OnInit {
     }
   }
 
-  getDerivedStatus(product: Product): 'Yayında' | 'Stok Tükendi' {
-    return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';
+  deactivateProduct(product: Product): void {
+    if (!product || product.id === undefined) {
+      this.snackBar.open('Geçersiz ürün bilgisi.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    const reason = prompt(`Lütfen '${product.name}' adlı ürünü neden pasife almak istediğinizi belirtin:`, "Satıcı tarafından isteğe bağlı olarak pasife alındı.");
+
+    if (reason === null) { // Kullanıcı prompt'u iptal etti
+      this.snackBar.open('Pasife alma işlemi iptal edildi.', 'Tamam', { duration: 3000 });
+      return;
+    }
+
+    if (reason.trim() === "") { // Kullanıcı boş bir neden girdi
+      this.snackBar.open('Pasife alma nedeni boş bırakılamaz.', 'Kapat', { duration: 4000, panelClass: ['warning-snackbar'] });
+      // İsteğe bağlı: kullanıcıyı tekrar prompt'a yönlendirebilir veya işlemi sonlandırabilirsiniz.
+      // Şimdilik işlemi sonlandırıyoruz.
+      return;
+    }
+
+    if (confirm(`'${product.name}' adlı ürünü '${reason}' nedeniyle pasife almak istediğinizden emin misiniz?`)) {
+      this.isLoading = true;
+      this.productService.deactivateProduct(product.id, reason).pipe(
+        tap((deactivatedProduct) => {
+          this.isLoading = false;
+          this.snackBar.open(`'${deactivatedProduct.name}' başarıyla pasife alındı.`, 'Tamam', { duration: 3000 });
+          this.loadSellerProducts(); // Listeyi yenile
+        }),
+        catchError(error => {
+          this.isLoading = false;
+          console.error('Error deactivating product:', error);
+          this.snackBar.open(`Ürün pasife alınırken bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`, 'Kapat', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          return EMPTY;
+        })
+      ).subscribe();
+    } else {
+      this.snackBar.open('Pasife alma işlemi iptal edildi.', 'Tamam', { duration: 3000 });
+    }
+  }
+
+  getDerivedStatus(product: Product): 'Pasif' | 'Yayında' | 'Stok Tükendi' {
+    if (product.isActive === true) {
+      return product.stockQuantity > 0 ? 'Yayında' : 'Stok Tükendi';
+    }
+    return 'Pasif';
   }
 
   getStatusClass(product: Product): string {
     const status = this.getDerivedStatus(product);
     switch (status) {
+      case 'Pasif': return 'status-pasif';
       case 'Yayında': return 'status-yayinda';
       case 'Stok Tükendi': return 'status-stok-tukendi';
       default: return '';

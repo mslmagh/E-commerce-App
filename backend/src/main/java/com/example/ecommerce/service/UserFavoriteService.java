@@ -122,7 +122,12 @@ public class UserFavoriteService {
             categoryName,
             product.getImageUrl(),
             null,
-            0
+            0,
+            product.isActive(),
+            product.getDeactivationReason(),
+            product.getDeactivatedAt(),
+            product.getSeller().getId(),
+            product.getSeller().getUsername()
         );
     }
 

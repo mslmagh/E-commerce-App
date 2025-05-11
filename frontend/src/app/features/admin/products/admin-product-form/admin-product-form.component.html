@@ -112,20 +112,13 @@
           </mat-error>
         </mat-form-field>
 
-         <div class="image-upload-section">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Ürün Görseli:</label>
-          <button type="button" mat-stroked-button color="primary" (click)="fileInput.click()">
-            <mat-icon>attach_file</mat-icon> Görsel Seç
-          </button>
-          <input hidden #fileInput type="file" id="productImage" (change)="onFileSelected($event)" accept="image/png, image/jpeg, image/webp">
-          <div *ngIf="selectedFile" style="font-size: 0.9em; margin-top: 8px; color: grey;">
-            Seçilen dosya: {{ selectedFile.name }}
-          </div>
-          <div *ngIf="imagePreviewUrl" style="margin-top: 10px;">
-            <p style="font-size: 0.9em; margin-bottom: 5px;">Görsel Önizleme:</p>
-            <img [src]="imagePreviewUrl" alt="Ürün Görsel Önizlemesi" class="image-preview">
-          </div>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Ürün Görsel URL</mat-label>
+          <input matInput formControlName="imageUrl" placeholder="https://example.com/image.jpg">
+          <mat-error *ngIf="imageUrl?.touched && imageUrl?.hasError('pattern')">
+            Lütfen geçerli bir resim URL'si girin (örn: https://...png/jpg/jpeg/gif/svg/webp).
+          </mat-error>
+        </mat-form-field>
 
         <div style="margin-bottom: 20px;">
           <mat-slide-toggle formControlName="isActive" color="primary">

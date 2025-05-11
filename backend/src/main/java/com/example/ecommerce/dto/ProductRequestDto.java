@@ -34,6 +34,9 @@ public class ProductRequestDto {
     @Size(max = 512, message = "Image URL cannot exceed 512 characters")
     private String imageUrl; 
 
+    @Schema(description = "ID of the seller for the product (required for Admin, optional for Seller creating their own product)", example = "2")
+    private Long sellerId;
+
 
     // Getters & Setters
     public String getName() { return name; }
@@ -48,4 +51,6 @@ public class ProductRequestDto {
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public Long getSellerId() { return sellerId; }
+    public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
 }

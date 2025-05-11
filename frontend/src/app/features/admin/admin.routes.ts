@@ -1,4 +1,3 @@
-
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
 import { adminGuard } from '../../core/guards/admin.guard'; // adminGuard import edildiğinden emin olun
@@ -47,14 +46,6 @@ export const ADMIN_ROUTES: Routes = [
             (m) => m.AdminProductFormComponent
           ),
       },
-      {
-        path: 'products/edit/:productId', // <-- YENİ: Admin Ürün Düzenleme Rotası (parametre ile)
-         loadComponent: () =>
-          import('./products/admin-product-form/admin-product-form.component').then(
-            (m) => m.AdminProductFormComponent
-          ),
-      },
-
       {
         path: 'orders', // Admin Sipariş Listesi
         loadComponent: () =>

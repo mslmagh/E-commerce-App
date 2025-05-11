@@ -49,14 +49,31 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts(
             @Parameter(description = "Optional Category ID to filter products")
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            org.springframework.security.core.Authentication authentication) {
         List<ProductDto> products;
+
+        boolean isAdmin = false;
+        if (authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            isAdmin = true;
+        }
+
         if (categoryId != null) {
-            // Assuming ProductService has a method like getProductsByCategoryId
-            // If not, this will need to be created in ProductService
+            // Kategori filtresi varsa, admin olup olmamasına bakılmaksızın kategoriye göre ürünler getirilir.
+            // Bu kısım daha da geliştirilebilir: admin kategoriye göre tümünü, kullanıcı sadece aktifleri.
+            // Şimdilik basit tutalım: Kategori filtresi varsa, productService.getProductsByCategoryId çağırılır (bu sadece aktifleri döner).
+            // Admin için kategoriye göre tüm ürünleri getiren ayrı bir servis metodu daha iyi olabilir.
+            // VEYA getProductsByCategoryId(Long categoryId, boolean includeInactive) şeklinde bir parametre alabilir.
+            // Şimdilik mevcut public metodu kullanalım, bu sadece aktifleri getirir.
+            // TODO: Admin için kategoriye göre tüm ürünleri (aktif/pasif) getirme özelliği eklenebilir.
             products = productService.getProductsByCategoryId(categoryId); 
         } else {
-            products = productService.getAllProducts();
+            if (isAdmin) {
+                products = productService.getAllProductsForAdmin(); // Admin tüm ürünleri görür
+            } else {
+                products = productService.getAllProducts(); // Normal kullanıcı sadece aktif ürünleri görür
+            }
         }
         return ResponseEntity.ok(products);
     }
@@ -88,6 +105,22 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    // GET Products by Seller Username
+    @Operation(summary = "Get Active Products by Seller Username",
+               description = "Retrieves a list of active products for a specific seller username.",
+               security = {}) // Public endpoint
+    @ApiResponses(value = { 
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+                         content = @Content(mediaType = "application/json", 
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+            @ApiResponse(responseCode = "404", description = "Seller not found or seller has no active products")
+    })
+    @GetMapping("/by-seller/{username}")
+    public ResponseEntity<List<ProductDto>> getProductsBySellerUsername(@Parameter(description = "Username of the seller") @PathVariable String username) {
+        List<ProductDto> products = productService.getProductsBySellerUsername(username);
+        return ResponseEntity.ok(products);
+    }
+
     // CREATE Product
     @Operation(summary = "Create a New Product")
     @RequestBody(description = "Product data to create", required = true, content = @Content(schema = @Schema(implementation = ProductRequestDto.class))) // Use Save DTO
@@ -116,7 +149,7 @@ public class ProductController {
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Product not found")})
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('SELLER') and @productSecurityService.isOwner(principal, #id))")
+    @PreAuthorize("hasRole('SELLER') and @productSecurityService.isOwner(principal, #id)")
     public ResponseEntity<ProductDto> updateProduct(
             @Parameter(description = "ID of product to update") @PathVariable Long id,
             @Valid @org.springframework.web.bind.annotation.RequestBody ProductRequestDto requestDto) { // Use Save DTO
@@ -124,17 +157,34 @@ public class ProductController {
         return ResponseEntity.ok(updatedProductDto);
     }
 
-    // DELETE Product
-    @Operation(summary = "Delete a Product by ID")
+    // DELETE Product -> Artık Deactivate Product
+    @Operation(summary = "Deactivate a Product by ID", description = "Marks a product as inactive and records a deactivation reason. Requires ADMIN role or SELLER role for their own product.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Product deleted"),
+            @ApiResponse(responseCode = "200", description = "Product deactivated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class))),
+            @ApiResponse(responseCode = "400", description = "Reason not provided or invalid input"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Product not found")})
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('SELLER') and @productSecurityService.isOwner(principal, #id))") // Yetkilendirme aynı kalabilir, admin tümünü, satıcı kendisininkini pasife alabilir.
+    public ResponseEntity<ProductDto> deactivateProduct(
+            @Parameter(description = "ID of product to deactivate") @PathVariable Long id,
+            @Parameter(description = "Reason for deactivation", required = true) @RequestParam String reason) {
+        ProductDto deactivatedProduct = productService.deactivateProduct(id, reason);
+        return ResponseEntity.ok(deactivatedProduct);
+    }
+
+    // REACTIVATE Product
+    @Operation(summary = "Reactivate a Product by ID", description = "Marks a product as active. Requires ADMIN role, or SELLER role for their own product.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Product reactivated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not owner or not authorized role)"),
+            @ApiResponse(responseCode = "404", description = "Product not found")})
+    @PutMapping("/{id}/reactivate")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('SELLER') and @productSecurityService.isOwner(principal, #id))")
-    public ResponseEntity<Void> deleteProduct(@Parameter(description = "ID of product to delete") @PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ProductDto> reactivateProduct(@Parameter(description = "ID of product to reactivate") @PathVariable Long id) {
+        ProductDto reactivatedProduct = productService.reactivateProduct(id);
+        return ResponseEntity.ok(reactivatedProduct);
     }
 }
