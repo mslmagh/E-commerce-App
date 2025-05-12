@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -64,13 +65,19 @@ public class AuthController {
     @Operation(summary = "Register New User", description = "Creates a new user account with a single role (defaults to USER).")
     @ApiResponses(value = { /*...*/ })
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) { // Takes updated SignupRequest
+    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.findByUsername(signUpRequest.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Error: Username is already taken!");
+            // Return JSON error message
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "Error: Username is already taken!"));
         }
 
         if (signUpRequest.getEmail() != null && !signUpRequest.getEmail().isEmpty() && userRepository.existsByEmail(signUpRequest.getEmail())) {
-             return ResponseEntity.badRequest().body("Error: Email is already in use!");
+            // Return JSON error message
+             return ResponseEntity
+                     .badRequest()
+                     .body(Map.of("message", "Error: Email is already in use!"));
         }
 
         // Create new user's account
@@ -79,6 +86,11 @@ public class AuthController {
         user.setEmail(signUpRequest.getEmail());
         user.setPassword(encoder.encode(signUpRequest.getPassword()));
         user.setEnabled(true);
+
+        // Set Tax ID and Phone Number (relevant even if role defaults later, but especially for seller)
+        // These fields exist on the User entity already
+        user.setPhoneNumber(signUpRequest.getPhoneNumber());
+        user.setTaxId(signUpRequest.getTaxId());
 
         // ===> DEĞİŞEN ROL ATAMA MANTIĞI <===
         String strRole = signUpRequest.getRole(); // Get single role string
@@ -107,6 +119,7 @@ public class AuthController {
         user.setRoles(roles);
         userRepository.save(user);
 
-        return ResponseEntity.ok("User registered successfully!");
+        // Return JSON success message
+        return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
     }
 }

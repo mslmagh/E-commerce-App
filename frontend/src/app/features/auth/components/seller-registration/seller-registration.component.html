@@ -1,143 +1,68 @@
-<div class="seller-register-card"> <div *ngIf="!applicationSubmitted">
+<div class="seller-register-card">
   <div style="text-align: center; margin-bottom: 24px;">
-    <h2 style="margin: 0;">Satıcı Başvuru Formu</h2>
-    <p style="font-size: 0.9em; color: grey; margin-top: 8px;">Lütfen mağaza ve iletişim bilgilerinizi eksiksiz doldurun.</p>
+    <h2 style="margin: 0;">Satıcı Olarak Kayıt Ol</h2>
+    <p style="font-size: 0.9em; color: grey; margin-top: 8px;">Hesap bilgilerinizi girerek kaydınızı tamamlayın.</p>
   </div>
 
   <form [formGroup]="sellerRegisterForm" (ngSubmit)="onSubmit()">
-    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 8px;">Mağaza Bilgileri</h3>
     <mat-form-field appearance="outline">
-      <mat-label>Mağaza Adı</mat-label>
-      <input matInput formControlName="storeName" required>
-      <mat-error *ngIf="storeName?.touched && storeName?.hasError('required')">Mağaza adı zorunludur.</mat-error>
+      <mat-label>Kullanıcı Adı</mat-label>
+      <input matInput formControlName="username" required>
+      <mat-icon matSuffix>person</mat-icon>
+      <mat-error *ngIf="sellerRegisterForm.get('username')?.touched && sellerRegisterForm.get('username')?.hasError('required')">Kullanıcı adı zorunludur.</mat-error>
     </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>Mağaza Türü</mat-label>
-      <mat-select formControlName="storeType" required>
-        <mat-option value="Bireysel">Bireysel (Şahıs)</mat-option>
-        <mat-option value="Şirket">Şirket (Ticari)</mat-option>
-      </mat-select>
-      <mat-error *ngIf="sellerRegisterForm.get('storeType')?.touched && sellerRegisterForm.get('storeType')?.hasError('required')">Mağaza türü seçimi zorunludur.</mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" *ngIf="sellerRegisterForm.get('storeType')?.value === 'Şirket'">
-      <mat-label>Vergi Numarası</mat-label>
-      <input matInput formControlName="taxNumber" placeholder="10 Haneli Vergi No">
-      <mat-icon matSuffix matTooltipPosition="above"
-                matTooltip="Şirketler için zorunludur.">info_outline</mat-icon>
-      <mat-error *ngIf="sellerRegisterForm.get('taxNumber')?.touched && sellerRegisterForm.get('taxNumber')?.hasError('required')">Vergi numarası zorunludur.</mat-error>
-      <mat-error *ngIf="sellerRegisterForm.get('taxNumber')?.touched && sellerRegisterForm.get('taxNumber')?.hasError('pattern')">Geçerli bir vergi numarası girin (10 rakam).</mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" *ngIf="sellerRegisterForm.get('storeType')?.value === 'Bireysel'">
-      <mat-label>T.C. Kimlik Numarası</mat-label>
-      <input matInput formControlName="idNumber" placeholder="11 Haneli T.C. Kimlik No">
-       <mat-icon matSuffix matTooltipPosition="above"
-                matTooltip="Bireysel satıcılar için zorunludur.">info_outline</mat-icon>
-      <mat-error *ngIf="sellerRegisterForm.get('idNumber')?.touched && sellerRegisterForm.get('idNumber')?.hasError('required')">T.C. Kimlik numarası zorunludur.</mat-error>
-      <mat-error *ngIf="sellerRegisterForm.get('idNumber')?.touched && sellerRegisterForm.get('idNumber')?.hasError('pattern')">Geçerli bir T.C. Kimlik numarası girin.</mat-error>
-    </mat-form-field>
-
-    <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 8px;">Yetkili İletişim Bilgileri</h3>
-    <div class="form-row">
-      <mat-form-field appearance="outline">
-        <mat-label>Adınız</mat-label>
-        <input matInput formControlName="contactFirstName" required>
-        <mat-error *ngIf="sellerRegisterForm.get('contactFirstName')?.touched && sellerRegisterForm.get('contactFirstName')?.hasError('required')">Yetkili adı zorunludur.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Soyadınız</mat-label>
-        <input matInput formControlName="contactLastName" required>
-        <mat-error *ngIf="sellerRegisterForm.get('contactLastName')?.touched && sellerRegisterForm.get('contactLastName')?.hasError('required')">Yetkili soyadı zorunludur.</mat-error>
-      </mat-form-field>
-    </div>
 
     <mat-form-field appearance="outline">
       <mat-label>E-posta Adresiniz</mat-label>
-      <input matInput type="email" formControlName="contactEmail" placeholder="ornek@mail.com" required>
+      <input matInput type="email" formControlName="email" placeholder="ornek@mail.com" required>
       <mat-icon matSuffix>email</mat-icon>
-      <mat-error *ngIf="sellerRegisterForm.get('contactEmail')?.touched && sellerRegisterForm.get('contactEmail')?.hasError('required')">E-posta zorunludur.</mat-error>
-      <mat-error *ngIf="sellerRegisterForm.get('contactEmail')?.touched && sellerRegisterForm.get('contactEmail')?.hasError('email')">Geçerli bir e-posta adresi girin.</mat-error>
+      <mat-error *ngIf="sellerRegisterForm.get('email')?.touched && sellerRegisterForm.get('email')?.hasError('required')">E-posta zorunludur.</mat-error>
+      <mat-error *ngIf="sellerRegisterForm.get('email')?.touched && sellerRegisterForm.get('email')?.hasError('email')">Geçerli bir e-posta adresi girin.</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Cep Telefonu</mat-label>
-      <input matInput type="tel" formControlName="contactPhone" placeholder="5xxxxxxxxx" required>
+      <mat-label>Telefon Numarası</mat-label>
+      <input matInput type="tel" formControlName="phoneNumber" placeholder="5xxxxxxxxx" required>
       <mat-icon matSuffix>phone</mat-icon>
-      <mat-error *ngIf="sellerRegisterForm.get('contactPhone')?.touched && sellerRegisterForm.get('contactPhone')?.hasError('required')">Telefon numarası zorunludur.</mat-error>
-      <mat-error *ngIf="sellerRegisterForm.get('contactPhone')?.touched && sellerRegisterForm.get('contactPhone')?.hasError('pattern')">Geçerli bir telefon numarası girin (örn: 5xxxxxxxxx).</mat-error>
+      <mat-error *ngIf="sellerRegisterForm.get('phoneNumber')?.touched && sellerRegisterForm.get('phoneNumber')?.hasError('required')">Telefon numarası zorunludur.</mat-error>
+      <mat-error *ngIf="sellerRegisterForm.get('phoneNumber')?.touched && sellerRegisterForm.get('phoneNumber')?.hasError('pattern')">Geçerli bir telefon numarası girin (örn: 5xxxxxxxxx).</mat-error>
     </mat-form-field>
 
-    <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 8px;">Mağaza Adresi</h3>
     <mat-form-field appearance="outline">
-      <mat-label>Adres Satırı 1</mat-label>
-      <input matInput formControlName="addressLine1" placeholder="Mahalle, Cadde, Sokak, No" required>
-      <mat-error *ngIf="sellerRegisterForm.get('addressLine1')?.touched && sellerRegisterForm.get('addressLine1')?.hasError('required')">Adres zorunludur.</mat-error>
+      <mat-label>Vergi/TC Kimlik Numarası</mat-label>
+      <input matInput formControlName="taxId" required>
+      <mat-icon matSuffix>badge</mat-icon>
+      <mat-error *ngIf="sellerRegisterForm.get('taxId')?.touched && sellerRegisterForm.get('taxId')?.hasError('required')">Vergi/TC Kimlik Numarası zorunludur.</mat-error>
     </mat-form-field>
-    <div class="form-row">
-      <mat-form-field appearance="outline">
-        <mat-label>Şehir</mat-label>
-        <input matInput formControlName="city" required>
-        <mat-error *ngIf="sellerRegisterForm.get('city')?.touched && sellerRegisterForm.get('city')?.hasError('required')">Şehir zorunludur.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Posta Kodu</mat-label>
-        <input matInput formControlName="postalCode" required>
-        <mat-error *ngIf="sellerRegisterForm.get('postalCode')?.touched && sellerRegisterForm.get('postalCode')?.hasError('required')">Posta kodu zorunludur.</mat-error>
-      </mat-form-field>
-    </div>
 
-    <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 8px;">Hesap Güvenliği</h3>
-     <mat-form-field appearance="outline">
+    <mat-form-field appearance="outline">
       <mat-label>Şifre</mat-label>
-      <input matInput type="password" formControlName="password" required>
-      <mat-icon matSuffix>lock</mat-icon>
+      <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" required>
+      <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" [attr.aria-label]="'Şifreyi gizle/göster'" type="button">
+        <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+      </button>
       <mat-error *ngIf="sellerRegisterForm.get('password')?.touched && sellerRegisterForm.get('password')?.hasError('required')">Şifre zorunludur.</mat-error>
       <mat-error *ngIf="sellerRegisterForm.get('password')?.touched && sellerRegisterForm.get('password')?.hasError('minlength')">Şifre en az 6 karakter olmalıdır.</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Şifre Tekrar</mat-label>
-      <input matInput type="password" formControlName="confirmPassword" required>
+      <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword" required>
+      <button mat-icon-button matSuffix (click)="hideConfirmPassword = !hideConfirmPassword" [attr.aria-label]="'Şifreyi gizle/göster'" type="button">
+        <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+      </button>
       <mat-error *ngIf="sellerRegisterForm.get('confirmPassword')?.touched && sellerRegisterForm.get('confirmPassword')?.hasError('required')">Şifre tekrarı zorunludur.</mat-error>
       <mat-error *ngIf="sellerRegisterForm.get('confirmPassword')?.touched && sellerRegisterForm.hasError('mismatch') && !sellerRegisterForm.get('confirmPassword')?.hasError('required')">Şifreler eşleşmiyor.</mat-error>
     </mat-form-field>
 
-    <div class="terms-field">
-      <mat-checkbox formControlName="termsAccepted" color="primary">
-        <a (click)="$event.stopPropagation()" href="/sayfa/satici-kullanim-kosullari" target="_blank">Satıcı Kullanım Koşulları</a>'nı okudum ve kabul ediyorum.
-      </mat-checkbox>
-      <mat-error *ngIf="sellerRegisterForm.get('termsAccepted')?.touched && sellerRegisterForm.get('termsAccepted')?.hasError('requiredTrue')">
-        Devam etmek için satıcı koşullarını kabul etmelisiniz.
-      </mat-error>
-    </div>
-     <div class="terms-field" style="margin-bottom: 24px;">
-      <mat-checkbox formControlName="privacyPolicyAccepted" color="primary">
-        <a (click)="$event.stopPropagation()" href="/sayfa/gizlilik-politikasi" target="_blank">Gizlilik Politikası</a>'nı okudum ve kabul ediyorum.
-      </mat-checkbox>
-      <mat-error *ngIf="sellerRegisterForm.get('privacyPolicyAccepted')?.touched && sellerRegisterForm.get('privacyPolicyAccepted')?.hasError('requiredTrue')">
-        Devam etmek için gizlilik politikasını kabul etmelisiniz.
-      </mat-error>
-    </div>
-
-    <div class="actions-container" style="justify-content: space-between; border-top: none;">
-      <button mat-stroked-button type="button" routerLink="/auth/register">
+    <div class="actions-container" style="justify-content: space-between; border-top: none; margin-top: 16px;">
+       <button mat-stroked-button type="button" routerLink="/auth/register">
         <mat-icon>arrow_back</mat-icon> Bireysel Üyeliğe Geri Dön
       </button>
       <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || sellerRegisterForm.invalid">
         <mat-spinner *ngIf="isLoading" diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
-        {{ isLoading ? 'Başvuru Gönderiliyor...' : 'Satıcı Başvurusunu Gönder' }}
+        {{ isLoading ? 'İşlem Sürüyor...' : 'Satıcı Olarak Kayıt Ol' }}
       </button>
     </div>
   </form>
-</div>
-
-<div *ngIf="applicationSubmitted" class="registration-pending-message">
-  <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: orange; margin-bottom: 16px;">hourglass_top</mat-icon>
-  <h3>Satıcı Başvurunuz Alındı!</h3>
-  <p>Başvurunuz incelenmek üzere yetkililerimize iletilmiştir. En kısa sürede e-posta yoluyla bilgilendirileceksiniz.</p>
-  <p>Onay sürecinde göstermiş olduğunuz sabır için teşekkür ederiz.</p>
-  <button mat-flat-button color="primary" routerLink="/">Ana Sayfaya Dön</button>
-</div>
 </div>
