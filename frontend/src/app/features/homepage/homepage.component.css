@@ -180,8 +180,8 @@
   margin: 0;
   display: flex;
   gap: 10px 30px;
-  overflow-x: auto; /* Yatayda kaydırılabilir olsun */
-  white-space: nowrap; /* Alt satıra inmesin */
+  width: 100%;
+  justify-content: space-evenly; /* Kategoriler arası eşit boşluk ve ortalama */
 }
 /* Scrollbar gizlenebilir */
 .category-nav-list::-webkit-scrollbar {
