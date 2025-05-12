@@ -94,8 +94,7 @@
         <ng-container *ngIf="!isLoading && sortedAndFilteredProducts.length > 0">
           <app-product-card
             *ngFor="let product of sortedAndFilteredProducts"
-            [product]="product"
-            (addToCartClick)="addToCart($event)">
+            [product]="product">
           </app-product-card>
         </ng-container>
         <div *ngIf="!isLoading && sortedAndFilteredProducts.length === 0" class="no-products-message">

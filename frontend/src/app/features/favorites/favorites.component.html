@@ -11,8 +11,7 @@
     <div *ngIf="favs.length > 0" class="favorites-grid product-grid">
       <div *ngFor="let product of favs" class="favorite-item-container">
         <app-product-card
-            [product]="product"
-            (addToCartClick)="addToCart($event)">
+            [product]="product">
             </app-product-card>
 
         <button mat-stroked-button color="warn" class="btn-remove-fav" (click)="removeFromFavorites(product)">

@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core'; // inject eklendi
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router'; // RouterLink eklendi
+import { Router } from '@angular/router'; // RouterLink removed
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // MatTableDataSource eklendi
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -46,7 +46,7 @@ const orderStatusMap: { [key: string]: SellerOrder['status'] } = {
   selector: 'app-seller-order-list',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, MatTableModule, MatButtonModule, MatIconModule,
+    CommonModule, MatTableModule, MatButtonModule, MatIconModule, // RouterLink removed
     MatTooltipModule, MatProgressSpinnerModule, MatCardModule, MatChipsModule,
     MatPaginatorModule, MatSortModule, MatFormFieldModule, MatInputModule,
     MatSnackBarModule // Snackbar modülü de imports'a eklendi

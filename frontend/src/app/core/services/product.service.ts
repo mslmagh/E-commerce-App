@@ -89,6 +89,18 @@ export class ProductService {
     );
   }
 
+  getProductsByIds(ids: number[]): Observable<Product[]> {
+    if (!ids || ids.length === 0) {
+      console.log('ProductService: getProductsByIds called with empty ID list, returning empty array.');
+      return new Observable(observer => observer.next([])); // Veya of([]) rxjs operatörü
+    }
+    console.log(`ProductService: Fetching products for IDs (batch): ${ids} from API`);
+    return this.httpClient.post<Product[]>(`${this.apiUrl}/batch`, ids).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products in batch for IDs: ${ids}.`)),
+      catchError(this.handleError<Product[]>('getProductsByIds', []))
+    );
+  }
+
   getProductsByCategory(categoryId: number): Observable<Product[]> {
     console.log(`ProductService: Fetching products for category ID: ${categoryId}`);
     return this.getProducts(categoryId);

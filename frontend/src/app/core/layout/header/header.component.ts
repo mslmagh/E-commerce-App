@@ -6,6 +6,7 @@ import { Observable, Subscription, map } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
 import { Cart } from '../../../core/models/cart.model';
+import { ProductComparisonService } from '../../../core/services/product-comparison.service';
 
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,12 +31,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isSeller$: Observable<boolean>;
   isAdmin$: Observable<boolean>;
   cartItemCount$: Observable<number>;
+  compareItemCount$: Observable<number>;
   private cartSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private productComparisonService: ProductComparisonService
   ) {
     this.isLoggedIn$ = this.authService.isLoggedIn$;
     this.isSeller$ = this.authService.userRole$.pipe(
@@ -51,6 +54,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         }
         return cart.items.reduce((count, item) => count + item.quantity, 0);
       })
+    );
+    this.compareItemCount$ = this.productComparisonService.comparisonList$.pipe(
+      map(list => list.length)
     );
   }
 

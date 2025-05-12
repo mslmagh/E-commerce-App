@@ -54,28 +54,28 @@
           <mat-card-title>Müşteri ve Teslimat Bilgileri</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-           <p><strong>Müşteri Adı:</strong> {{ order.customer?.name || 'N/A' }}</p>
-          <p *ngIf="order.customer?.email"><strong>E-posta:</strong> {{ order.customer?.email }}</p>
-          <p *ngIf="order.shippingAddress?.phone"><strong>Telefon:</strong> {{ order.shippingAddress?.phone }}</p>
+           <p><strong>Müşteri Adı:</strong> {{ order.customer.name || 'N/A' }}</p>
+          <p *ngIf="order.customer.email"><strong>E-posta:</strong> {{ order.customer.email }}</p>
+          <p *ngIf="order.shippingAddress && order.shippingAddress.phone"><strong>Telefon:</strong> {{ order.shippingAddress.phone }}</p>
 
           <mat-divider style="margin: 12px 0;"></mat-divider>
 
           <p><strong>Teslimat Adresi:</strong></p>
           <address style="font-style: normal;" *ngIf="order.shippingAddress">
-            <p>{{ order.shippingAddress?.recipientName || order.customer?.name || 'N/A' }}</p>
-            <p>{{ order.shippingAddress?.addressLine }}</p>
-            <p>{{ order.shippingAddress?.city }}<span *ngIf="order.shippingAddress?.postalCode">, {{ order.shippingAddress?.postalCode }}</span></p>
-            <p>{{ order.shippingAddress?.country }}</p>
+            <p>{{ order.shippingAddress.recipientName || order.customer.name || 'N/A' }}</p>
+            <p>{{ order.shippingAddress.addressLine }}</p>
+            <p>{{ order.shippingAddress.city }}<span *ngIf="order.shippingAddress.postalCode">, {{ order.shippingAddress.postalCode }}</span></p>
+            <p>{{ order.shippingAddress.country }}</p>
           </address>
 
            <ng-container *ngIf="order.billingAddress && order.billingAddress !== order.shippingAddress">
                <mat-divider style="margin: 12px 0;"></mat-divider>
                <p><strong>Fatura Adresi:</strong></p>
                <address style="font-style: normal;" *ngIf="order.billingAddress">
-                   <p>{{ order.billingAddress?.recipientName || order.customer?.name || 'N/A' }}</p>
-                   <p>{{ order.billingAddress?.addressLine }}</p>
-                   <p>{{ order.billingAddress?.city }}<span *ngIf="order.billingAddress?.postalCode">, {{ order.billingAddress?.postalCode }}</span></p>
-                   <p>{{ order.billingAddress?.country }}</p>
+                   <p>{{ order.billingAddress.recipientName || order.customer.name || 'N/A' }}</p>
+                   <p>{{ order.billingAddress.addressLine }}</p>
+                   <p>{{ order.billingAddress.city }}<span *ngIf="order.billingAddress.postalCode">, {{ order.billingAddress.postalCode }}</span></p>
+                   <p>{{ order.billingAddress.country }}</p>
                 </address>
            </ng-container>
         </mat-card-content>

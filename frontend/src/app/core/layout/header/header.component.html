@@ -63,6 +63,17 @@
         <mat-icon>shopping_cart</mat-icon>
       </button>
 
+      <button mat-icon-button 
+              routerLink="/compare"
+              [disabled]="(compareItemCount$ | async) === 0 || (compareItemCount$ | async) === 1" 
+              [matBadge]="(compareItemCount$ | async) || null"
+              [matBadgeHidden]="(compareItemCount$ | async) === 0"
+              matBadgeColor="accent" 
+              matBadgeOverlap="true"
+              aria-label="Ürünleri Karşılaştır" title="Seçili Ürünleri Karşılaştır" class="action-button">
+        <mat-icon>compare_arrows</mat-icon>
+      </button>
+
     </div>
 
   </div>

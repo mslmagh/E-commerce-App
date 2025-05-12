@@ -1,46 +1,70 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Product } from '../../../core/services/product.service';
+import { CartService } from '../../../core/services/cart.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { ProductComparisonService } from '../../../core/services/product-comparison.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
-  imports: [ CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule /*, MatIconModule*/ ],
+  imports: [CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule, MatTooltipModule],
   templateUrl: './product-card.component.html',
-  styles: [`
-    :host { display: block; height: 100%; }
-    mat-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: box-shadow 0.3s ease; }
-    mat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .product-card-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; flex-grow: 1; }
-    img[mat-card-image] { height: 200px; object-fit: cover; background-color: #f5f5f5; }
-     mat-card-content { padding: 16px 16px 8px 16px; flex-grow: 1; }
-     mat-card-title { font-size: 1rem; line-height: 1.3; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.6em; }
-     mat-card-subtitle { font-size: 1.1rem; font-weight: bold; color: #3f51b5; margin-top: auto; padding-top: 8px; }
-     mat-card-actions { padding: 8px 16px 16px 16px !important; margin-top: auto; }
-     button[mat-flat-button] { width: 100%; background-color: #ff6f00; color: white; }
-     button[mat-flat-button]:hover { background-color: #e66000; }
-  `]
+  styleUrls: ['./product-card.component.css']
 })
-export class ProductCardComponent implements OnChanges {
+export class ProductCardComponent implements OnInit, OnDestroy {
   @Input() product!: Product;
-  @Output() addToCartClick = new EventEmitter<Product>();
 
-  constructor() { }
+  isInCompareList: boolean = false;
+  private comparisonSubscription!: Subscription;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['product'] && this.product) {
-      console.log('ProductCardComponent - Product Data:', this.product);
-      console.log('Average Rating:', this.product.averageRating);
-      console.log('Review Count:', this.product.reviewCount);
+  constructor(
+    private cartService: CartService,
+    private snackBar: MatSnackBar,
+    private productComparisonService: ProductComparisonService
+  ) {}
+
+  ngOnInit(): void {
+    if (this.product && this.product.id !== undefined) {
+      this.isInCompareList = this.productComparisonService.isProductInCompareList(this.product.id);
+      this.comparisonSubscription = this.productComparisonService.comparisonList$.subscribe(list => {
+        this.isInCompareList = list.includes(this.product.id);
+      });
+    } else {
+      console.error('ProductCardComponent: Product or Product ID is undefined.', this.product);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.comparisonSubscription) {
+      this.comparisonSubscription.unsubscribe();
     }
   }
 
   addToCart(): void {
-    console.log('ProductCard: Emitting addToCartClick for:', this.product?.name);
-    this.addToCartClick.emit(this.product);
+    if (!this.product) {
+      this.snackBar.open('Ürün bilgisi bulunamadı.', 'Kapat', { duration: 3000 });
+      return;
+    }
+    this.cartService.addItem({ productId: Number(this.product.id), quantity: 1 });
+    this.snackBar.open(`'${this.product.name}' sepete eklendi!`, 'Tamam', { duration: 2000 });
+  }
+
+  toggleCompare(): void {
+    if (!this.product || this.product.id === undefined) {
+      this.snackBar.open('Karşılaştırma için ürün bilgisi bulunamadı.', 'Kapat', { duration: 3000 });
+      return;
+    }
+    if (this.isInCompareList) {
+      this.productComparisonService.removeFromCompare(this.product.id);
+    } else {
+      this.productComparisonService.addToCompare(this.product.id);
+    }
   }
 }
