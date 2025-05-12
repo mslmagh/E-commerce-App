@@ -1,0 +1,116 @@
+/* Genel sayfa konteyneri ve temel stiller */
+.page-container {
+  max-width: 800px; /* Ortalama bir okuma genişliği */
+  margin: 30px auto; /* Sayfayı ortala ve üst/alt boşluk */
+  padding: 20px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* Daha modern bir font */
+  line-height: 1.65; /* Okunabilirliği artır */
+  color: #444; /* Ana metin rengi */
+  background-color: #f9f9f9; /* Hafif bir arka plan */
+  border: 1px solid #e0e0e0; /* İnce bir çerçeve */
+  border-radius: 8px; /* Yumuşak köşeler */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */
+}
+
+/* Ana başlık (H1) */
+.page-container h1 {
+  text-align: center;
+  color: #2c3e50; /* Koyu mavi/gri bir başlık rengi */
+  border-bottom: 2px solid #3498db; /* Mavi bir alt çizgi */
+  padding-bottom: 15px;
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 2.2em; /* Daha büyük başlık */
+  font-weight: 500;
+}
+
+/* Alt başlıklar (H2) */
+.page-container h2 {
+  color: #34495e; /* Biraz daha açık bir mavi/gri */
+  margin-top: 35px; /* Üstteki içerikle arasında boşluk */
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ecf0f1; /* Çok hafif bir ayırıcı */
+  padding-bottom: 10px;
+  font-size: 1.6em;
+  font-weight: 500;
+}
+.page-container h2:first-of-type {
+  margin-top: 0; /* İlk H2'nin üst boşluğunu kaldır */
+}
+
+/* Paragraflar */
+.page-container p {
+  margin-bottom: 18px; /* Paragraflar arası boşluk */
+  color: #555; /* Biraz daha açık metin rengi */
+}
+
+/* Listeler (ul) */
+.page-container ul {
+  list-style-type: disc; /* Standart madde işaretçisi */
+  padding-left: 25px; /* Madde işaretleri için iç boşluk */
+  margin-bottom: 20px;
+}
+
+/* Liste elemanları (li) */
+.page-container li {
+  margin-bottom: 10px; /* Liste elemanları arası boşluk */
+}
+
+/* Vurgulu metin (strong, em) */
+.page-container strong {
+  font-weight: 600; /* Biraz daha kalın */
+  color: #333;
+}
+
+.page-container em {
+  font-style: italic;
+  color: #7f8c8d; /* Gri italik */
+}
+
+/* Linkler (a) */
+.page-container a {
+  color: #3498db; /* Mavi link rengi */
+  text-decoration: none; /* Alt çizgiyi kaldır */
+  transition: color 0.2s ease-in-out; /* Renk geçişi */
+}
+
+.page-container a:hover {
+  color: #2980b9; /* Hover durumunda biraz daha koyu mavi */
+  text-decoration: underline; /* Hover durumunda alt çizgi ekle */
+}
+
+/* Son güncelleme tarihi için özel stil */
+.page-container p em { /* Özellikle "Son Güncelleme" için */
+  font-size: 0.9em;
+  color: #95a5a6; /* Daha soluk bir gri */
+  display: block; /* Yeni satırda başlasın */
+  margin-bottom: 25px; /* Altındaki içerikle arasına boşluk */
+}
+
+/* RouterLink ile oluşturulan iletişim linki için ek stil (opsiyonel) */
+.page-container a[routerLink="/contact"] {
+  font-weight: bold;
+}
+
+/* Responsive Ayarlamalar */
+@media (max-width: 768px) {
+  .page-container {
+    margin: 20px 15px; /* Küçük ekranlarda kenar boşluklarını azalt */
+    padding: 15px;
+  }
+
+  .page-container h1 {
+    font-size: 1.8em;
+    margin-bottom: 20px;
+  }
+
+  .page-container h2 {
+    font-size: 1.4em;
+    margin-top: 25px;
+    margin-bottom: 10px;
+  }
+
+  .page-container p, .page-container li {
+    font-size: 0.95em; /* Küçük ekranlarda fontu biraz küçült */
+  }
+}

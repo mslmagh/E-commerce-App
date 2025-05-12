@@ -1,1 +1,18 @@
-<p>faq works!</p>
+<div class="faq-page-container">
+  <h1 class="page-title">Sıkça Sorulan Sorular</h1>
+  <p class="page-intro">
+    Aklınıza takılan soruların cevaplarını burada bulabilirsiniz. Aradığınız cevabı bulamazsanız, lütfen bizimle <a routerLink="/contact">iletişime geçin</a>.
+  </p>
+
+  <div class="faq-list">
+    <div class="faq-item" *ngFor="let faq of faqs; trackBy: trackById">
+      <h3 class="faq-question">{{ faq.question }}</h3>
+      <p class="faq-answer">{{ faq.answer }}</p>
+    </div>
+  </div>
+
+  <div class="still-have-questions">
+    <h3>Hala Sorularınız mı Var?</h3>
+    <p>Yukarıdaki listede cevabını bulamadığınız sorularınız için <a routerLink="/contact">iletişim sayfamızdan</a> bize ulaşabilir veya <a href="mailto:destek@example.com"></a> adresine e-posta gönderebilirsiniz.</p>
+    </div>
+</div>

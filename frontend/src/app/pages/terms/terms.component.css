@@ -1,0 +1,144 @@
+/* Genel statik sayfa konteyneri */
+.static-page-container {
+  max-width: 850px;
+  margin: 30px auto;
+  padding: 25px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Sayfa başlığı (H1) */
+.page-title {
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 2.4em;
+  font-weight: 600;
+}
+
+/* Sayfa tanıtım yazısı ve Son Güncelleme Tarihi */
+.page-intro {
+  text-align: left;
+  font-size: 1em;
+  color: #777;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.page-intro:first-of-type {
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+/* İçerik bölümleri */
+.content-section {
+  margin-bottom: 30px;
+}
+
+/* Bölüm başlıkları (H2) */
+.section-title {
+  font-size: 1.5em;
+  color: #2980b9;
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ecf0f1;
+  font-weight: 500;
+}
+
+/* Paragraflar */
+.static-page-container p {
+  font-size: 0.95em;
+  line-height: 1.7;
+  color: #444;
+  margin-bottom: 15px;
+}
+
+/* Listeler (ul, ol) */
+.static-page-container ul,
+.static-page-container ol {
+  padding-left: 25px;
+  margin-bottom: 20px;
+}
+
+.static-page-container li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.static-page-container ol li {
+  list-style-type: decimal;
+}
+
+.static-page-container ul li {
+  list-style-type: disc;
+}
+
+/* Vurgulu metin (strong) */
+.static-page-container strong {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Linkler */
+.static-page-container a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.static-page-container a:hover {
+  text-decoration: underline;
+}
+
+/* İletişim bölümü (Diğer sayfalardan alındı) */
+.contact-for-help {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #f0f5f9;
+  border-top: 2px solid #5d8aa8;
+  border-radius: 0 0 8px 8px;
+  text-align: center;
+}
+
+.contact-for-help h3 {
+  font-size: 1.4em;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+/* Responsive Ayarlamalar */
+@media (max-width: 768px) {
+  .static-page-container {
+    margin: 20px 10px;
+    padding: 20px;
+  }
+
+  .page-title {
+    font-size: 2em;
+  }
+
+  .page-intro {
+    font-size: 0.95em;
+    margin-bottom: 25px;
+  }
+
+  .section-title {
+    font-size: 1.3em;
+  }
+
+  .static-page-container p,
+  .static-page-container li {
+    font-size: 0.9em;
+  }
+
+  .contact-for-help h3 {
+    font-size: 1.25em;
+  }
+}
