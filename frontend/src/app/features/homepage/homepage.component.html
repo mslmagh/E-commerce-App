@@ -55,12 +55,12 @@
             <div class="price-range-inputs">
               <mat-form-field appearance="outline" class="price-input">
                 <mat-label>Min Fiyat</mat-label>
-                <input matInput type="number" [(ngModel)]="minPrice" name="minPrice" (ngModelChange)="onPriceRangeChange()" placeholder="0" min="0">
+                <input matInput type="number" [(ngModel)]="minPrice" name="minPrice" (blur)="onPriceRangeChange()" placeholder="0" min="0">
               </mat-form-field>
               <span class="price-range-separator">-</span>
               <mat-form-field appearance="outline" class="price-input">
                 <mat-label>Max Fiyat</mat-label>
-                <input matInput type="number" [(ngModel)]="maxPrice" name="maxPrice" (ngModelChange)="onPriceRangeChange()" placeholder="Sınırsız" min="0">
+                <input matInput type="number" [(ngModel)]="maxPrice" name="maxPrice" (blur)="onPriceRangeChange()" placeholder="Sınırsız" min="0">
               </mat-form-field>
             </div>
           </div>
