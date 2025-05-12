@@ -40,8 +40,8 @@ export class FavoritesService {
   }
 
   private fetchFavoritesFromApi(): void {
-    this.http.get<UserFavorite[]>(this.apiUrl).pipe(
-      map(favorites => favorites.map(fav => fav.product)),
+    this.http.get<any>(this.apiUrl).pipe(
+      map(favoriteDto => favoriteDto && favoriteDto.products ? favoriteDto.products : []),
       tap(products => {
         console.log('FavoritesService: Fetched favorites from API', products);
         this.favoritesItemsSource.next(products);
@@ -91,7 +91,7 @@ export class FavoritesService {
   }
 
   private addFavoriteToApi(product: Product): void {
-    this.http.post<UserFavorite>(`${this.apiUrl}/${product.id}`, {}).pipe(
+    this.http.post<UserFavorite>(`${this.apiUrl}/products/${product.id}`, {}).pipe(
       tap(_ => {
         console.log(`FavoritesService: Added product ${product.id} to favorites via API`);
         const currentFavorites = this.getFavoritesList();
@@ -128,7 +128,7 @@ export class FavoritesService {
   }
 
   private removeFavoriteFromApi(productId: number): void {
-    this.http.delete<void>(`${this.apiUrl}/${productId}`).pipe(
+    this.http.delete<void>(`${this.apiUrl}/products/${productId}`).pipe(
       tap(_ => {
         console.log(`FavoritesService: Removed product ${productId} from favorites via API`);
         const currentFavorites = this.getFavoritesList();
