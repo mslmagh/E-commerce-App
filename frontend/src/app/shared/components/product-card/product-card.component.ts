@@ -52,8 +52,40 @@ export class ProductCardComponent implements OnInit, OnDestroy {
       this.snackBar.open('Ürün bilgisi bulunamadı.', 'Kapat', { duration: 3000 });
       return;
     }
-    this.cartService.addItem({ productId: Number(this.product.id), quantity: 1 });
-    this.snackBar.open(`'${this.product.name}' sepete eklendi!`, 'Tamam', { duration: 2000 });
+    
+    if (this.product.stockQuantity !== undefined && this.product.stockQuantity < 1) {
+      this.snackBar.open(`'${this.product.name}' stokta bulunmamaktadır!`, 'Kapat', { 
+        duration: 3000, 
+        panelClass: ['warning-snackbar'] 
+      });
+      return;
+    }
+
+    console.log(`${this.constructor.name}: Adding product to cart:`, this.product.name);
+    const itemRequest = { productId: Number(this.product.id), quantity: 1 };
+    
+    this.cartService.addItem(itemRequest, this.product).subscribe({
+      next: (cart) => {
+        this.snackBar.open(`'${this.product.name}' sepete eklendi!`, 'Tamam', { 
+          duration: 2000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom'
+        });
+      },
+      error: (err) => {
+        console.error(`${this.constructor.name}: Error adding product to cart -`, err);
+        let errorMessage = "Ürün sepete eklenemedi!";
+        if (err && err.error && err.error.message) {
+          errorMessage = err.error.message;
+        } else if (err && err.message) {
+          errorMessage = err.message;
+        }
+        this.snackBar.open(errorMessage, 'Kapat', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
   }
 
   toggleCompare(): void {
