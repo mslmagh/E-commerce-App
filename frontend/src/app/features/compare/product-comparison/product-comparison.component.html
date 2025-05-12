@@ -30,8 +30,7 @@
         </ng-container>
 
         <!-- Dynamic Product Columns -->
-        <ng-container *ngFor="let product of comparedProducts; let i = index" [matColumnDef]="product.name"> 
-        <!-- Yukarıda product.name kullandık, ID bazlı ise 'product-' + product.id olmalı -->
+        <ng-container *ngFor="let product of comparedProducts; let i = index" [matColumnDef]="'product-' + product.id"> 
           <th mat-header-cell *matHeaderCellDef class="product-header">
             <a [routerLink]="['/products', product.id]" class="product-link" [title]="product.name">
               {{ product.name }}
@@ -41,35 +40,28 @@
             </button>
           </th>
           <td mat-cell *matCellDef="let row" [ngSwitch]="row.feature">
-            
             <ng-container *ngSwitchCase="'Görsel'">
               <a [routerLink]="['/products', product.id]">
-                <img [src]="row[product.name]" [alt]="product.name" class="compare-product-image">
+                <img [src]="row['product-' + product.id]" [alt]="product.name" class="compare-product-image">
               </a>
             </ng-container>
-
             <ng-container *ngSwitchCase="'Fiyat'">
-              {{ row[product.name] | currency:'TRY':'symbol':'1.2-2' }}
+              {{ row['product-' + product.id] | currency:'TRY':'symbol':'1.2-2' }}
             </ng-container>
-
             <ng-container *ngSwitchCase="'Puan'">
-              <div class="rating-stars" *ngIf="row[product.name].rating > 0">
+              <div class="rating-stars" *ngIf="row['product-' + product.id].rating > 0">
                 <ng-container *ngFor="let star of [1,2,3,4,5]">
-                  <mat-icon>{{ star <= row[product.name].rating ? 'star' : 'star_border' }}</mat-icon>
+                  <mat-icon>{{ star <= row['product-' + product.id].rating ? 'star' : 'star_border' }}</mat-icon>
                 </ng-container>
-                <span class="review-count">({{ row[product.name].count || 0 }})</span>
+                <span class="review-count">({{ row['product-' + product.id].count || 0 }})</span>
               </div>
-              <span *ngIf="!row[product.name].rating || row[product.name].rating === 0">-</span>
+              <span *ngIf="!row['product-' + product.id].rating || row['product-' + product.id].rating === 0">-</span>
             </ng-container>
-
             <ng-container *ngSwitchCase="'İşlemler'">
-                <!-- Bu kısım artık header'da olduğu için boş veya sepete ekle butonu konulabilir -->
-                <!-- <button mat-stroked-button color="primary" (click)="addToCart(product.id)">Sepete Ekle</button> -->
-                <!-- Şimdilik boş bırakıyoruz, product header'daki X butonu ana işlevi görüyor -->
+              <!-- Boş veya sepete ekle butonu konulabilir -->
             </ng-container>
-
             <ng-container *ngSwitchDefault>
-              <span [innerHTML]="row[product.name] || '-'"></span>
+              <span [innerHTML]="row['product-' + product.id] || '-' "></span>
             </ng-container>
           </td>
         </ng-container>

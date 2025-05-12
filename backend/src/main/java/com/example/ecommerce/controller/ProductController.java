@@ -90,31 +90,35 @@ public class ProductController {
         return ResponseEntity.ok(productDto);
     }
 
-    // YENİ ENDPOINT
-    @Operation(summary = "Get Multiple Products by their IDs",
-               description = "Retrieves a list of products based on a provided list of product IDs. Publicly accessible.",
-               security = {}) // Public endpoint
+    // DTO for batch IDs
+    @Operation(
+        summary = "Get Multiple Products by their IDs",
+        description = "Retrieves a list of products based on a provided list of product IDs. Publicly accessible."
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
-                         content = @Content(mediaType = "application/json",
-                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
-            @ApiResponse(responseCode = "400", description = "Request body is empty or invalid")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+        @ApiResponse(responseCode = "400", description = "Request body is empty or invalid")
     })
-    @PostMapping("/batch") // Request body'den ID listesi alacak
-    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> ids) {
+    @PostMapping("/batch")
+    public ResponseEntity<List<ProductDto>> getProductsByIds(
+        @RequestBody IdsRequest request) {
+        List<Long> ids = request.getIds();
         if (ids == null || ids.isEmpty()) {
-            // Spring Boot genellikle boş bir body için 400 Bad Request döner,
-            // ama yine de açıkça kontrol etmek iyi bir pratik.
-            return ResponseEntity.badRequest().body(Collections.emptyList()); 
+            return ResponseEntity.badRequest().body(Collections.emptyList());
         }
         List<ProductDto> products = productService.getProductsByIds(ids);
-        if (products.isEmpty() && !ids.isEmpty()) {
-            // İstenen ID'lerden hiçbiri bulunamadıysa 404 Not Found daha uygun olabilir,
-            // ancak ID listesi boş değilken boş product listesi dönmek de kabul edilebilir.
-            // Şimdilik 200 OK ile boş liste dönüyoruz, bu frontend için daha basit olabilir.
-            // return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
-        }
         return ResponseEntity.ok(products);
+    }
+
+    // DTO for batch IDs
+    public static class IdsRequest {
+        @Schema(description = "List of product IDs", example = "[1,2,3]")
+        private List<Long> ids;
+        public IdsRequest() {}
+        public List<Long> getIds() { return ids; }
+        public void setIds(List<Long> ids) { this.ids = ids; }
     }
 
     @Operation(summary = "Get Products for Current Seller",
