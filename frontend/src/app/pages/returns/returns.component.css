@@ -1,0 +1,153 @@
+/* Genel statik sayfa konteyneri */
+.static-page-container {
+  max-width: 850px;
+  margin: 30px auto;
+  padding: 25px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Sayfa başlığı (H1) */
+.page-title {
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 2.4em;
+  font-weight: 600;
+}
+
+/* Sayfa tanıtım yazısı */
+.page-intro {
+  text-align: center;
+  font-size: 1.1em;
+  color: #555;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+/* İçerik bölümleri */
+.content-section {
+  margin-bottom: 35px;
+}
+
+/* Bölüm başlıkları (H2) */
+.section-title {
+  font-size: 1.6em;
+  color: #2980b9; /* FAQ sayfasındaki ile aynı mavi tonu */
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ecf0f1;
+  font-weight: 500;
+}
+
+/* Paragraflar */
+.static-page-container p {
+  font-size: 1em;
+  line-height: 1.7;
+  color: #444;
+  margin-bottom: 15px;
+}
+
+/* Listeler (ul, ol) */
+.static-page-container ul,
+.static-page-container ol {
+  padding-left: 25px;
+  margin-bottom: 20px;
+}
+
+.static-page-container li {
+  margin-bottom: 10px;
+  line-height: 1.7;
+}
+
+.static-page-container ol li {
+  list-style-type: decimal; /* Numaralı liste */
+}
+
+.static-page-container ul li {
+  list-style-type: disc; /* Madde işaretli liste */
+}
+
+/* Vurgulu metin (strong) */
+.static-page-container strong {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Linkler */
+.static-page-container a {
+  color: #3498db; /* FAQ sayfasındaki ile aynı link rengi */
+  text-decoration: none;
+}
+
+.static-page-container a:hover {
+  text-decoration: underline;
+}
+
+/* Not kutucuğu */
+.note {
+  background-color: #fdf8e2;
+  border-left: 4px solid #f1c40f;
+  padding: 15px;
+  margin: 20px 0;
+  font-size: 0.95em;
+  border-radius: 4px;
+}
+
+.note strong {
+  color: #c0392b; /* Not başlığı için farklı bir renk */
+}
+
+/* Yardım için iletişim bölümü */
+.contact-for-help {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #eaf2f8; /* Hafif mavi bir arka plan */
+  border-top: 2px solid #3498db;
+  border-radius: 0 0 8px 8px;
+  text-align: center;
+}
+
+.contact-for-help h3 {
+  font-size: 1.4em;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+/* Responsive Ayarlamalar */
+@media (max-width: 768px) {
+  .static-page-container {
+    margin: 20px 10px;
+    padding: 20px;
+  }
+
+  .page-title {
+    font-size: 2em;
+  }
+
+  .page-intro {
+    font-size: 1em;
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-size: 1.4em;
+  }
+
+  .static-page-container p,
+  .static-page-container li {
+    font-size: 0.95em;
+  }
+
+  .contact-for-help h3 {
+    font-size: 1.3em;
+  }
+}

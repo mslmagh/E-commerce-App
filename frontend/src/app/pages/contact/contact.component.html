@@ -1,1 +1,95 @@
-<p>contact works!</p>
+<div class="page-container contact-page-container">
+  <section class="hero-section text-center">
+    <h1>Bizimle İletişime Geçin</h1>
+    <p class="lead">Sorularınız, önerileriniz veya herhangi bir konuda bize ulaşmaktan çekinmeyin.</p>
+  </section>
+
+  <section class="contact-methods">
+    <div class="row">
+      <div class="col-md-5 contact-info-col">
+        <h2>İletişim Bilgilerimiz</h2>
+        <div class="info-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <div>
+            <h4>Adresimiz</h4>
+            <p>albeni </p> <p>Akdeniz Üniversitesi Kampüsü</p>
+            <p>Teknokent AR-GE 2 Binası</p>
+            <p>Konyaaltı, Antalya</p> <p>Türkiye</p>
+          </div>
+        </div>
+        <div class="info-item">
+          <i class="fas fa-phone-alt"></i>
+          <div>
+            <h4>Telefon</h4>
+            <p><a href="tel:+905551234567">+90 555 123 45 67</a> (Müşteri Hizmetleri)</p>
+            <p><a href="tel:+902421234567">+90 242 123 45 67</a> (Ofis - Antalya Alan Kodu)</p>
+          </div>
+        </div>
+        <div class="info-item">
+          <i class="fas fa-envelope"></i>
+          <div>
+            <h4>E-posta</h4>
+            <p><a href="mailto:info@eticaretsitem.com"></a> (Genel Sorular)</p>
+            <p><a href="mailto:destek@eticaretsitem.com"></a> (Teknik Destek)</p>
+          </div>
+        </div>
+        <div class="info-item">
+          <i class="fas fa-clock"></i>
+          <div>
+            <h4>Çalışma Saatleri</h4>
+            <p>Hafta içi: 09:00 - 23:00</p>
+
+          </div>
+        </div>
+        <div class="social-icons-contact">
+          <h4>Bizi Takip Edin</h4>
+          <a href="https://www.facebook.com/" target="_blank" title="Facebook" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://www.instagram.com/muslum.agah?igsh=ZXRvaTNteWxieDNn" target="_blank" title="Instagram" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.x.com/" target="_blank" title="Twitter" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        </div>
+      </div>
+
+      <div class="col-md-7 contact-form-col">
+        <h2>Bize Mesaj Gönderin</h2>
+        <p>Aşağıdaki formu doldurarak bize hızlıca ulaşabilirsiniz. En kısa sürede size geri dönüş yapacağız.</p>
+        <form class="contact-form" (submit)="onFormSubmit($event)">
+          <div class="form-row-flex">
+            <mat-form-field appearance="outline" class="form-field-half">
+              <mat-label>Adınız Soyadınız</mat-label>
+              <input matInput name="name" placeholder="Adınız Soyadınız" required>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field-half">
+              <mat-label>E-posta Adresiniz</mat-label>
+              <input matInput name="email" type="email" placeholder="ornek@mail.com" required>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline" class="form-field-full">
+            <mat-label>Konu</mat-label>
+            <input matInput name="subject" placeholder="Mesajınızın konusu" required>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="form-field-full">
+            <mat-label>Mesajınız</mat-label>
+            <textarea matInput name="message" rows="6" placeholder="Mesajınızı buraya yazın..." required></textarea>
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="submit">
+            <mat-icon>send</mat-icon> Mesajı Gönder
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="map-section">
+    <h2>Haritada Biz</h2>
+    <div class="map-placeholder">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3191.043757260862!2d30.64738581561559!3d36.88880097993084!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14c391e37335e4c9%3A0x5b9b8cec93627034!2sAkdeniz%20%C3%9Cniversitesi%20Teknokent%20Ar-Ge%202%20Binas%C4%B1!5e0!3m2!1str!2str!4vYOUR_API_KEY_PART_HERE"
+        width="100%"
+        height="400"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+  </section>
+</div>

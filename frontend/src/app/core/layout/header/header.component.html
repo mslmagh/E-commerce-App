@@ -2,7 +2,7 @@
   <div class="header-container">
 
     <a mat-button routerLink="/" class="logo-button">
-      <span>E-Ticaret Sitem</span>
+      <span>albeni</span>
     </a>
 
     <span class="spacer"></span>
@@ -63,12 +63,12 @@
         <mat-icon>shopping_cart</mat-icon>
       </button>
 
-      <button mat-icon-button 
+      <button mat-icon-button
               routerLink="/compare"
-              [disabled]="(compareItemCount$ | async) === 0 || (compareItemCount$ | async) === 1" 
+              [disabled]="(compareItemCount$ | async) === 0 || (compareItemCount$ | async) === 1"
               [matBadge]="(compareItemCount$ | async) || null"
               [matBadgeHidden]="(compareItemCount$ | async) === 0"
-              matBadgeColor="accent" 
+              matBadgeColor="accent"
               matBadgeOverlap="true"
               aria-label="Ürünleri Karşılaştır" title="Seçili Ürünleri Karşılaştır" class="action-button">
         <mat-icon>compare_arrows</mat-icon>

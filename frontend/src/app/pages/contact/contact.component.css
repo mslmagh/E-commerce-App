@@ -1,0 +1,202 @@
+/* Genel Sayfa Konteyneri */
+.page-container {
+  max-width: 1000px; /* Hakkımızda sayfasıyla benzer veya biraz daha geniş olabilir */
+  margin: 40px auto;
+  padding: 20px;
+  font-family: 'Roboto', sans-serif;
+  color: #333;
+}
+
+/* Hero Alanı (Başlık ve Alt Başlık) */
+.contact-page-container .hero-section { /* Hakkımızda ile aynı stili kullanabiliriz */
+  background-color: #f8f9fa;
+  padding: 40px 20px;
+  border-radius: 8px;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.contact-page-container .hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: #3f51b5; /* Ana tema rengi */
+}
+
+.contact-page-container .lead {
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+/* Ana Bölüm Başlıkları */
+.contact-page-container h2 {
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #3f51b5;
+  border-bottom: 2px solid #3f51b5;
+  padding-bottom: 10px;
+  margin-bottom: 25px;
+}
+
+/* İletişim Metotları Bölümü */
+.contact-methods .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -15px;
+  margin-left: -15px;
+  gap: 20px 0; /* Sütunlar arası dikey boşluk */
+}
+
+.contact-methods .col-md-5,
+.contact-methods .col-md-7 {
+  position: relative;
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+@media (min-width: 768px) { /* md breakpoint */
+  .contact-methods .col-md-5 {
+    flex: 0 0 calc(41.666667% - 15px); /* Sütunlar arası boşluğu hesaba kat */
+    max-width: calc(41.666667% - 15px);
+    margin-right: 30px; /* Sağdaki form ile arasına boşluk */
+  }
+  .contact-methods .col-md-7 {
+    flex: 0 0 calc(58.333333% - 15px);
+    max-width: calc(58.333333% - 15px);
+  }
+}
+
+/* İletişim Bilgileri Öğeleri */
+.contact-info-col .info-item {
+  display: flex;
+  align-items: flex-start; /* İkon ve yazıyı yukarıdan hizala */
+  margin-bottom: 25px;
+}
+
+.contact-info-col .info-item i {
+  font-size: 1.5rem; /* İkon boyutu */
+  color: #3f51b5;
+  margin-right: 20px;
+  margin-top: 5px; /* İkonu metinle biraz daha iyi hizalamak için */
+  width: 25px; /* İkon için sabit genişlik */
+  text-align: center;
+}
+
+.contact-info-col .info-item h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.contact-info-col .info-item p {
+  margin: 0 0 5px 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.contact-info-col .info-item a {
+  color: #3f51b5;
+  text-decoration: none;
+}
+
+.contact-info-col .info-item a:hover {
+  text-decoration: underline;
+}
+
+/* Sosyal Medya İkonları (Footer'daki gibi) */
+.social-icons-contact {
+  margin-top: 20px;
+}
+.social-icons-contact h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.social-icons-contact a {
+  color: #3f51b5;
+  font-size: 1.5rem;
+  margin-right: 15px;
+  transition: color 0.2s ease;
+}
+.social-icons-contact a:hover {
+  color: #303f9f; /* Hover rengi */
+}
+.social-icons-contact a:last-child {
+  margin-right: 0;
+}
+
+/* İletişim Formu */
+.contact-form-col > p { /* Form açıklama metni */
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.contact-form .form-row-flex {
+  display: flex;
+  gap: 20px; /* Form elemanları arası yatay boşluk */
+  margin-bottom: 0; /* Mat-form-field kendi boşluğunu yönetir */
+}
+
+.contact-form .form-field-half {
+  flex: 1; /* Eşit genişlikte iki sütun */
+}
+
+.contact-form .form-field-full {
+  width: 100%;
+}
+
+/* Mat-form-field için genel ayarlar (zaten globalde veya tema dosyasında olabilir) */
+.contact-form mat-form-field {
+  margin-bottom: 16px;
+}
+
+.contact-form button[mat-raised-button] {
+  width: auto; /* Buton içeriğe göre boyutlansın */
+  min-width: 150px; /* Minimum genişlik */
+  padding: 10px 20px;
+}
+
+.contact-form button[mat-raised-button] mat-icon {
+  margin-right: 8px;
+}
+
+
+/* Harita Alanı */
+.map-section {
+  margin-top: 40px;
+}
+
+.map-placeholder {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden; /* iframe kenarlıklarını düzgün göstermek için */
+  height: 400px; /* Yüksekliği sabit tut */
+  background-color: #f0f0f0; /* Harita yüklenene kadar arka plan */
+}
+
+.map-placeholder iframe {
+  display: block; /* Altındaki boşluğu kaldırır */
+}
+
+
+/* Responsive Ayarlamalar */
+@media (max-width: 767px) {
+  .contact-methods .col-md-5,
+  .contact-methods .col-md-7 {
+    max-width: 100%;
+    flex: 0 0 100%;
+    margin-right: 0; /* Küçük ekranda sağ boşluğu kaldır */
+  }
+  .contact-info-col {
+    margin-bottom: 30px; /* Bilgi ve form arasına boşluk */
+  }
+  .contact-form .form-row-flex {
+    flex-direction: column; /* Form elemanlarını alt alta getir */
+    gap: 0;
+  }
+}
