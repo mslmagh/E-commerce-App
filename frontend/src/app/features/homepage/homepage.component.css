@@ -3,7 +3,7 @@
 /* Ana Container: İçeriği ortalar ve yan boşlukları ayarlar */
 .homepage-container {
   padding: 20px 0;
-  max-width: 1200px; /* Ana içerikle aynı genişlik */
+  max-width: 1600px; /* Ana içerikle aynı genişlik (genişletildi) */
   margin: 0 auto; /* Ortala */
   padding: 0 15px; /* Yan boşluklar */
 }
@@ -170,7 +170,7 @@
   margin-top: -25px;
 }
 .category-nav {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 15px;
 }
@@ -180,8 +180,8 @@
   margin: 0;
   display: flex;
   gap: 10px 30px;
-  overflow-x: auto; /* Yatayda kaydırılabilir olsun */
-  white-space: nowrap; /* Alt satıra inmesin */
+  width: 100%;
+  justify-content: space-evenly; /* Kategoriler arası eşit boşluk ve ortalama */
 }
 /* Scrollbar gizlenebilir */
 .category-nav-list::-webkit-scrollbar {
