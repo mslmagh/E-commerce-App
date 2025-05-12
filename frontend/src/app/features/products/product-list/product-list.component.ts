@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CategoryService, Category } from '../../../core/services/category.service';
 import { CartItemRequest } from '../../../core/models/cart-item-request.model';
+import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component';
 
 @Component({
   selector: 'app-product-list',
@@ -19,7 +20,8 @@ import { CartItemRequest } from '../../../core/models/cart-item-request.model';
     RouterLink,
     MatSnackBarModule,
     MatButtonModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    ProductCardComponent
   ],
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css']

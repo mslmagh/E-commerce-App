@@ -7,16 +7,7 @@
     </div>
 
     <div class="product-grid">
-      <div class="product-card" *ngFor="let product of products">
-        <a [routerLink]="['/products', product.id]" class="product-link">
-          <img [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name" class="product-image">
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name }}</h4>
-            <p class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</p>
-          </div>
-        </a>
-        <button class="add-to-cart-btn" (click)="addToCart(product)">Sepete Ekle</button>
-      </div>
+      <app-product-card *ngFor="let product of products" [product]="product"></app-product-card>
     </div>
   </ng-container>
 
