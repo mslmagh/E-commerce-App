@@ -32,9 +32,9 @@ export class ProductCardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.product && this.product.id !== undefined) {
-      this.isInCompareList = this.productComparisonService.isProductInCompareList(this.product.id);
+      this.isInCompareList = this.productComparisonService.getComparisonList().some(p => p.id === this.product.id);
       this.comparisonSubscription = this.productComparisonService.comparisonList$.subscribe(list => {
-        this.isInCompareList = list.includes(this.product.id);
+        this.isInCompareList = list.some(p => p.id === this.product.id);
       });
     } else {
       console.error('ProductCardComponent: Product or Product ID is undefined.', this.product);

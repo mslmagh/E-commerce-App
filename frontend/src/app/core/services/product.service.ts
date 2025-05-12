@@ -95,7 +95,8 @@ export class ProductService {
       return new Observable(observer => observer.next([])); // Veya of([]) rxjs operatörü
     }
     console.log(`ProductService: Fetching products for IDs (batch): ${ids} from API`);
-    return this.httpClient.post<Product[]>(`${this.apiUrl}/batch`, ids).pipe(
+    // Backend artık { ids: [...] } formatında obje bekliyor
+    return this.httpClient.post<Product[]>(`${this.apiUrl}/batch`, { ids }).pipe(
       tap(products => console.log(`ProductService: Fetched ${products.length} products in batch for IDs: ${ids}.`)),
       catchError(this.handleError<Product[]>('getProductsByIds', []))
     );

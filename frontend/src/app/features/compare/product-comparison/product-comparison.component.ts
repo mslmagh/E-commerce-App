@@ -55,21 +55,10 @@ export class ProductComparisonComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.isLoading = true;
-    this.comparisonIdsSubscription = this.productComparisonService.comparisonList$.pipe(
-      switchMap(ids => {
-        if (ids && ids.length > 0) {
-          this.isLoading = true;
-          return this.productService.getProductsByIds(ids);
-        } else {
-          return of([]); // ID listesi boşsa boş array döndür
-        }
-      })
-    ).subscribe({
+    this.comparisonIdsSubscription = this.productComparisonService.comparisonList$.subscribe({
       next: (products) => {
         this.comparedProducts = products;
-        // displayedColumns'ı güncelle: 'feature' + ürün adları
-        this.displayedColumns = ['feature', ...this.comparedProducts.map(p => p.name)]; 
-        // Veya daha güvenli olması için ID: this.displayedColumns = ['feature', ...this.comparedProducts.map(p => 'product-' + p.id)];
+        this.displayedColumns = ['feature', ...this.comparedProducts.map(p => 'product-' + p.id)];
         this.isLoading = false;
       },
       error: (err) => {
@@ -101,8 +90,8 @@ export class ProductComparisonComponent implements OnInit, OnDestroy {
     return this.featuresToCompare.map(feature => {
       const row: any = { feature: feature.label }; // İlk sütun özellik adı
       this.comparedProducts.forEach(product => {
-        // Ürün adını (veya ID'sini) sütun başlığı olarak kullanıyoruz
-        const columnKey = product.name; // Veya 'product-' + product.id
+        // Ürün ID'sini sütun başlığı olarak kullanıyoruz
+        const columnKey = 'product-' + product.id;
         if (feature.key === 'actions') {
           row[columnKey] = product.id; // İşlem yapılacak ürünün ID'si
         } else if (feature.key === 'imageUrl') {
