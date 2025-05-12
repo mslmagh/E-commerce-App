@@ -19,6 +19,7 @@ export const PROFILE_ROUTES: Routes = [
       { path: 'cards', component: SavedCardsComponent },   // /profile/cards
       { path: 'address-form', component: AddressFormComponent }, // New route for adding an address
       { path: 'address-form/:id', component: AddressFormComponent }, // New route for editing an address
+      { path: 'orders/:orderId', loadComponent: () => import('./order-detail/order-detail.component').then(m => m.OrderDetailComponent) },
       { path: '', redirectTo: 'user-info', pathMatch: 'full' }
     ]
   }

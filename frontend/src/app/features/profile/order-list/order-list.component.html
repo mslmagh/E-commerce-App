@@ -28,7 +28,7 @@
     </div>
 
     <div *ngIf="!isLoading && !error && orders.length > 0" class="orders-grid">
-      <mat-card *ngFor="let order of orders; trackBy: trackByOrderId" class="order-card mat-elevation-z4">
+      <mat-card *ngFor="let order of orders; trackBy: trackByOrderId" class="order-card mat-elevation-z4" (click)="goToOrderDetail(order.id)" style="cursor:pointer;">
         <mat-card-header class="order-card-header">
           <mat-card-title class="order-card-title">Sipariş #{{ order.id }}</mat-card-title>
           <mat-card-subtitle class="order-card-subtitle">
@@ -58,6 +58,10 @@
               <span matListItemTitle>{{ item.productName }} (x{{ item.quantity }})</span>
               <span matListItemLine>Fiyat: {{ item.priceAtPurchase | currency:'TRY':'symbol':'1.2-2' }}</span>
               <span matListItemLine *ngIf="item.status">Durum: {{ item.status }}</span>
+              <button mat-stroked-button color="primary" (click)="requestReturn(order.id, item)">
+                <mat-icon>undo</mat-icon>
+                İade Talebi Oluştur
+              </button>
             </mat-list-item>
           </mat-list>
 

@@ -6,7 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule } from '@angular/router'; // For potential future links to order details
+import { RouterModule, Router } from '@angular/router'; // For potential future links to order details
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
@@ -45,7 +45,7 @@ export class OrderListComponent implements OnInit {
   isLoading = true;
   error: string | null = null;
 
-  constructor(private orderService: OrderService) {}
+  constructor(private orderService: OrderService, private router: Router) {}
 
   ngOnInit(): void {
     this.isLoading = true;
@@ -115,5 +115,22 @@ export class OrderListComponent implements OnInit {
       case OrderStatus.PAYMENT_FAILED: return 'Ödeme Başarısız';
       default: return status; // Return the original status if no mapping is found
     }
+  }
+
+  goToOrderDetail(orderId: number) {
+    this.router.navigate(['/profile/orders', orderId]);
+  }
+
+  requestReturn(orderId: number, item: any) {
+    if (!confirm(`\"${item.productName}\" ürünü için iade talebi oluşturmak istediğinize emin misiniz?`)) return;
+    this.orderService.requestReturnForOrderItem(orderId, item.id).subscribe({
+      next: () => {
+        alert('İade talebiniz başarıyla oluşturuldu.');
+        this.ngOnInit(); // Listeyi güncelle
+      },
+      error: (err: any) => {
+        alert(err.message || 'İade talebi oluşturulurken bir hata oluştu.');
+      }
+    });
   }
 }
