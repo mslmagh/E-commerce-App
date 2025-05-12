@@ -164,6 +164,17 @@ export class OrderService {
     );
   }
 
+  // New method for admin to cancel/refund specific order items
+  cancelRefundOrderItemsForAdmin(orderId: string, itemIds: number[], reason?: string): Observable<Order> {
+    const requestBody: CancelOrderItemsRequest = { 
+      orderItemIds: itemIds, 
+      reason: reason || 'Cancelled and refunded by admin' 
+    };
+    return this.http.post<Order>(`${this.apiUrl}/${orderId}/items/cancel-refund`, requestBody).pipe(
+      catchError(this.handleError<Order>(`cancelRefundOrderItemsForAdmin orderId=${orderId}`))
+    );
+  }
+
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
       console.error(`${operation} failed: ${JSON.stringify(error.error) || error.message}`);

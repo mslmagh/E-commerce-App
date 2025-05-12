@@ -19,12 +19,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { OrderService } from '../../../../core/services/order.service';
 import { Order } from '../../../../core/services/order.service';
 
 // Aligning with OrderStatusType from AdminOrderListComponent
-type OrderStatus = 'PENDING' | 'PROCESSING' | 'PAYMENT_FAILED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+type OrderStatus = 'PENDING' | 'PROCESSING' | 'PAYMENT_FAILED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
 // REFUNDED durumu admin listesinde yoktu, gerekirse eklenebilir veya backend'den gelenlere göre şekillenir.
 
 export interface AdminOrderDetailItem {
@@ -37,6 +38,8 @@ export interface AdminOrderDetailItem {
   totalPrice: number;
   sku?: string;
   sellerName?: string;
+  status?: string;
+  selected?: boolean; // For item selection in refund
 }
 
 export interface AdminOrderDetail {
@@ -81,7 +84,7 @@ type AdminOrderSummary = {
     CommonModule, RouterLink, MatSnackBarModule, MatCardModule, MatButtonModule,
     MatIconModule, MatProgressSpinnerModule, MatDividerModule, MatTooltipModule,
     MatSlideToggleModule, MatFormFieldModule, MatInputModule, MatListModule,
-    MatSelectModule,
+    MatSelectModule, MatCheckboxModule,
     FormsModule
   ],
   templateUrl: './admin-order-detail.component.html',
@@ -114,13 +117,18 @@ type AdminOrderSummary = {
      .status-SHIPPED { background-color: #E0F2F1; color: #00695C; border: 1px solid #B2DFDB;}
      .status-DELIVERED { background-color: #C8E6C9; color: #2E7D32; border: 1px solid #A5D6A7;}
      .status-CANCELLED { background-color: #F5F5F5; color: #757575; border: 1px solid #EEEEEE;}
+     .status-REFUNDED { background-color: #D1C4E9; color: #4527A0; border: 1px solid #B39DDB;}
+     .item-checkbox { margin-right: 16px; }
+     .refund-button { margin-top: 16px; }
   `]
 })
 export class AdminOrderDetailComponent implements OnInit, OnDestroy {
   order: AdminOrderDetail | null = null;
   isLoading = true;
   isCancellingOrder = false;
+  isRefundingItems = false;
   orderId: string | null = null;
+  selectedItemIds: number[] = [];
   private routeSub!: Subscription;
 
   constructor(
@@ -149,10 +157,28 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
         }
       })
     ).subscribe({
-      next: (data: AdminOrderDetail | null) => {
+      next: (data: any) => {
+        console.log('DEBUG: API response for order detail:', data);
         if (data) {
-          this.order = data;
-          console.log('Admin Order Detail: Order data loaded from API:', this.order);
+          // API'den gelen veriyi frontend modeline dönüştür
+          this.order = {
+            ...data,
+            customer: {
+              id: data.customerId,
+              name: data.customerUsername,
+              email: data.customerEmail || ''
+            },
+            items: data.items || []
+          };
+          if (this.order && this.order.items) {
+            this.order.items.forEach(item => {
+              item.selected = false;
+            });
+          }
+          if (this.order) {
+            console.log('DEBUG: Order loaded:', this.order);
+            console.log('DEBUG: Order items:', this.order.items);
+          }
         } else if (this.orderId) {
            const errorMsg = `Sipariş (${this.orderId}) yüklenirken bir hata oluştu veya bulunamadı.`;
            this.snackBar.open(errorMsg, 'Kapat', { duration: 4000 });
@@ -231,6 +257,75 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleItemSelection(item: AdminOrderDetailItem): void {
+    if (item.selected) {
+      this.selectedItemIds.push(item.orderItemId);
+    } else {
+      this.selectedItemIds = this.selectedItemIds.filter(id => id !== item.orderItemId);
+    }
+  }
+
+  selectAllItems(): void {
+    if (!this.order) return;
+    
+    const allSelected = this.order.items.every(item => item.selected);
+    
+    this.order.items.forEach(item => {
+      item.selected = !allSelected;
+      if (item.selected) {
+        if (!this.selectedItemIds.includes(item.orderItemId)) {
+          this.selectedItemIds.push(item.orderItemId);
+        }
+      }
+    });
+    
+    if (allSelected) {
+      this.selectedItemIds = [];
+    }
+  }
+
+  onRefundSelectedItems(): void {
+    if (!this.order || this.selectedItemIds.length === 0 || this.isRefundingItems || !this.orderId) {
+      this.snackBar.open('Lütfen iade edilecek ürünleri seçin.', 'Kapat', { duration: 3000 });
+      return;
+    }
+
+    const confirmRefund = confirm(`Seçilen ${this.selectedItemIds.length} ürünü iade etmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve müşteriye ödeme iadesi yapılacaktır.`);
+    if (!confirmRefund) return;
+
+    this.isRefundingItems = true;
+    const refundReason = 'Refunded by Admin';
+
+    this.orderService.cancelRefundOrderItemsForAdmin(this.orderId, this.selectedItemIds, refundReason).subscribe({
+      next: (updatedOrderData: Order) => {
+        console.log('AdminOrderDetailComponent: refund items successful, response:', updatedOrderData);
+        if (this.order) {
+          // Update order items with new status
+          updatedOrderData.items.forEach(backendItem => {
+            const matchingItem = this.order?.items.find(item => item.orderItemId === backendItem.id);
+            if (matchingItem) {
+              matchingItem.status = backendItem.status;
+              matchingItem.selected = false;
+            }
+          });
+
+          // Update order status if it changed
+          if (this.order.status !== updatedOrderData.status as OrderStatus) {
+            this.order.status = updatedOrderData.status as OrderStatus;
+          }
+        }
+        this.selectedItemIds = [];
+        this.snackBar.open(`Seçilen ürünler başarıyla iade edildi ve ödeme iadesi işlemi başlatıldı.`, 'Kapat', { duration: 4000 });
+        this.isRefundingItems = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('AdminOrderDetailComponent: Error refunding items via API:', err);
+        this.snackBar.open(`Ürünler iade edilirken bir hata oluştu: ${err.error?.message || err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
+        this.isRefundingItems = false;
+      }
+    });
+  }
+
   getStatusClass(status: OrderStatus | undefined): string {
     if (!status) return '';
     switch (status) {
@@ -241,10 +336,58 @@ export class AdminOrderDetailComponent implements OnInit, OnDestroy {
       case 'DELIVERED': return 'status-DELIVERED';
       case 'CANCELLED': return 'status-CANCELLED';
       case 'PAYMENT_FAILED': return 'status-PAYMENT_FAILED';
+      case 'REFUNDED': return 'status-REFUNDED';
       default:
         console.warn("AdminOrderDetailComponent: Unknown status in getStatusClass: ", status);
         return '';
     }
+  }
+
+  areAllItemsSelected(): boolean {
+    if (!this.order || !this.order.items || this.order.items.length === 0) {
+      return false;
+    }
+    return this.order.items.every(item => item.selected);
+  }
+
+  /**
+   * Belirli bir ürünü iade et
+   */
+  refundItem(item: AdminOrderDetailItem): void {
+    console.log('DEBUG: refundItem called for item:', item);
+    if (!this.order || !this.orderId || item.status === 'CANCELLED' || item.status === 'REFUNDED') {
+      return;
+    }
+    
+    const confirmRefund = confirm(`"${item.productName}" ürününü iade etmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve müşteriye ödeme iadesi yapılacaktır.`);
+    if (!confirmRefund) return;
+    
+    this.isRefundingItems = true;
+    const refundReason = 'Refunded by Admin';
+    
+    this.orderService.cancelRefundOrderItemsForAdmin(this.orderId, [item.orderItemId], refundReason).subscribe({
+      next: (updatedOrderData: Order) => {
+        console.log('DEBUG: refundItem API response:', updatedOrderData);
+        // Update item status
+        const updatedItem = updatedOrderData.items.find(i => i.id === item.orderItemId);
+        if (updatedItem) {
+          item.status = updatedItem.status;
+        }
+        
+        // Update order status if it changed
+        if (this.order && this.order.status !== updatedOrderData.status as OrderStatus) {
+          this.order.status = updatedOrderData.status as OrderStatus;
+        }
+        
+        this.snackBar.open(`"${item.productName}" ürünü başarıyla iade edildi ve ödeme iadesi işlemi başlatıldı.`, 'Kapat', { duration: 4000 });
+        this.isRefundingItems = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('DEBUG: refundItem API error:', err);
+        this.snackBar.open(`Ürün iade edilirken bir hata oluştu: ${err.error?.message || err.message || 'Bilinmeyen Hata'}`, 'Kapat', { duration: 5000 });
+        this.isRefundingItems = false;
+      }
+    });
   }
 
   ngOnDestroy(): void {

@@ -97,10 +97,17 @@
                 <span class="product-price-qty">
                   {{ item.quantity }} adet x {{ item.unitPrice | currency:'TRY':'symbol':'1.2-2' }}
                   <span *ngIf="item.sku"> | SKU: {{ item.sku }}</span>
-                  <span *ngIf="item.sellerName"> | Satıcı: {{ item.sellerName }}</span> </span>
+                  <span *ngIf="item.sellerName"> | Satıcı: {{ item.sellerName }}</span>
+                  <span *ngIf="item.status"> | Durum: {{ item.status }}</span>
+                </span>
               </div>
-              <div matListItemMeta style="font-weight: bold; margin-left: 16px;">
-                {{ item.totalPrice | currency:'TRY':'symbol':'1.2-2' }}
+              <div matListItemMeta style="display: flex; align-items: center;">
+                <span style="font-weight: bold; margin-right: 16px;">{{ item.totalPrice | currency:'TRY':'symbol':'1.2-2' }}</span>
+                <button mat-button color="warn"
+                        (click)="refundItem(item)"
+                        [disabled]="item.status === 'CANCELLED' || item.status === 'REFUNDED'">
+                  İade Et
+                </button>
               </div>
             </mat-list-item>
           </mat-list>
@@ -114,7 +121,7 @@
       </mat-card>
     </div>
 
-    <!-- Sipariş İptal Etme Kartı -->
+    <!-- Sipariş İşlemleri Kartı -->
     <div class="right-column" *ngIf="order">
       <mat-card class="actions-card">
         <mat-card-header>
@@ -122,6 +129,8 @@
         </mat-card-header>
         <mat-card-content>
           <p *ngIf="order.status === 'CANCELLED'" style="color: grey;">Bu sipariş zaten iptal edilmiş.</p>
+          
+          <!-- Tüm siparişi iptal et -->
           <button mat-raised-button color="warn" 
                   (click)="onCancelOrder()"
                   [disabled]="isCancellingOrder || order.status === 'CANCELLED'"
