@@ -207,4 +207,62 @@ public class OrderController {
                 }
         }
 
+        // Kullanıcı bir sipariş kalemi için iade talebi oluşturur
+        @Operation(summary = "Request return for an order item (User)", description = "Allows a user to request a return/refund for a specific order item. Sets status to RETURN_REQUESTED.")
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "200", description = "Return request created successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))),
+                @ApiResponse(responseCode = "400", description = "Invalid input or item not eligible for return"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden (User does not own the order)", content = @Content),
+                @ApiResponse(responseCode = "404", description = "Order or OrderItem not found")
+        })
+        @PostMapping("/{orderId}/items/{itemId}/return-request")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<OrderDto> requestReturnForOrderItem(
+                @PathVariable Long orderId,
+                @PathVariable Long itemId,
+                @RequestParam(required = false) String reason) {
+                String username = getCurrentUsername();
+                OrderDto updatedOrder = orderService.requestReturnForOrderItem(orderId, itemId, username, reason);
+                return ResponseEntity.ok(updatedOrder);
+        }
+
+        // Satıcı veya admin bir sipariş kalemi için iade talebini onaylar
+        @Operation(summary = "Approve return request for an order item (Admin/Seller)", description = "Allows an admin or seller to approve a return/refund request for a specific order item. Processes Stripe refund if applicable.")
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "200", description = "Return request approved and refund processed", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))),
+                @ApiResponse(responseCode = "400", description = "Invalid input or item not eligible for approval"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden (User not authorized)", content = @Content),
+                @ApiResponse(responseCode = "404", description = "Order or OrderItem not found")
+        })
+        @PostMapping("/{orderId}/items/{itemId}/return-approve")
+        @PreAuthorize("hasAnyRole('ADMIN', 'SELLER')")
+        public ResponseEntity<OrderDto> approveReturnForOrderItem(
+                @PathVariable Long orderId,
+                @PathVariable Long itemId) throws Exception {
+                String username = getCurrentUsername();
+                OrderDto updatedOrder = orderService.approveReturnForOrderItem(orderId, itemId, username);
+                return ResponseEntity.ok(updatedOrder);
+        }
+
+        // Satıcı veya admin bir sipariş kalemi için iade talebini reddeder
+        @Operation(summary = "Reject return request for an order item (Admin/Seller)", description = "Allows an admin or seller to reject a return/refund request for a specific order item.")
+        @ApiResponses(value = {
+                @ApiResponse(responseCode = "200", description = "Return request rejected", content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))),
+                @ApiResponse(responseCode = "400", description = "Invalid input or item not eligible for rejection"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden (User not authorized)", content = @Content),
+                @ApiResponse(responseCode = "404", description = "Order or OrderItem not found")
+        })
+        @PostMapping("/{orderId}/items/{itemId}/return-reject")
+        @PreAuthorize("hasAnyRole('ADMIN', 'SELLER')")
+        public ResponseEntity<OrderDto> rejectReturnForOrderItem(
+                @PathVariable Long orderId,
+                @PathVariable Long itemId) {
+                String username = getCurrentUsername();
+                OrderDto updatedOrder = orderService.rejectReturnForOrderItem(orderId, itemId, username);
+                return ResponseEntity.ok(updatedOrder);
+        }
+
 }

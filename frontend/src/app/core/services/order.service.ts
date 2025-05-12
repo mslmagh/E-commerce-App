@@ -175,6 +175,14 @@ export class OrderService {
     );
   }
 
+  // Kullanıcı için: Sipariş kalemi için iade talebi oluştur
+  requestReturnForOrderItem(orderId: number, itemId: number): Observable<Order> {
+    return this.http.post<Order>(`${this.apiUrl}/${orderId}/items/${itemId}/return-request`, {})
+      .pipe(
+        catchError(this.handleError<Order>(`requestReturnForOrderItem orderId=${orderId}, itemId=${itemId}`))
+      );
+  }
+
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
       console.error(`${operation} failed: ${JSON.stringify(error.error) || error.message}`);

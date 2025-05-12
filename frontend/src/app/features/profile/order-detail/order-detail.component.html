@@ -1,0 +1,75 @@
+<div class="order-detail-container">
+  <mat-card *ngIf="isLoading" class="loading-card">
+    <mat-card-content class="loading-content">
+      <mat-progress-spinner diameter="50"></mat-progress-spinner>
+      <p>Sipariş detayları yükleniyor...</p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="error && !isLoading" class="error-card">
+    <mat-card-content class="error-content">
+      <mat-icon color="warn">error_outline</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-stroked-button color="primary" (click)="ngOnInit()">Tekrar Dene</button>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="order && !isLoading && !error" class="order-detail-card">
+    <mat-card-header class="order-header">
+      <div class="order-title-section">
+        <mat-card-title>Sipariş #{{ order.id }}</mat-card-title>
+        <mat-card-subtitle class="order-date">
+          <mat-icon class="date-icon">calendar_today</mat-icon> {{ order.orderDate | date:'dd.MM.yyyy HH:mm' }}
+        </mat-card-subtitle>
+      </div>
+      <mat-chip-set aria-label="Sipariş Durumu" class="order-status-chips">
+        <mat-chip color="primary">{{ getStatusText(order.status) }}</mat-chip>
+      </mat-chip-set>
+    </mat-card-header>
+    
+    <mat-divider></mat-divider>
+    
+    <mat-card-content class="order-card-content">
+      <div class="order-summary">
+        <div class="summary-row"><strong>Toplam Tutar:</strong> {{ order.totalAmount | currency:'TRY':'symbol':'1.2-2' }}</div>
+        <div *ngIf="order.stripePaymentIntentId" class="summary-row"><strong>Ödeme ID:</strong> {{ order.stripePaymentIntentId }}</div>
+      </div>
+      
+      <mat-divider></mat-divider>
+      
+      <div class="products-section">
+        <h3 class="section-title">Ürünler</h3>
+        
+        <div class="product-list">
+          <div class="product-item" *ngFor="let item of order.items">
+            <div class="item-info">
+              <span class="item-name">{{ item.productName }} (x{{ item.quantity }})</span>
+              <span class="item-price">Fiyat: {{ item.priceAtPurchase | currency:'TRY':'symbol':'1.2-2' }}</span>
+              <span class="item-status">Durum: {{ getStatusText(item.status) }}</span>
+            </div>
+            <div class="item-actions">
+              <button mat-stroked-button color="primary" class="return-button" 
+                     [disabled]="requestingItemId === item.id" 
+                     (click)="requestReturn(item)">
+                <mat-icon *ngIf="requestingItemId !== item.id">undo</mat-icon>
+                <mat-progress-spinner *ngIf="requestingItemId === item.id" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                <span>İade Talebi Oluştur</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <mat-divider *ngIf="order.shippingAddress"></mat-divider>
+      
+      <div *ngIf="order.shippingAddress" class="address-section">
+        <h3 class="section-title">Teslimat Adresi</h3>
+        <address class="shipping-address">
+          <p>{{ order.shippingAddress.addressText }}</p>
+          <p>{{ order.shippingAddress.city }}, {{ order.shippingAddress.postalCode }}</p>
+          <p>{{ order.shippingAddress.country }}</p>
+        </address>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div> 

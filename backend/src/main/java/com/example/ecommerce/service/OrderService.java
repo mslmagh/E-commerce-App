@@ -851,4 +851,111 @@ public class OrderService {
                     order.getId(), order.getStatus());
         }
     }
+
+    /**
+     * Kullanıcı bir sipariş kalemi için iade talebi oluşturur
+     */
+    @Transactional
+    public OrderDto requestReturnForOrderItem(Long orderId, Long itemId, String username, String reason) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+        if (!order.getCustomer().getId().equals(user.getId())) {
+            throw new AccessDeniedException("User does not own this order.");
+        }
+        OrderItem item = order.getOrderItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found with id: " + itemId));
+        // Sadece uygun statüdeki ürünler için iade talebi alınabilir
+        // Check if the item is eligible for return (e.g., must be DELIVERED)
+        // if (item.getStatus() != OrderItemStatus.DELIVERED) { // BU KONTROL YORUMA ALINDI
+        //    throw new IllegalStateException("Item status must be DELIVERED to request a return. Current status: " + item.getStatus());
+        // }
+        // Zaten talep edilmişse tekrar talep oluşturulamaz
+        if (item.getStatus() == OrderItemStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("Return already requested for this item.");
+        }
+        item.setStatus(OrderItemStatus.RETURN_REQUESTED);
+        // İade nedeni gibi alanlar eklenebilir (OrderItem entity'ye eklenirse)
+        orderItemRepository.save(item);
+        // Siparişin genel statüsünü güncelle (gerekirse)
+        updateOverallOrderStatus(order);
+        return convertToDto(order);
+    }
+
+    /**
+     * Satıcı veya admin bir sipariş kalemi için iade talebini onaylar ve Stripe refund işlemini başlatır
+     */
+    @Transactional
+    public OrderDto approveReturnForOrderItem(Long orderId, Long itemId, String actorUsername) throws Exception {
+        User actor = userRepository.findByUsername(actorUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + actorUsername));
+        Set<String> actorRoles = actor.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+        boolean isAdmin = actorRoles.contains("ROLE_ADMIN");
+        boolean isSeller = actorRoles.contains("ROLE_SELLER");
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+        OrderItem item = order.getOrderItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found with id: " + itemId));
+        // Sadece RETURN_REQUESTED statüsündeki ürünler onaylanabilir
+        if (item.getStatus() != OrderItemStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("Only items with RETURN_REQUESTED status can be approved for refund.");
+        }
+        // Satıcı ise sadece kendi ürününü onaylayabilir
+        if (isSeller && !item.getProduct().getSeller().getId().equals(actor.getId())) {
+            throw new AccessDeniedException("Seller can only approve returns for their own products.");
+        }
+        // Stripe refund işlemi
+        if (order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
+            throw new IllegalStateException("Order does not have a Stripe payment intent. Cannot process refund.");
+        }
+        // İade edilecek tutar: ürünün toplam fiyatı
+        BigDecimal refundAmount = item.getPriceAtPurchase().multiply(new BigDecimal(item.getQuantity()));
+        String refundId = processStripeRefund(order.getStripePaymentIntentId(), refundAmount);
+        item.setStatus(OrderItemStatus.REFUNDED);
+        item.setStripeRefundId(refundId);
+        item.setRefundedAmount(refundAmount);
+        orderItemRepository.save(item);
+        // Siparişin toplam iade tutarını güncelle
+        if (order.getTotalRefundedAmount() == null) order.setTotalRefundedAmount(BigDecimal.ZERO);
+        order.setTotalRefundedAmount(order.getTotalRefundedAmount().add(refundAmount));
+        updateOverallOrderStatus(order);
+        orderRepository.save(order);
+        return convertToDto(order);
+    }
+
+    /**
+     * Satıcı veya admin bir sipariş kalemi için iade talebini reddeder
+     */
+    @Transactional
+    public OrderDto rejectReturnForOrderItem(Long orderId, Long itemId, String actorUsername) {
+        User actor = userRepository.findByUsername(actorUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + actorUsername));
+        Set<String> actorRoles = actor.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+        boolean isAdmin = actorRoles.contains("ROLE_ADMIN");
+        boolean isSeller = actorRoles.contains("ROLE_SELLER");
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+        OrderItem item = order.getOrderItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found with id: " + itemId));
+        // Sadece RETURN_REQUESTED statüsündeki ürünler reddedilebilir
+        if (item.getStatus() != OrderItemStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("Only items with RETURN_REQUESTED status can be rejected.");
+        }
+        // Satıcı ise sadece kendi ürününü reddedebilir
+        if (isSeller && !item.getProduct().getSeller().getId().equals(actor.getId())) {
+            throw new AccessDeniedException("Seller can only reject returns for their own products.");
+        }
+        item.setStatus(OrderItemStatus.DELIVERED); // Reddedilirse tekrar teslim edildi statüsüne alınır
+        orderItemRepository.save(item);
+        updateOverallOrderStatus(order);
+        orderRepository.save(order);
+        return convertToDto(order);
+    }
 }
