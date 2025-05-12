@@ -3,7 +3,7 @@
 /* Ana Container: İçeriği ortalar ve yan boşlukları ayarlar */
 .homepage-container {
   padding: 20px 0;
-  max-width: 1200px; /* Ana içerikle aynı genişlik */
+  max-width: 1600px; /* Ana içerikle aynı genişlik (genişletildi) */
   margin: 0 auto; /* Ortala */
   padding: 0 15px; /* Yan boşluklar */
 }
@@ -170,7 +170,7 @@
   margin-top: -25px;
 }
 .category-nav {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 15px;
 }
