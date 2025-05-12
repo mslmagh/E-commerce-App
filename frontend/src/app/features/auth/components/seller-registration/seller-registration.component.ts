@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AuthService, SignupRequest } from '../../../../core/services/auth.service'; // SignupRequest import edildi
+import { AuthService, SignupRequest } from '../../../../core/services/auth.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
-import { MatStepperModule } from '@angular/material/stepper'; // Stepper için eklendi, ama kullanılmıyorsa kaldırılabilir.
+import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
@@ -51,8 +51,9 @@ import { MatSelectModule } from '@angular/material/select';
 export class SellerRegistrationComponent implements OnInit, OnDestroy {
   sellerRegisterForm!: FormGroup;
   isLoading = false;
-  applicationSubmitted = false;
-  private authSubscription!: Subscription;
+  hidePassword = true;
+  hideConfirmPassword = true;
+  private authSubscription?: Subscription;
 
   constructor(
     private fb: FormBuilder,
@@ -63,41 +64,13 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sellerRegisterForm = this.fb.group({
-      storeName: ['', Validators.required],
-      storeType: ['', Validators.required], // Bireysel, Şirket
-      taxNumber: [''], // Şirket ise zorunlu
-      idNumber: [''],   // Bireysel ise zorunlu
-      contactFirstName: ['', Validators.required],
-      contactLastName: ['', Validators.required],
-      contactEmail: ['', [Validators.required, Validators.email]], // Bu, username olarak da kullanılacak
-      contactPhone: ['', [Validators.required, Validators.pattern("^[0-9]{10,15}$")]],
-      addressLine1: ['', Validators.required],
-      city: ['', Validators.required],
-      postalCode: ['', Validators.required],
+      username: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      phoneNumber: ['', [Validators.required, Validators.pattern("^[0-9]{10,15}$")]],
+      taxId: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', Validators.required],
-      termsAccepted: [false, Validators.requiredTrue],
-      privacyPolicyAccepted: [false, Validators.requiredTrue]
+      confirmPassword: ['', Validators.required]
     }, { validator: this.passwordMatchValidator });
-
-    this.sellerRegisterForm.get('storeType')?.valueChanges.subscribe(type => {
-      const taxNumberControl = this.sellerRegisterForm.get('taxNumber');
-      const idNumberControl = this.sellerRegisterForm.get('idNumber');
-      if (type === 'Şirket') {
-        taxNumberControl?.setValidators([Validators.required, Validators.pattern("^[0-9]{10}$")]);
-        idNumberControl?.clearValidators();
-        idNumberControl?.setValue(''); // Değeri temizle
-      } else if (type === 'Bireysel') {
-        idNumberControl?.setValidators([Validators.required, Validators.pattern("^[1-9]{1}[0-9]{9}[02468]{1}$")]);
-        taxNumberControl?.clearValidators();
-        taxNumberControl?.setValue(''); // Değeri temizle
-      } else {
-        taxNumberControl?.clearValidators();
-        idNumberControl?.clearValidators();
-      }
-      taxNumberControl?.updateValueAndValidity();
-      idNumberControl?.updateValueAndValidity();
-    });
   }
 
   passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -129,40 +102,31 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     const formValue = this.sellerRegisterForm.value;
 
-    const payload: SignupRequest = {
-      username: formValue.contactEmail, // Satıcı için username = contactEmail
-      email: formValue.contactEmail,
+    const signupPayload: SignupRequest = {
+      username: formValue.username,
+      email: formValue.email,
+      phoneNumber: formValue.phoneNumber,
+      taxId: formValue.taxId,
       password: formValue.password,
-      role: 'ROLE_SELLER' // Rolü explicit olarak SELLER ata
+      role: 'ROLE_SELLER'
     };
 
+    this.authSubscription?.unsubscribe();
 
-    if (this.authSubscription) {
-      this.authSubscription.unsubscribe();
-    }
-
-    this.authSubscription = this.authService.registerSeller(payload).subscribe({
+    this.authSubscription = this.authService.registerSeller(signupPayload).subscribe({
       next: (response: any) => {
         this.isLoading = false;
-        this.applicationSubmitted = true; // Başarı mesajını göster
-        this.snackBar.open('Satıcı hesap başvurunuz alındı. Onay süreci için bilgilendirileceksiniz.', 'Tamam', { duration: 7000, panelClass: ['success-snackbar'] });
-        this.sellerRegisterForm.reset();
-         Object.keys(this.sellerRegisterForm.controls).forEach(key => {
-            this.sellerRegisterForm.get(key)?.setErrors(null) ;
-            this.sellerRegisterForm.get(key)?.markAsPristine();
-            this.sellerRegisterForm.get(key)?.markAsUntouched();
-        });
-        this.sellerRegisterForm.updateValueAndValidity();
-        console.log('Seller basic account registration submitted successfully:', response);
+        console.log('Seller registration successful:', response);
+        this.snackBar.open('Satıcı kaydınız başarıyla oluşturuldu! Giriş yapabilirsiniz.', 'Tamam', { duration: 5000, panelClass: ['success-snackbar'] });
+        this.router.navigate(['/auth/login']);
       },
       error: (error: HttpErrorResponse) => {
         this.isLoading = false;
-        this.applicationSubmitted = false;
-        let displayErrorMessage = 'Satıcı başvurusu sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+        let displayErrorMessage = 'Satıcı kaydı sırasında bir hata oluştu. Lütfen tekrar deneyin.';
         if (error.error && typeof error.error.message === 'string') {
           const backendMsg = error.error.message.toLowerCase();
           if (backendMsg.includes('username is already taken')) {
-            displayErrorMessage = 'Bu e-posta (kullanıcı adı olarak) zaten bir hesaba atanmış.';
+            displayErrorMessage = 'Bu kullanıcı adı zaten alınmış.';
           } else if (backendMsg.includes('email is already in use')) {
             displayErrorMessage = 'Bu e-posta adresi zaten kayıtlı.';
           } else {
@@ -172,30 +136,12 @@ export class SellerRegistrationComponent implements OnInit, OnDestroy {
           displayErrorMessage = 'Sunucuya ulaşılamıyor. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.';
         }
         this.snackBar.open(displayErrorMessage, 'Kapat', { duration: 5000, panelClass: ['error-snackbar'] });
-        console.error('Seller basic account registration failed:', error);
+        console.error('Seller registration failed:', error);
       }
     });
   }
 
   ngOnDestroy(): void {
-    if (this.authSubscription) {
-      this.authSubscription.unsubscribe();
-    }
+    this.authSubscription?.unsubscribe();
   }
-
-  get storeName() { return this.sellerRegisterForm.get('storeName'); }
-  get storeType() { return this.sellerRegisterForm.get('storeType'); }
-  get taxNumber() { return this.sellerRegisterForm.get('taxNumber'); }
-  get idNumber() { return this.sellerRegisterForm.get('idNumber'); }
-  get contactFirstName() { return this.sellerRegisterForm.get('contactFirstName'); }
-  get contactLastName() { return this.sellerRegisterForm.get('contactLastName'); }
-  get contactEmail() { return this.sellerRegisterForm.get('contactEmail'); }
-  get contactPhone() { return this.sellerRegisterForm.get('contactPhone'); }
-  get addressLine1() { return this.sellerRegisterForm.get('addressLine1'); }
-  get city() { return this.sellerRegisterForm.get('city'); }
-  get postalCode() { return this.sellerRegisterForm.get('postalCode'); }
-  get password() { return this.sellerRegisterForm.get('password'); }
-  get confirmPassword() { return this.sellerRegisterForm.get('confirmPassword'); }
-  get termsAccepted() { return this.sellerRegisterForm.get('termsAccepted'); }
-  get privacyPolicyAccepted() { return this.sellerRegisterForm.get('privacyPolicyAccepted'); }
 }

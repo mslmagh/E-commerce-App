@@ -26,6 +26,13 @@ public class SignupRequest {
             example = "SELLER")
     private String role; // Changed from Set<String> roles
 
+    // +++ ADDED FIELDS FOR SELLER +++
+    @Schema(description = "Tax/TC Kimlik Numarası (Required for SELLER role)", example = "12345678901")
+    private String taxId;
+
+    @Schema(description = "Phone Number (Required for SELLER role)", example = "5551234567")
+    private String phoneNumber;
+    // +++ END ADDED FIELDS +++
 
     // --- Getters and Setters ---
     public String getUsername() { return username; }
@@ -37,4 +44,11 @@ public class SignupRequest {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    // +++ Getters and Setters for new fields +++
+    public String getTaxId() { return taxId; }
+    public void setTaxId(String taxId) { this.taxId = taxId; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    // +++ END Getters and Setters +++
 }

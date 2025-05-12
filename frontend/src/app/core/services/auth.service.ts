@@ -24,8 +24,25 @@ export interface SignupRequest {
   email: string;
   password: string;
   role?: string; // Backend 'role' olarak tek bir string bekliyor.
+  taxId?: string; // Added for seller registration
+  phoneNumber?: string; // Added for seller registration
 }
 
+export interface UpdateUserProfileRequestDto {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  taxId?: string | null; // Tax ID is optional or can be null
+}
+
+// Add AddressRequestDto interface
+export interface AddressRequestDto {
+  phoneNumber: string;
+  country: string;
+  city: string;
+  postalCode: string;
+  addressText: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -137,6 +154,37 @@ export class AuthService {
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('AuthService: Seller (basic account) registration HTTP error', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updateUserProfile(profileData: UpdateUserProfileRequestDto): Observable<any> {
+    const profileUrl = `${this.apiUrl}/profile/me`;
+    console.log('AuthService: Updating user profile:', profileData);
+    return this.http.put<any>(profileUrl, profileData).pipe(
+      tap((response) => {
+        console.log('AuthService: Profile update API response:', response);
+        // Optionally update local storage if response contains updated data (e.g., email didn't change, but name did)
+        // Example: if (response && response.username) localStorage.setItem('username', response.username);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('AuthService: Profile update HTTP error', error);
+        // Maybe surface a more specific error?
+        return throwError(() => error);
+      })
+    );
+  }
+
+  addAddress(addressData: AddressRequestDto): Observable<any> {
+    const addressUrl = `${this.apiUrl}/my-addresses`;
+    console.log('AuthService: Adding address:', addressData);
+    return this.http.post<any>(addressUrl, addressData).pipe(
+      tap((response) => {
+        console.log('AuthService: Add address API response:', response);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('AuthService: Add address HTTP error', error);
         return throwError(() => error);
       })
     );
