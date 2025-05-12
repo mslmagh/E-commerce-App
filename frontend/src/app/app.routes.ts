@@ -73,4 +73,9 @@ export const routes: Routes = [
   { path: 'products', loadComponent: () => import('./features/products/product-list/product-list.component').then(m => m.ProductListComponent) },
   { path: 'categories/:categoryId', loadComponent: () => import('./features/products/product-list/product-list.component').then(m => m.ProductListComponent) },
   // { path: 'orders', loadChildren: () => import('./features/orders/orders.routes').then(m => m.ORDER_ROUTES), canActivate: [authGuard] },
+  {
+    path: 'compare',
+    loadComponent: () => 
+      import('./features/compare/product-comparison/product-comparison.component').then(c => c.ProductComparisonComponent),
+  },
 ];

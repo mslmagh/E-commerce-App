@@ -1,5 +1,6 @@
 package com.example.ecommerce.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal; // Import BigDecimal
 import java.time.LocalDateTime; // LocalDateTime import edildi
@@ -96,6 +97,7 @@ public class ProductDto {
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
 
     // Yeni alanlar için Getter ve Setterlar
+    @JsonProperty("isActive")
     public boolean isActive() {
         return isActive;
     }

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*; // Use wildcard
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -87,6 +88,33 @@ public class ProductController {
     public ResponseEntity<ProductDto> getProductById(@Parameter(description = "ID of product to retrieve") @PathVariable Long id) {
         ProductDto productDto = productService.getProductById(id);
         return ResponseEntity.ok(productDto);
+    }
+
+    // YENİ ENDPOINT
+    @Operation(summary = "Get Multiple Products by their IDs",
+               description = "Retrieves a list of products based on a provided list of product IDs. Publicly accessible.",
+               security = {}) // Public endpoint
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of products",
+                         content = @Content(mediaType = "application/json",
+                                 array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))),
+            @ApiResponse(responseCode = "400", description = "Request body is empty or invalid")
+    })
+    @PostMapping("/batch") // Request body'den ID listesi alacak
+    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            // Spring Boot genellikle boş bir body için 400 Bad Request döner,
+            // ama yine de açıkça kontrol etmek iyi bir pratik.
+            return ResponseEntity.badRequest().body(Collections.emptyList()); 
+        }
+        List<ProductDto> products = productService.getProductsByIds(ids);
+        if (products.isEmpty() && !ids.isEmpty()) {
+            // İstenen ID'lerden hiçbiri bulunamadıysa 404 Not Found daha uygun olabilir,
+            // ancak ID listesi boş değilken boş product listesi dönmek de kabul edilebilir.
+            // Şimdilik 200 OK ile boş liste dönüyoruz, bu frontend için daha basit olabilir.
+            // return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+        }
+        return ResponseEntity.ok(products);
     }
 
     @Operation(summary = "Get Products for Current Seller",

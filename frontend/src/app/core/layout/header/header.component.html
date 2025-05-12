@@ -37,6 +37,10 @@
             <mat-icon>person</mat-icon>
             <span>Profilim</span>
           </button>
+          <button mat-menu-item routerLink="/admin/dashboard" *ngIf="isAdmin$ | async">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>Admin Paneli</span>
+          </button>
           <button mat-menu-item routerLink="/seller/dashboard" *ngIf="isSeller$ | async"> <mat-icon>storefront</mat-icon> <span>Satıcı Paneli</span> </button>
           <button mat-menu-item (click)="logout()">
             <mat-icon>logout</mat-icon>
@@ -57,6 +61,17 @@
               matBadgeOverlap="true"
               aria-label="Alışveriş Sepeti" title="Sepetim" class="action-button">
         <mat-icon>shopping_cart</mat-icon>
+      </button>
+
+      <button mat-icon-button 
+              routerLink="/compare"
+              [disabled]="(compareItemCount$ | async) === 0 || (compareItemCount$ | async) === 1" 
+              [matBadge]="(compareItemCount$ | async) || null"
+              [matBadgeHidden]="(compareItemCount$ | async) === 0"
+              matBadgeColor="accent" 
+              matBadgeOverlap="true"
+              aria-label="Ürünleri Karşılaştır" title="Seçili Ürünleri Karşılaştır" class="action-button">
+        <mat-icon>compare_arrows</mat-icon>
       </button>
 
     </div>

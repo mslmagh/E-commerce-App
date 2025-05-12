@@ -1,6 +1,6 @@
 <mat-card class="product-mat-card">
-  <a [routerLink]="['/products', product.id]" class="product-card-link">
-    <img mat-card-image [src]="product.imageUrl || 'https://via.placeholder.com/300x300?text=Image'" [alt]="product.name">
+  <a [routerLink]="['/products', product.id]" class="product-card-link" [title]="product.name">
+    <img mat-card-image [src]="product.imageUrl || 'https://via.placeholder.com/200x200/EEEEEE/999999?text=No+Image'" [alt]="product.name">
     <mat-card-content>
       <mat-card-title class="product-name">{{ product.name }}</mat-card-title>
       
@@ -15,12 +15,19 @@
         <!-- <span class="no-reviews-yet">(Henüz Yorum Yok)</span> -->
       </div>
 
-      <mat-card-subtitle class="product-price">{{ product.price | currency:'TRY':'symbol':'1.0-0' }}</mat-card-subtitle>
+      <mat-card-subtitle class="product-price">{{ product.price | currency:'TRY':'symbol':'1.2-2' }}</mat-card-subtitle>
     </mat-card-content>
   </a>
   <mat-card-actions>
-    <button mat-flat-button (click)="addToCart(); $event.stopPropagation()">
-      Sepete Ekle
+    <button mat-flat-button color="warn" class="add-to-cart-btn" (click)="addToCart()" matTooltip="Sepete Ekle">
+      <mat-icon>shopping_cart</mat-icon>
+      SEPETE EKLE
+    </button>
+    <button mat-icon-button 
+            [color]="isInCompareList ? 'accent' : 'primary'" 
+            (click)="toggleCompare()" 
+            [matTooltip]="isInCompareList ? 'Karşılaştırmadan Çıkar' : 'Karşılaştırmaya Ekle'">
+      <mat-icon>{{ isInCompareList ? 'check_circle' : 'compare_arrows' }}</mat-icon>
     </button>
   </mat-card-actions>
 </mat-card>

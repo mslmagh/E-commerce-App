@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common'; // *ngFor, async pipe vb. için
-import { Router, RouterLink } from '@angular/router'; // Yönlendirme ve linkler için
+import { Router } from '@angular/router'; // RouterLink removed
 import { MatTableModule } from '@angular/material/table'; // Tablo için
 import { MatButtonModule } from '@angular/material/button'; // Butonlar için
 import { MatIconModule } from '@angular/material/icon';     // İkonlar için
@@ -19,7 +19,6 @@ import { EMPTY } from 'rxjs';
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink, // HTML'de routerLink kullanacaksak
     MatTableModule,
     MatButtonModule,
     MatIconModule,

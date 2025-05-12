@@ -59,6 +59,14 @@ export class ProductService {
     );
   }
 
+  getProductsForAdmin(): Observable<Product[]> {
+    console.log('ProductService: Fetching ALL products for ADMIN from API (using main /products endpoint, backend handles role check)...');
+    return this.httpClient.get<Product[]>(this.apiUrl).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products (admin view).`)),
+      catchError(this.handleError<Product[]>('getProductsForAdmin', []))
+    );
+  }
+
   getMyProducts(): Observable<Product[]> {
     console.log('ProductService: Fetching products for current seller from API...');
     return this.httpClient.get<Product[]>(`${this.apiUrl}/my`).pipe(
@@ -78,6 +86,18 @@ export class ProductService {
     return this.httpClient.get<Product>(`${this.apiUrl}/${productId}`).pipe(
       tap(product => console.log(`ProductService: Fetched product for ID ${productId}:`, product)),
       catchError(this.handleError<Product | undefined>(`getProductById id=${productId}`))
+    );
+  }
+
+  getProductsByIds(ids: number[]): Observable<Product[]> {
+    if (!ids || ids.length === 0) {
+      console.log('ProductService: getProductsByIds called with empty ID list, returning empty array.');
+      return new Observable(observer => observer.next([])); // Veya of([]) rxjs operatörü
+    }
+    console.log(`ProductService: Fetching products for IDs (batch): ${ids} from API`);
+    return this.httpClient.post<Product[]>(`${this.apiUrl}/batch`, ids).pipe(
+      tap(products => console.log(`ProductService: Fetched ${products.length} products in batch for IDs: ${ids}.`)),
+      catchError(this.handleError<Product[]>('getProductsByIds', []))
     );
   }
 

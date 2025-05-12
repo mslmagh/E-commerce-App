@@ -103,11 +103,14 @@ export class AdminProductListComponent implements OnInit, AfterViewInit {
 
   loadProducts(): void {
     this.isLoading = true;
-    this.productService.getProducts().subscribe({
+    this.productService.getProductsForAdmin().subscribe({
       next: (products: BackendProduct[]) => {
+        console.log('AdminProductListComponent: Products received from backend:', products);
+        products.forEach(p => {
+          console.log(`Product ID: ${p.id}, Name: ${p.name}, isActive: ${p.isActive}, Type: ${typeof p.isActive}`);
+        });
         this.dataSource.data = products;
         this.isLoading = false;
-        console.log(`Backend'den ürünler yüklendi:`, products);
       },
       error: (err) => {
         this.isLoading = false;

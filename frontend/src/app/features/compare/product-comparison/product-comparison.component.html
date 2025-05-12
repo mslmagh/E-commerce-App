@@ -1,0 +1,83 @@
+<div class="comparison-container">
+  <h1 class="page-title">Ürün Karşılaştırma</h1>
+
+  <div *ngIf="isLoading" class="spinner-container">
+    <mat-spinner></mat-spinner>
+    <p>Karşılaştırma verileri yükleniyor...</p>
+  </div>
+
+  <div *ngIf="!isLoading && (!comparedProducts || comparedProducts.length === 0)" class="empty-state">
+    <mat-icon class="empty-icon">search_off</mat-icon>
+    <h2>Karşılaştırılacak Ürün Yok</h2>
+    <p>Karşılaştırmak için en az 2 ürün seçmelisiniz. Ürün kartlarındaki <mat-icon inline>compare_arrows</mat-icon> ikonunu kullanabilirsiniz.</p>
+    <button mat-flat-button color="primary" routerLink="/">Alışverişe Devam Et</button>
+  </div>
+
+  <div *ngIf="!isLoading && comparedProducts && comparedProducts.length > 0">
+    
+    <div *ngIf="comparedProducts.length === 1" class="info-message">
+        <mat-icon>info_outline</mat-icon>
+        <span>Karşılaştırma yapmak için en az 2 ürün seçmelisiniz.</span>
+    </div>
+
+    <div class="table-responsive" *ngIf="comparedProducts.length >= 1"> <!-- >=1 yaptık çünkü tek ürün de olsa tabloyu göstersin -->
+      <table mat-table [dataSource]="getTableDataSource()" class="mat-elevation-z8 comparison-table">
+
+        <!-- Feature Column -->
+        <ng-container matColumnDef="feature">
+          <th mat-header-cell *matHeaderCellDef>Özellik</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ row.feature }}</strong></td>
+        </ng-container>
+
+        <!-- Dynamic Product Columns -->
+        <ng-container *ngFor="let product of comparedProducts; let i = index" [matColumnDef]="product.name"> 
+        <!-- Yukarıda product.name kullandık, ID bazlı ise 'product-' + product.id olmalı -->
+          <th mat-header-cell *matHeaderCellDef class="product-header">
+            <a [routerLink]="['/products', product.id]" class="product-link" [title]="product.name">
+              {{ product.name }}
+            </a>
+            <button mat-icon-button color="warn" (click)="removeFromCompare(product.id)" matTooltip="Karşılaştırmadan Çıkar" class="remove-button">
+              <mat-icon>highlight_off</mat-icon>
+            </button>
+          </th>
+          <td mat-cell *matCellDef="let row" [ngSwitch]="row.feature">
+            
+            <ng-container *ngSwitchCase="'Görsel'">
+              <a [routerLink]="['/products', product.id]">
+                <img [src]="row[product.name]" [alt]="product.name" class="compare-product-image">
+              </a>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'Fiyat'">
+              {{ row[product.name] | currency:'TRY':'symbol':'1.2-2' }}
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'Puan'">
+              <div class="rating-stars" *ngIf="row[product.name].rating > 0">
+                <ng-container *ngFor="let star of [1,2,3,4,5]">
+                  <mat-icon>{{ star <= row[product.name].rating ? 'star' : 'star_border' }}</mat-icon>
+                </ng-container>
+                <span class="review-count">({{ row[product.name].count || 0 }})</span>
+              </div>
+              <span *ngIf="!row[product.name].rating || row[product.name].rating === 0">-</span>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'İşlemler'">
+                <!-- Bu kısım artık header'da olduğu için boş veya sepete ekle butonu konulabilir -->
+                <!-- <button mat-stroked-button color="primary" (click)="addToCart(product.id)">Sepete Ekle</button> -->
+                <!-- Şimdilik boş bırakıyoruz, product header'daki X butonu ana işlevi görüyor -->
+            </ng-container>
+
+            <ng-container *ngSwitchDefault>
+              <span [innerHTML]="row[product.name] || '-'"></span>
+            </ng-container>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+
+  </div>
+</div> 

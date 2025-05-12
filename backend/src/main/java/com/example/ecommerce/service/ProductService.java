@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,19 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductDto> getAllProductsForAdmin() {
         return productRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductDto> getProductsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            logger.info("ProductService: getProductsByIds called with empty or null ID list.");
+            return Collections.emptyList();
+        }
+        logger.info("ProductService: Fetching products for IDs: {}", ids);
+        List<Product> products = productRepository.findAllById(ids);
+        return products.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

@@ -381,7 +381,7 @@ export class PaymentComponent implements OnInit, OnDestroy, AfterViewInit {
           console.log('[Payment] Payment Succeeded:', result.paymentIntent);
           this.snackBar.open('Ödeme başarıyla tamamlandı!', 'Harika!', { duration: 5000 });
           this.cartService.clearCart().subscribe(); 
-          this.router.navigate(['/profile/orders']);
+          this.router.navigate(['/']);
         } else {
           throw new Error(`Ödeme durumu beklenmiyor: ${result.paymentIntent?.status || 'bilinmiyor'}`);
         }
@@ -407,7 +407,7 @@ export class PaymentComponent implements OnInit, OnDestroy, AfterViewInit {
       setTimeout(() => {
         this.cartService.clearCart().subscribe();
         this.snackBar.open('Kapıda ödeme siparişiniz başarıyla alındı!', 'Harika!', { duration: 7000 });
-        this.router.navigate(['/profile/orders']); 
+        this.router.navigate(['/']); 
         this.isLoading = false; 
         this.cd.detectChanges();
       }, 1500);

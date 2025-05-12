@@ -7,7 +7,6 @@ import { Product, ProductService } from '../../../core/services/product.service'
 import { CartService } from '../../../core/services/cart.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
-import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CategoryService, Category } from '../../../core/services/category.service';
 import { CartItemRequest } from '../../../core/models/cart-item-request.model';
@@ -20,7 +19,6 @@ import { CartItemRequest } from '../../../core/models/cart-item-request.model';
     RouterLink,
     MatSnackBarModule,
     MatButtonModule,
-    ProductCardComponent,
     MatProgressSpinnerModule
   ],
   templateUrl: './product-list.component.html',
