@@ -528,6 +528,34 @@ public class OrderService {
     public List<OrderDto> getOrdersForCurrentUser() {
         User customer = getCurrentAuthenticatedUserEntity();
         List<Order> orders = orderRepository.findByCustomerUsername(customer.getUsername());
+        for (Order order : orders) {
+            if (order == null) {
+                logger.error("Order list contains null order!");
+            } else {
+                if (order.getCustomer() == null) {
+                    logger.error("Order {} has null customer!", order.getId());
+                }
+                if (order.getOrderItems() == null) {
+                    logger.warn("Order {} has null orderItems list!", order.getId());
+                } else {
+                    for (OrderItem item : order.getOrderItems()) {
+                        if (item == null) {
+                            logger.error("Order {} has null OrderItem in orderItems list!", order.getId());
+                        } else {
+                            if (item.getProduct() == null) {
+                                logger.error("OrderItem {} in Order {} has null product!", item.getId(), order.getId());
+                            }
+                        }
+                    }
+                }
+                if (order.getShippingAddress() == null) {
+                    logger.warn("Order {} has null shippingAddress!", order.getId());
+                }
+                if (order.getTotalAmount() == null) {
+                    logger.warn("Order {} has null totalAmount!", order.getId());
+                }
+            }
+        }
         return orders.stream().map(this::convertToDto) /* Uses simple convertToDto for customer */ .collect(Collectors.toList());
     }
 
@@ -690,22 +718,26 @@ public class OrderService {
 
     // Original convertToDto for contexts where filtering is not needed or handled differently (e.g. admin views all)
     private OrderDto convertToDto(Order order) {
-         // For simplicity, let's assume we always want to pass the current user if available
-         // However, this might require fetching the user even if not strictly necessary for this specific overload.
-         // A better approach might be to have the calling methods decide which convertToDto to call.
-         // For now, let's make this one call the new one with nulls, implying no specific filtering by default.
-         // OR, even better, make the methods that need filtering call the new one explicitly.
-
-        // Defaulting to no specific user context for this simpler overload
+        if (order == null) {
+            logger.error("convertToDto called with null order!");
+            return null;
+        }
         List<OrderItemDto> itemDtos = (order.getOrderItems() != null)
                 ? order.getOrderItems().stream().map(this::convertItemToDto).collect(Collectors.toList())
                 : new ArrayList<>();
         AddressDto shippingAddressDto = (order.getShippingAddress() != null)
                 ? convertAddressToDto(order.getShippingAddress())
                 : null;
+        if (order.getCustomer() == null) {
+            logger.error("convertToDto: Order {} has null customer!", order.getId());
+        }
+        if (order.getTotalAmount() == null) {
+            logger.warn("convertToDto: Order {} has null totalAmount!", order.getId());
+        }
         return new OrderDto(
                 order.getId(), order.getOrderDate(), order.getStatus(), order.getTotalAmount(), // Original total amount
-                order.getCustomer().getId(), order.getCustomer().getUsername(), itemDtos, // All items
+                order.getCustomer() != null ? order.getCustomer().getId() : null,
+                order.getCustomer() != null ? order.getCustomer().getUsername() : null, itemDtos, // All items
                 shippingAddressDto,
                 order.getStripePaymentIntentId());
     }
