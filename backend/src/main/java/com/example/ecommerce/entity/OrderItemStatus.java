@@ -7,5 +7,6 @@ public enum OrderItemStatus {
     REFUND_PROCESSING,      // İade işlemi Stripe'a gönderildi, onay bekleniyor
     REFUNDED,               // İade başarıyla tamamlandı
     DELIVERED,              // Bu kalem teslim edildi (eğer kalem bazlı teslimat takibi varsa)
-    SHIPPED                 // Bu kalem kargoya verildi (eğer kalem bazlı kargo takibi varsa)
+    SHIPPED,                // Bu kalem kargoya verildi (eğer kalem bazlı kargo takibi varsa)
+    RETURN_REQUESTED        // Kullanıcı tarafından iade talep edildi
 }
