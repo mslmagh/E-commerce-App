@@ -1,0 +1,287 @@
+/* General container and page title */
+.order-list-container {
+  padding: 24px;
+  max-width: 1200px; /* Limit overall width */
+  margin: 0 auto; /* Center container */
+}
+
+.page-title {
+  font-size: 2em; /* Larger page title */
+  font-weight: 500;
+  margin-bottom: 24px;
+  color: #333; /* Darker title color */
+}
+
+/* Loading, Error, No Orders states */
+.loading-spinner-container,
+.error-message-container,
+.no-orders-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 200px; /* Ensure some height */
+}
+
+.loading-spinner-container p {
+  margin-top: 16px;
+  font-size: 1.1em;
+  color: #555;
+}
+
+.error-message-container .error-card,
+.no-orders-container .info-card {
+  max-width: 450px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-message-container mat-icon,
+.no-orders-container mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+}
+
+.error-message-container .error-card mat-icon {
+ color: #f44336; /* Material Red */
+}
+
+.no-orders-container .info-card .info-icon {
+ color: #2196F3; /* Material Blue */
+}
+
+.error-message-container p,
+.no-orders-container p {
+  font-size: 1.1em;
+  margin-bottom: 20px;
+  color: #444;
+}
+
+/* Grid layout for orders */
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* Responsive grid */
+  gap: 20px; /* Space between cards */
+}
+
+/* Individual Order Card Styling */
+.order-card {
+  border-radius: 8px; /* Slightly rounded corners */
+  overflow: hidden; /* Ensure content respects border radius */
+  transition: box-shadow 0.3s ease;
+}
+
+.order-card:hover {
+ box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* More pronounced shadow on hover */
+}
+
+.order-card-header {
+  background-color: #f8f9fa; /* Light background for header */
+  padding: 16px 20px;
+  display: flex; /* Use flexbox for better control */
+  flex-wrap: wrap; /* Allow wrapping */
+  align-items: center; /* Align items vertically */
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.order-card-title {
+  font-size: 1.3em;
+  font-weight: 500;
+  margin-right: auto; /* Push other items to the right */
+  margin-bottom: 4px; /* Space below title */
+  flex-basis: 100%; /* Take full width initially */
+}
+
+.order-card-subtitle {
+  font-size: 0.9em;
+  color: #666;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px; /* Space below subtitle */
+  flex-grow: 1; /* Take available space */
+  min-width: 180px; /* Ensure date doesn't wrap too soon */
+}
+
+.subtitle-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.order-status-chip {
+  margin-left: auto; /* Push chip to the far right */
+  flex-shrink: 0; /* Prevent chip from shrinking */
+}
+
+/* Style the chip itself */
+.order-status-chip .mat-mdc-chip {
+  height: 28px;
+  font-size: 0.8em;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 16px;
+  cursor: default !important; /* Disable cursor change */
+  min-width: 90px; /* Minimum width for consistency */
+  text-align: center;
+}
+
+/* Order Card Content */
+.order-card-content {
+  padding: 16px 20px;
+}
+
+.order-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.85em;
+  color: #777;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  font-size: 1em;
+  font-weight: 500;
+  color: #333;
+}
+
+.total-amount {
+  font-size: 1.1em;
+  color: #1a73e8; /* Highlight total amount */
+}
+
+.payment-id {
+  font-family: monospace; /* Use monospace for IDs */
+  font-size: 0.9em;
+  word-break: break-all; /* Prevent long IDs from breaking layout */
+}
+
+.section-title {
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.content-divider {
+  margin: 16px 0;
+}
+
+/* Order Items List */
+.order-items-list .mat-mdc-list-item {
+  padding: 8px 0 !important; /* Adjust list item padding */
+  height: auto !important; /* Allow item height to adjust */
+}
+
+.order-items-list .mat-mdc-list-item-title {
+  font-size: 0.95em;
+  font-weight: 500;
+}
+
+.order-items-list .mat-mdc-list-item-line {
+  font-size: 0.85em;
+  color: #666;
+}
+
+/* Shipping Address */
+.shipping-address-details {
+  margin-top: 16px;
+}
+
+.shipping-address-details address {
+  font-style: normal;
+  line-height: 1.5;
+  font-size: 0.9em;
+  color: #555;
+  background-color: #fdfdfd;
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+
+.shipping-address-details address p {
+  margin: 0 0 4px 0;
+}
+
+/* Status-specific chip styling */
+.status-pending {
+  background-color: #FFF9C4 !important; /* Light Yellow */
+  color: #F57F17 !important; /* Dark Yellow/Orange */
+}
+
+.status-shipped {
+  background-color: #E1F5FE !important; /* Light Blue */
+  color: #0277BD !important; /* Dark Blue */
+}
+
+.status-delivered {
+  background-color: #C8E6C9 !important; /* Light Green */
+  color: #2E7D32 !important; /* Dark Green */
+}
+
+.status-cancelled {
+  background-color: #F5F5F5 !important; /* Light Gray */
+  color: #757575 !important; /* Medium Gray */
+}
+
+.status-incomplete {
+  background-color: #FFCCBC !important; /* Light Red/Orange */
+  color: #D84315 !important; /* Deep Orange */
+}
+
+.status-payment-failed {
+  background-color: #FFEBEE !important; /* Light Red */
+  color: #C62828 !important; /* Dark Red */
+}
+
+.status-unknown {
+  background-color: #E0E0E0 !important; /* Gray */
+  color: #424242 !important; /* Dark Gray */
+}
+
+/* Adjustments for smaller screens if needed */
+@media (max-width: 600px) {
+  .order-list-container {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 1.6em;
+    margin-bottom: 16px;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr; /* Stack cards vertically on small screens */
+    gap: 16px;
+  }
+
+  .order-card-header {
+    padding: 12px 16px;
+  }
+
+  .order-card-title {
+    font-size: 1.15em;
+  }
+
+  .order-card-content {
+    padding: 12px 16px;
+  }
+}
